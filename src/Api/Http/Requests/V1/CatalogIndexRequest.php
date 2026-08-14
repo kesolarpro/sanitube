@@ -104,7 +104,9 @@ abstract class CatalogIndexRequest extends FormRequest
      */
     public function filters(): array
     {
-        /** @var array<string, string> $filters */
+        // A query parameter can arrive as an array (`?status[]=X`), so this is
+        // genuinely mixed and the guard below is not decoration.
+        /** @var array<string, mixed> $filters */
         $filters = $this->only(array_keys($this->allowedFilters()));
 
         return array_filter($filters, static fn (mixed $value): bool => is_string($value) && $value !== '');

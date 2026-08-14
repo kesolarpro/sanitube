@@ -33,7 +33,7 @@ final class CompositionResource extends JsonResource
                     'role' => $credit->role->value,
                     'share' => $credit->share,
                     'position' => $credit->position,
-                ])->values()),
+                ])->values()->all()),
             'identifiers' => ExternalIdentifierResource::collection(
                 $this->whenLoaded('externalIdentifiers'),
             ),

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature\Api;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Testing\TestResponse;
 use PHPUnit\Framework\Attributes\Test;
 use SaniTube\Artists\Models\Artist;
@@ -30,6 +31,7 @@ final class CatalogApiTest extends TestCase
 
     /**
      * @param  array<string, mixed>  $query
+     * @return TestResponse<JsonResponse>
      */
     private function get_(string $uri, array $query = []): TestResponse
     {
