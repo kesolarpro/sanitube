@@ -4,6 +4,10 @@ Status: foundation (ARCH-001). This document describes what exists today and
 the boundaries the rest of the platform will be built inside. It is updated
 with every architectural ticket, not at the end.
 
+Decisions that were expensive to reach — and would be expensive to reverse —
+are recorded separately in [`docs/adr/`](adr/README.md), including the ones
+deliberately deferred to a later ticket.
+
 ## 1. The one rule
 
 **The SaniTube catalogue is the source of truth.**
@@ -220,18 +224,21 @@ them:
   fresh install has working AI *plumbing* and no AI features.
 - `SaniTube\Distribution\Contracts\Distributor` — identity and read side only.
 
-### Why the distributor contract is partial
+### Why two contracts are partial
 
-The write side — `createRelease`, `uploadAudio`, `uploadArtwork`,
-`validateRelease`, `submitRelease`, `requestTakedown` — is deliberately **not**
-declared yet. Those methods take a release, and the Release aggregate does not
-exist until REL-001. Declaring them now would mean inventing payload types,
-and the first real adapter would then either bend the domain to fit the guess
-or force the interface to be rewritten. What is fixed instead is the part that
-does not depend on the domain model: identity, availability, sandbox-vs-
-production, and a normalised `DeliveryStatus`. That is already enough to build
-delivery tracking and the distribution screens against, and DIST-001 completes
-the contract against a real API rather than an imagined one.
+The distributor write side (`createRelease`, `uploadAudio`, `submitRelease`,
+`requestTakedown`, …) and the generation extras (`extend`, `remix`, `stems`)
+are deliberately not declared yet. Both would have to be invented against a
+domain model that does not exist and, in the generation case, against no
+provider API at all.
+
+The reasoning, the cost of deferring, and the concrete condition that
+unblocks each are recorded as decisions rather than left in docblocks:
+
+- [ADR-0004](adr/ADR-0004-distributor-write-contract-deferred.md) — distributor
+  write side, resolved by DIST-001.
+- [ADR-0005](adr/ADR-0005-music-generation-advanced-contract-deferred.md) —
+  extend/remix/stems, resolved by GEN-001.
 
 `DeliveryStatus` is SaniTube's own vocabulary. Each adapter normalises its
 provider's wording into it; no distributor's status string reaches the
