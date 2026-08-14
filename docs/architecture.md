@@ -4,6 +4,10 @@ Status: foundation (ARCH-001). This document describes what exists today and
 the boundaries the rest of the platform will be built inside. It is updated
 with every architectural ticket, not at the end.
 
+Decisions that were expensive to reach — and would be expensive to reverse —
+are recorded separately in [`docs/adr/`](adr/README.md), including the ones
+deliberately deferred to a later ticket.
+
 ## 1. The one rule
 
 **The SaniTube catalogue is the source of truth.**
@@ -113,10 +117,26 @@ The rules, and how each is enforced:
 |---|---|
 | No hard-coded domain | Test scans `src/`, `app/`, `routes/`, `config/` for absolute URLs |
 | No absolute server paths | Same test scans for `/home/<user>/`, `/var/www/` |
+| Lock installs on PHP 8.2 | `config.platform.php` pinned to `8.2`; a test asserts it and scans locked constraints |
 | No mandatory Redis | `.env.example` defaults asserted to be `database` |
 | No mandatory Docker | No Dockerfile is required to run or deploy; `laravel/sail` was removed |
 | No PostgreSQL-specific SQL | Test scans migrations for `jsonb`, `tsvector`, `ARRAY[]` |
 | No root required at runtime | Nothing in the application writes outside the project directory |
+| Schema works on every target engine | CI runs the suite against SQLite, MySQL 8.0, MariaDB 10.6 and MariaDB 11.4 |
+
+### Why MariaDB is in the matrix, not just MySQL
+
+cPanel is the primary deployment target and ships MariaDB, so "it works on
+MySQL" is not evidence that it works where the platform will actually run. The
+two engines diverge on index key length, `CHECK` constraint enforcement, JSON
+handling and utf8mb4 collations — all of which the domain model is about to
+depend on. MariaDB is driven through Laravel's dedicated `mariadb` connection
+rather than the `mysql` one, so the DDL under test is the DDL a real install
+gets.
+
+Each engine runs `migrate` → the full test suite → `migrate:rollback` →
+`migrate`, so a migration that cannot be undone fails CI rather than a
+deployment.
 
 Beanstalkd and SQS were removed from `config/queue.php`: supporting a hosted
 queue service would tie an install to a cloud vendor for no gain over
@@ -155,20 +175,38 @@ the detector reports it as never-run, stale (>15 min) or healthy.
 
 ## 7. HTTP surface
 
-`/up` — framework liveness probe, public.
+Health is three distinct things, and conflating them is a classic outage
+amplifier:
 
-`/api/v1/health` — liveness, public, discloses nothing.
+| Endpoint | Access | Cost |
+|---|---|---|
+| `/up` | public | framework probe |
+| `/api/v1/health/live` | public, throttled | process only |
+| `/api/v1/health/ready` | token, throttled | runs every detector |
+| `/api/v1/system/capabilities` | token, throttled | runs every detector |
 
-`/api/v1/health/ready` — readiness. 503 while any required capability is
-missing, so a deployment can hold traffic back instead of serving errors.
+**Liveness answers from the process alone** — no database, no cache store, no
+object storage, no capability detector. A probe that queries the database
+reports the *process* as dead whenever the *database* is down, and an
+orchestrator responds by restarting containers that were never broken. Two
+tests enforce this: one counts database queries during the request and asserts
+zero, the other registers a detector that throws and asserts liveness still
+returns 200 without ever invoking it.
 
-`/api/v1/system/capabilities` — the full report backing the System screen.
+That forces one consequence: liveness cannot use Laravel's `throttle`
+middleware, which counts through the default cache store — the database, in a
+portable install. It is excluded from `throttle:api` and uses
+`ThrottleHealthRequests`, a fixed-window limiter on a store of its own
+(`file` by default). So liveness is still rate limited, and still answers
+while everything behind it is down.
 
-The last two describe the environment in detail, so they are protected by a
-shared token (`SANITUBE_HEALTH_TOKEN`) and **return 404 until that token is
-set**. A fresh install therefore cannot leak its configuration by accident.
-This is a stopgap: they move behind real authentication when the Identity
-module lands.
+Readiness and the capability report do run every detector, describe the
+environment in detail, and are therefore both **token-protected**
+(`SANITUBE_HEALTH_TOKEN`) and throttled more tightly. They **return 404 until
+that token is set**, so a fresh install cannot leak its configuration by
+accident. Throttling is applied *before* the token check, so the token cannot
+be probed one request at a time. This is a stopgap: they move behind real
+authentication when the Identity module lands.
 
 The API is versioned from the first commit. `/api/v2` will be added as a new
 route file, never by editing v1.
@@ -187,18 +225,21 @@ them:
   fresh install has working AI *plumbing* and no AI features.
 - `SaniTube\Distribution\Contracts\Distributor` — identity and read side only.
 
-### Why the distributor contract is partial
+### Why two contracts are partial
 
-The write side — `createRelease`, `uploadAudio`, `uploadArtwork`,
-`validateRelease`, `submitRelease`, `requestTakedown` — is deliberately **not**
-declared yet. Those methods take a release, and the Release aggregate does not
-exist until REL-001. Declaring them now would mean inventing payload types,
-and the first real adapter would then either bend the domain to fit the guess
-or force the interface to be rewritten. What is fixed instead is the part that
-does not depend on the domain model: identity, availability, sandbox-vs-
-production, and a normalised `DeliveryStatus`. That is already enough to build
-delivery tracking and the distribution screens against, and DIST-001 completes
-the contract against a real API rather than an imagined one.
+The distributor write side (`createRelease`, `uploadAudio`, `submitRelease`,
+`requestTakedown`, …) and the generation extras (`extend`, `remix`, `stems`)
+are deliberately not declared yet. Both would have to be invented against a
+domain model that does not exist and, in the generation case, against no
+provider API at all.
+
+The reasoning, the cost of deferring, and the concrete condition that
+unblocks each are recorded as decisions rather than left in docblocks:
+
+- [ADR-0004](adr/ADR-0004-distributor-write-contract-deferred.md) — distributor
+  write side, resolved by DIST-001.
+- [ADR-0005](adr/ADR-0005-music-generation-advanced-contract-deferred.md) —
+  extend/remix/stems, resolved by GEN-001.
 
 `DeliveryStatus` is SaniTube's own vocabulary. Each adapter normalises its
 provider's wording into it; no distributor's status string reaches the
@@ -206,12 +247,12 @@ catalogue.
 
 ## 9. Known limitations
 
-- **Larastan is not declared in `composer.json`.** The development environment
-  this project is built in cannot download it — GitHub archive endpoints
-  return 403 under the sandbox's egress policy, and every `composer install`
-  would fail with the dependency declared. CI installs it explicitly in the
-  static-analysis job, and `phpstan.neon.dist` is in the repository. To run it
-  locally: `composer require --dev larastan/larastan:^3.0 && composer analyse`.
+- **Larastan cannot be installed in the authoring sandbox.** It is declared in
+  `require-dev` and locked in `composer.lock` — the lock was resolved by
+  Composer against Packagist, never hand-edited. What that environment cannot
+  do is *download* it: GitHub archive endpoints return 403 under its egress
+  policy. Static analysis therefore runs in CI, which has ordinary network
+  access, and `composer analyse` works on any normal machine.
 - **`league/flysystem-aws-s3-v3` is not a dependency.** S3, R2 and B2 need it;
   installs that never leave the local disk should not carry the AWS SDK. The
   object-storage detector says so explicitly when a cloud provider is selected

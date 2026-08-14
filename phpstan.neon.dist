@@ -16,7 +16,6 @@ parameters:
 
     checkModelProperties: true
 
-    ignoreErrors:
-        # Laravel's container returns mixed by design; the calls that matter
-        # are covered by feature tests.
-        - '#Call to an undefined method Illuminate\\Contracts\\Filesystem\\Filesystem::#'
+    # No ignored errors. An ignore added speculatively — for a problem that was
+    # anticipated rather than observed — is itself reported as an unmatched
+    # pattern, and rightly so.

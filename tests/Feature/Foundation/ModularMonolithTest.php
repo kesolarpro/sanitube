@@ -59,8 +59,11 @@ final class ModularMonolithTest extends TestCase
     #[Test]
     public function module_routes_are_loaded_under_the_configured_api_prefix(): void
     {
-        $this->assertTrue($this->app['router']->has('api.v1.health'));
-        $this->assertSame('api/v1/health', $this->app['router']->getRoutes()->getByName('api.v1.health')->uri());
+        $this->assertTrue($this->app['router']->has('api.v1.health.live'));
+        $this->assertSame(
+            'api/v1/health/live',
+            $this->app['router']->getRoutes()->getByName('api.v1.health.live')->uri(),
+        );
     }
 
     #[Test]

@@ -91,6 +91,8 @@ composer check     # all of the above
 
 - [`docs/architecture.md`](docs/architecture.md) — modules, boundaries,
   portability rules, provider contracts, known limitations.
+- [`docs/adr/`](docs/adr/README.md) — architecture decision records, including
+  the decisions deliberately deferred to a later ticket and what unblocks them.
 
 ## Licence
 
