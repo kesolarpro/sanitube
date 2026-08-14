@@ -206,12 +206,12 @@ catalogue.
 
 ## 9. Known limitations
 
-- **Larastan is not declared in `composer.json`.** The development environment
-  this project is built in cannot download it — GitHub archive endpoints
-  return 403 under the sandbox's egress policy, and every `composer install`
-  would fail with the dependency declared. CI installs it explicitly in the
-  static-analysis job, and `phpstan.neon.dist` is in the repository. To run it
-  locally: `composer require --dev larastan/larastan:^3.0 && composer analyse`.
+- **Larastan cannot be installed in the authoring sandbox.** It is declared in
+  `require-dev` and locked in `composer.lock` — the lock was resolved by
+  Composer against Packagist, never hand-edited. What that environment cannot
+  do is *download* it: GitHub archive endpoints return 403 under its egress
+  policy. Static analysis therefore runs in CI, which has ordinary network
+  access, and `composer analyse` works on any normal machine.
 - **`league/flysystem-aws-s3-v3` is not a dependency.** S3, R2 and B2 need it;
   installs that never leave the local disk should not carry the AWS SDK. The
   object-storage detector says so explicitly when a cloud provider is selected
