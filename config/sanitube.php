@@ -67,6 +67,14 @@ return [
         'prefix' => env('SANITUBE_API_PREFIX', 'api'),
         'default_version' => env('SANITUBE_API_VERSION', 'v1'),
         'rate_limit_per_minute' => (int) env('SANITUBE_API_RATE_LIMIT', 60),
+
+        /*
+         * Read-only catalogue API. Like the health token, the routes return
+         * 404 until this is set: an install that never configured an internal
+         * consumer should not expose one.
+         */
+        'internal_token' => env('SANITUBE_INTERNAL_API_TOKEN'),
+        'token_header' => 'X-SaniTube-Api-Token',
     ],
 
     /*
