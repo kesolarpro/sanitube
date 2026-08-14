@@ -117,6 +117,7 @@ The rules, and how each is enforced:
 |---|---|
 | No hard-coded domain | Test scans `src/`, `app/`, `routes/`, `config/` for absolute URLs |
 | No absolute server paths | Same test scans for `/home/<user>/`, `/var/www/` |
+| Lock installs on PHP 8.2 | `config.platform.php` pinned to `8.2`; a test asserts it and scans locked constraints |
 | No mandatory Redis | `.env.example` defaults asserted to be `database` |
 | No mandatory Docker | No Dockerfile is required to run or deploy; `laravel/sail` was removed |
 | No PostgreSQL-specific SQL | Test scans migrations for `jsonb`, `tsvector`, `ARRAY[]` |

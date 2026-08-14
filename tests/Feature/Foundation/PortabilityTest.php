@@ -75,6 +75,46 @@ final class PortabilityTest extends TestCase
     }
 
     #[Test]
+    public function the_lock_file_is_resolved_for_the_minimum_supported_php(): void
+    {
+        // Without a pinned platform, Composer resolves against whatever PHP the
+        // developer happens to run. A lock built on 8.4 installs *only* on 8.4,
+        // so the shared-hosting floor the project promises silently stops
+        // working — which is exactly how this was first discovered, in CI.
+        $composer = json_decode((string) file_get_contents(base_path('composer.json')), true);
+
+        $required = $composer['require']['php'] ?? null;
+        $platform = $composer['config']['platform']['php'] ?? null;
+
+        $this->assertSame('^8.2', $required, 'The supported PHP floor changed.');
+        $this->assertSame(
+            '8.2',
+            $platform,
+            'composer.json must pin config.platform.php to the minimum supported PHP, '
+                .'so composer.lock installs on every version the platform claims to support.',
+        );
+    }
+
+    #[Test]
+    public function no_locked_package_requires_more_than_the_minimum_supported_php(): void
+    {
+        $lock = json_decode((string) file_get_contents(base_path('composer.lock')), true);
+        $offenders = [];
+
+        foreach ([...$lock['packages'] ?? [], ...$lock['packages-dev'] ?? []] as $package) {
+            $constraint = $package['require']['php'] ?? null;
+
+            // Only flag a floor above 8.2. Alternations such as
+            // "^8.2|^8.3|^8.4" allow 8.2 and are fine.
+            if (is_string($constraint) && preg_match('/^\s*(>=\s*|\^)8\.([3-9])/', $constraint) === 1) {
+                $offenders[] = $package['name'].' => '.$constraint;
+            }
+        }
+
+        $this->assertSame([], $offenders, 'Locked packages exclude PHP 8.2: '.implode(', ', $offenders));
+    }
+
+    #[Test]
     public function the_example_environment_targets_mysql(): void
     {
         $this->assertSame('mysql', $this->defaultFromExampleEnv('DB_CONNECTION'));
