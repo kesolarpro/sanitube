@@ -1,0 +1,244 @@
+<?php
+
+declare(strict_types=1);
+
+namespace SaniTube\Catalog\Models;
+
+use Database\Factories\TrackFactory;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use SaniTube\Artists\Models\Artist;
+use SaniTube\Assets\Models\Asset;
+use SaniTube\Assets\Models\AssetLink;
+use SaniTube\Catalog\Enums\TrackArtistRole;
+use SaniTube\Catalog\Enums\TrackSource;
+use SaniTube\Catalog\Enums\TrackStatus;
+use SaniTube\Catalog\Events\TrackMarkedReady;
+use SaniTube\Catalog\Exceptions\TrackNotReadyException;
+use SaniTube\Contributors\Models\Contributor;
+use SaniTube\Foundation\Concerns\HasPublicUuid;
+use SaniTube\Localization\ContentLanguage;
+use SaniTube\Releases\Models\Release;
+
+/**
+ * A recording.
+ *
+ * The Track is the master side of the catalogue: it is what a DSP streams and
+ * what an ISRC identifies. The song it records is a {@see Composition}, and
+ * the two are kept apart so that publishing and master income can be accounted
+ * for separately.
+ *
+ * A track has no `primary_artist_id`. Its artists live in `track_artist`,
+ * which is the only source of truth, and a track may legitimately have several
+ * primary artists.
+ *
+ * @property int $id
+ * @property string $uuid
+ * @property int|null $composition_id
+ * @property int|null $master_asset_id
+ * @property string $title
+ * @property string|null $version_title
+ * @property int|null $duration_ms
+ * @property string $language_code
+ * @property bool $is_instrumental
+ * @property bool $is_explicit
+ * @property int|null $bpm
+ * @property string|null $musical_key
+ * @property string|null $genre_primary
+ * @property string|null $genre_secondary
+ * @property int|null $recording_year
+ * @property string|null $p_line
+ * @property TrackStatus $status
+ * @property TrackSource $source
+ */
+final class Track extends Model
+{
+    /** @use HasFactory<TrackFactory> */
+    use HasFactory;
+
+    use HasPublicUuid;
+    use SoftDeletes;
+
+    protected $table = 'tracks';
+
+    protected $guarded = [];
+
+    /**
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'status' => TrackStatus::class,
+            'source' => TrackSource::class,
+            'is_instrumental' => 'boolean',
+            'is_explicit' => 'boolean',
+        ];
+    }
+
+    protected static function newFactory(): TrackFactory
+    {
+        return TrackFactory::new();
+    }
+
+    /**
+     * @return BelongsTo<Composition, $this>
+     */
+    public function composition(): BelongsTo
+    {
+        return $this->belongsTo(Composition::class);
+    }
+
+    /**
+     * The canonical master. Nothing else records this fact.
+     *
+     * @return BelongsTo<Asset, $this>
+     */
+    public function masterAsset(): BelongsTo
+    {
+        return $this->belongsTo(Asset::class, 'master_asset_id');
+    }
+
+    /**
+     * @return BelongsToMany<Artist, $this>
+     */
+    public function artists(): BelongsToMany
+    {
+        return $this->belongsToMany(Artist::class, 'track_artist')
+            ->using(TrackArtist::class)
+            ->withPivot(['role', 'position'])
+            ->withTimestamps()
+            ->orderByPivot('position');
+    }
+
+    /**
+     * @return BelongsToMany<Artist, $this>
+     */
+    public function primaryArtists(): BelongsToMany
+    {
+        return $this->artists()->wherePivot('role', TrackArtistRole::Primary->value);
+    }
+
+    /**
+     * @return BelongsToMany<Contributor, $this>
+     */
+    public function contributors(): BelongsToMany
+    {
+        return $this->belongsToMany(Contributor::class, 'track_contributor')
+            ->using(TrackContributor::class)
+            ->withPivot(['role', 'position'])
+            ->withTimestamps()
+            ->orderByPivot('position');
+    }
+
+    /**
+     * @return BelongsToMany<Release, $this>
+     */
+    public function releases(): BelongsToMany
+    {
+        return $this->belongsToMany(Release::class, 'release_tracks')
+            ->withPivot(['disc_number', 'track_number', 'is_focus_track'])
+            ->withTimestamps();
+    }
+
+    /**
+     * @return MorphMany<AssetLink, $this>
+     */
+    public function assetLinks(): MorphMany
+    {
+        return $this->morphMany(AssetLink::class, 'linkable');
+    }
+
+    /**
+     * @return MorphMany<ExternalIdentifier, $this>
+     */
+    public function externalIdentifiers(): MorphMany
+    {
+        return $this->morphMany(ExternalIdentifier::class, 'identifiable');
+    }
+
+    /**
+     * @return HasMany<TrackArtist, $this>
+     */
+    public function artistCredits(): HasMany
+    {
+        return $this->hasMany(TrackArtist::class);
+    }
+
+    public function contentLanguage(): ContentLanguage
+    {
+        return ContentLanguage::tryFromCode($this->language_code) ?? ContentLanguage::unknown();
+    }
+
+    /**
+     * Promote the track to READY (I3).
+     *
+     * Every condition here is something a distributor will reject the release
+     * for. Catching it now costs a validation error; catching it later costs a
+     * rejected delivery and a missed release date.
+     *
+     * @throws TrackNotReadyException
+     */
+    public function markReady(): self
+    {
+        $problems = $this->readinessProblems();
+
+        if ($problems !== []) {
+            throw TrackNotReadyException::because($this, $problems);
+        }
+
+        $this->status = TrackStatus::Ready;
+        $this->save();
+
+        event(new TrackMarkedReady($this));
+
+        return $this;
+    }
+
+    /**
+     * Everything standing between this track and READY.
+     *
+     * @return list<string>
+     */
+    public function readinessProblems(): array
+    {
+        $problems = [];
+
+        if (trim((string) $this->title) === '') {
+            $problems[] = 'A title is required.';
+        }
+
+        if (ContentLanguage::tryFromCode($this->language_code) === null) {
+            $problems[] = sprintf('Language [%s] is not a valid content language.', (string) $this->language_code);
+        }
+
+        if ($this->primaryArtists()->count() < 1) {
+            $problems[] = 'At least one PRIMARY artist is required.';
+        }
+
+        if ($this->master_asset_id === null) {
+            $problems[] = 'A master asset is required.';
+
+            return $problems;
+        }
+
+        $master = $this->masterAsset()->first();
+
+        if (! $master instanceof Asset) {
+            $problems[] = 'The referenced master asset does not exist.';
+
+            return $problems;
+        }
+
+        if (! $master->isVerifiedMaster()) {
+            $problems[] = 'The master asset must be an AUDIO_MASTER with status VERIFIED.';
+        }
+
+        return $problems;
+    }
+}
