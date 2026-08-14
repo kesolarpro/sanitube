@@ -11,6 +11,9 @@ concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  PHP_EXTENSIONS: ctype, curl, dom, fileinfo, filter, gd, hash, intl, mbstring, openssl, pdo, pdo_mysql, pdo_sqlite, tokenizer, xml, zip
+
 jobs:
   tests:
     name: Tests (PHP ${{ matrix.php }})
@@ -30,18 +33,11 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
-          extensions: ctype, curl, dom, fileinfo, filter, gd, hash, intl, mbstring, openssl, pdo, pdo_mysql, pdo_sqlite, tokenizer, xml, zip
+          extensions: ${{ env.PHP_EXTENSIONS }}
           coverage: none
 
-      - name: Cache Composer packages
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/composer/files
-          key: composer-${{ matrix.php }}-${{ hashFiles('composer.lock') }}
-          restore-keys: composer-${{ matrix.php }}-
-
       - name: Install dependencies
-        run: composer install --no-interaction --prefer-dist --no-progress
+        uses: ramsey/composer-install@v3
 
       - name: Prepare environment
         run: |
@@ -51,22 +47,38 @@ jobs:
       - name: Run tests
         run: php artisan test
 
-  migrations:
-    name: Migrations on MySQL
+  database:
+    name: DB ${{ matrix.label }}
     runs-on: ubuntu-latest
 
-    services:
-      mysql:
-        image: mysql:8.0
-        env:
-          MYSQL_ROOT_PASSWORD: root
-          MYSQL_DATABASE: sanitube_test
-        ports: ['3306:3306']
-        options: >-
-          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -proot"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=10
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # SQLite is what local development and the default test run use.
+          - label: SQLite
+            connection: sqlite
+
+          # MySQL 8.0 — the reference engine.
+          - label: MySQL 8.0
+            connection: mysql
+            image: mysql:8.0
+
+          # MariaDB is not an afterthought: cPanel is the primary deployment
+          # target and ships MariaDB. 10.6 is the oldest release still widely
+          # provisioned, 11.4 the current LTS. The two diverge from MySQL on
+          # index key length, CHECK constraints, JSON handling and utf8mb4
+          # collations — exactly what the domain model is about to rely on.
+          # Driven through Laravel's dedicated `mariadb` connection, which is
+          # what a cPanel install uses and which emits MariaDB-correct DDL
+          # rather than MySQL DDL that merely happens to parse.
+          - label: MariaDB 10.6
+            connection: mariadb
+            image: mariadb:10.6
+
+          - label: MariaDB 11.4
+            connection: mariadb
+            image: mariadb:11.4
 
     steps:
       - uses: actions/checkout@v4
@@ -75,31 +87,66 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.3'
-          extensions: ctype, curl, dom, fileinfo, filter, gd, hash, intl, mbstring, openssl, pdo, pdo_mysql, tokenizer, xml, zip
+          extensions: ${{ env.PHP_EXTENSIONS }}
           coverage: none
 
       - name: Install dependencies
-        run: composer install --no-interaction --prefer-dist --no-progress
+        uses: ramsey/composer-install@v3
 
       - name: Prepare environment
         run: |
           cp .env.example .env
           php artisan key:generate
 
-      # MySQL/MariaDB is the production target, so migrations are proven
-      # against it rather than only against SQLite.
-      - name: Run migrations
+      # Started here rather than through `services:` so that one job can cover
+      # both the server-backed engines and SQLite, which has no container.
+      - name: Start ${{ matrix.label }}
+        if: matrix.image != ''
+        run: |
+          docker run -d --name sanitube-db \
+            -e MYSQL_ROOT_PASSWORD=root \
+            -e MYSQL_DATABASE=sanitube_test \
+            -p 3306:3306 \
+            ${{ matrix.image }}
+
+          for attempt in $(seq 1 60); do
+            if docker exec sanitube-db sh -c \
+              'mariadb-admin ping -uroot -proot --silent 2>/dev/null || mysqladmin ping -uroot -proot --silent 2>/dev/null'; then
+              echo "Database ready after ${attempt} attempt(s)."
+              docker exec sanitube-db sh -c \
+                'mariadb --version 2>/dev/null || mysql --version'
+              exit 0
+            fi
+            sleep 2
+          done
+
+          echo "Database did not become ready."
+          docker logs sanitube-db
+          exit 1
+
+      - name: Prepare SQLite database
+        if: matrix.connection == 'sqlite'
+        run: |
+          mkdir -p database
+          touch database/ci.sqlite
+
+      - name: Migrate, test, roll back, migrate again
         env:
-          DB_CONNECTION: mysql
+          DB_CONNECTION: ${{ matrix.connection }}
+          DB_DATABASE: ${{ matrix.connection == 'sqlite' && 'database/ci.sqlite' || 'sanitube_test' }}
           DB_HOST: 127.0.0.1
           DB_PORT: 3306
-          DB_DATABASE: sanitube_test
           DB_USERNAME: root
           DB_PASSWORD: root
         run: |
           php artisan migrate --force
+          php artisan test
           php artisan migrate:rollback --force
           php artisan migrate --force
+
+      - name: Collect database logs on failure
+        if: failure() && matrix.image != ''
+        run: docker logs sanitube-db
 
   lint:
     name: Code style
@@ -112,10 +159,11 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.3'
+          extensions: ${{ env.PHP_EXTENSIONS }}
           coverage: none
 
       - name: Install dependencies
-        run: composer install --no-interaction --prefer-dist --no-progress
+        uses: ramsey/composer-install@v3
 
       - name: Check formatting
         run: vendor/bin/pint --test
@@ -131,18 +179,11 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.3'
+          extensions: ${{ env.PHP_EXTENSIONS }}
           coverage: none
 
       - name: Install dependencies
-        run: composer install --no-interaction --prefer-dist --no-progress
-
-      # Larastan is installed here rather than declared in composer.json: the
-      # development sandbox this project is built in cannot fetch it (GitHub
-      # archive downloads are blocked by egress policy), and a dependency that
-      # cannot be installed locally would break every `composer install`.
-      # See docs/architecture.md → "Known limitations".
-      - name: Install Larastan
-        run: composer require --dev --no-interaction --no-progress "larastan/larastan:^3.0"
+        uses: ramsey/composer-install@v3
 
       - name: Analyse
         run: vendor/bin/phpstan analyse --memory-limit=1G --no-progress

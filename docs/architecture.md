@@ -117,6 +117,21 @@ The rules, and how each is enforced:
 | No mandatory Docker | No Dockerfile is required to run or deploy; `laravel/sail` was removed |
 | No PostgreSQL-specific SQL | Test scans migrations for `jsonb`, `tsvector`, `ARRAY[]` |
 | No root required at runtime | Nothing in the application writes outside the project directory |
+| Schema works on every target engine | CI runs the suite against SQLite, MySQL 8.0, MariaDB 10.6 and MariaDB 11.4 |
+
+### Why MariaDB is in the matrix, not just MySQL
+
+cPanel is the primary deployment target and ships MariaDB, so "it works on
+MySQL" is not evidence that it works where the platform will actually run. The
+two engines diverge on index key length, `CHECK` constraint enforcement, JSON
+handling and utf8mb4 collations — all of which the domain model is about to
+depend on. MariaDB is driven through Laravel's dedicated `mariadb` connection
+rather than the `mysql` one, so the DDL under test is the DDL a real install
+gets.
+
+Each engine runs `migrate` → the full test suite → `migrate:rollback` →
+`migrate`, so a migration that cannot be undone fails CI rather than a
+deployment.
 
 Beanstalkd and SQS were removed from `config/queue.php`: supporting a hosted
 queue service would tie an install to a cloud vendor for no gain over
