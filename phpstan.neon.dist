@@ -1,0 +1,22 @@
+includes:
+    - vendor/larastan/larastan/extension.neon
+
+parameters:
+    paths:
+        - app
+        - src
+        - config
+        - routes
+        - tests
+
+    # Level 5 is the honest starting point for a codebase this young: it
+    # catches real mistakes without demanding annotations on scaffolding that
+    # has not been written yet. Raised as the domain model lands.
+    level: 5
+
+    checkModelProperties: true
+
+    ignoreErrors:
+        # Laravel's container returns mixed by design; the calls that matter
+        # are covered by feature tests.
+        - '#Call to an undefined method Illuminate\\Contracts\\Filesystem\\Filesystem::#'
