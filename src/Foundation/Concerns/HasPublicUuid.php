@@ -25,8 +25,10 @@ trait HasPublicUuid
     public static function bootHasPublicUuid(): void
     {
         static::creating(function (Model $model): void {
-            if (blank($model->uuid)) {
-                $model->uuid = (string) Str::uuid7();
+            // Attribute accessors rather than magic properties: the closure is
+            // typed against Model, which has no `uuid` of its own.
+            if (blank($model->getAttribute('uuid'))) {
+                $model->setAttribute('uuid', (string) Str::uuid7());
             }
         });
     }

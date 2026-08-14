@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Carbon;
 use SaniTube\Catalog\Enums\CompositionStatus;
 use SaniTube\Contributors\Models\Contributor;
 use SaniTube\Foundation\Concerns\HasPublicUuid;
@@ -31,6 +32,8 @@ use SaniTube\Foundation\Concerns\HasPublicUuid;
  * @property int|null $created_year
  * @property bool $is_public_domain
  * @property CompositionStatus $status
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
  */
 final class Composition extends Model
 {
@@ -61,7 +64,7 @@ final class Composition extends Model
     }
 
     /**
-     * @return BelongsToMany<Contributor, $this>
+     * @return BelongsToMany<Contributor, $this, CompositionContributor, 'pivot'>
      */
     public function contributors(): BelongsToMany
     {

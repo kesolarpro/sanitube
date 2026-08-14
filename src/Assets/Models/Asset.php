@@ -48,6 +48,8 @@ use SaniTube\Foundation\Concerns\HasPublicUuid;
  * @property AssetStatus $status
  * @property Carbon|null $stored_at
  * @property Carbon|null $verified_at
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
  */
 final class Asset extends Model
 {

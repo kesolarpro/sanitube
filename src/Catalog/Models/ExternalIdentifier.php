@@ -46,6 +46,8 @@ use SaniTube\Foundation\Concerns\HasPublicUuid;
  * @property ExternalIdentifierSource $source
  * @property Carbon $assigned_at
  * @property int|null $active_marker
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
  */
 final class ExternalIdentifier extends Model
 {

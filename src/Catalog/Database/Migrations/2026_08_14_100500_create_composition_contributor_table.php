@@ -28,7 +28,10 @@ return new class extends Migration
 
             $table->timestamps();
 
-            $table->unique(['composition_id', 'contributor_id', 'role']);
+            // Named explicitly: the generated name would be 65 characters and
+            // MySQL/MariaDB cap identifiers at 64. SQLite does not, so this is
+            // invisible locally — see SchemaIdentifierLengthTest.
+            $table->unique(['composition_id', 'contributor_id', 'role'], 'composition_contributor_unique');
             $table->index(['composition_id', 'role', 'position']);
             $table->index(['contributor_id', 'role']);
         });

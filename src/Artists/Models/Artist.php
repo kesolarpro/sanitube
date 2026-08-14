@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Carbon;
 use SaniTube\Artists\Enums\ArtistStatus;
 use SaniTube\Artists\Enums\ArtistType;
 use SaniTube\Catalog\Enums\TrackArtistRole;
@@ -39,6 +40,8 @@ use SaniTube\Releases\Models\Release;
  * @property string|null $biography
  * @property bool $is_owner_controlled
  * @property ArtistStatus $status
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
  */
 final class Artist extends Model
 {

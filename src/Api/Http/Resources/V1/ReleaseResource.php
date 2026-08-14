@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use SaniTube\Catalog\Models\Track;
 use SaniTube\Releases\Models\Release;
+use SaniTube\Releases\Models\ReleaseTrack;
 
 /**
  * @mixin Release
@@ -38,13 +39,21 @@ final class ReleaseResource extends JsonResource
             'identifiers' => ExternalIdentifierResource::collection($this->whenLoaded('externalIdentifiers')),
 
             'tracks' => $this->whenLoaded('tracks', fn () => $this->tracks
-                ->map(fn (Track $track): array => [
-                    'uuid' => $track->uuid,
-                    'title' => $track->title,
-                    'disc_number' => (int) $track->pivot?->getAttribute('disc_number'),
-                    'track_number' => (int) $track->pivot?->getAttribute('track_number'),
-                    'is_focus_track' => (bool) $track->pivot?->getAttribute('is_focus_track'),
-                ])->values()),
+                ->map(function (Track $track): array {
+                    // The running order lives on the pivot; reading it through
+                    // getAttribute keeps the relation's pivot type out of the
+                    // Track model, where it does not belong.
+                    /** @var ReleaseTrack|null $entry */
+                    $entry = $track->getAttribute('pivot');
+
+                    return [
+                        'uuid' => $track->uuid,
+                        'title' => $track->title,
+                        'disc_number' => (int) $entry?->disc_number,
+                        'track_number' => (int) $entry?->track_number,
+                        'is_focus_track' => (bool) $entry?->is_focus_track,
+                    ];
+                })->values()),
 
             'created_at' => $this->created_at?->toAtomString(),
             'updated_at' => $this->updated_at?->toAtomString(),

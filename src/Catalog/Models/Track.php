@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Carbon;
 use SaniTube\Artists\Models\Artist;
 use SaniTube\Assets\Models\Asset;
 use SaniTube\Assets\Models\AssetLink;
@@ -55,6 +56,8 @@ use SaniTube\Releases\Models\Release;
  * @property string|null $p_line
  * @property TrackStatus $status
  * @property TrackSource $source
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
  */
 final class Track extends Model
 {
@@ -105,7 +108,7 @@ final class Track extends Model
     }
 
     /**
-     * @return BelongsToMany<Artist, $this>
+     * @return BelongsToMany<Artist, $this, TrackArtist, 'pivot'>
      */
     public function artists(): BelongsToMany
     {
@@ -117,7 +120,7 @@ final class Track extends Model
     }
 
     /**
-     * @return BelongsToMany<Artist, $this>
+     * @return BelongsToMany<Artist, $this, TrackArtist, 'pivot'>
      */
     public function primaryArtists(): BelongsToMany
     {
@@ -125,7 +128,7 @@ final class Track extends Model
     }
 
     /**
-     * @return BelongsToMany<Contributor, $this>
+     * @return BelongsToMany<Contributor, $this, TrackContributor, 'pivot'>
      */
     public function contributors(): BelongsToMany
     {

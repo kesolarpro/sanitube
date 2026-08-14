@@ -48,6 +48,8 @@ use SaniTube\Releases\Exceptions\ReleaseNotReadyException;
  * @property string|null $p_line
  * @property string|null $c_line
  * @property ReleaseStatus $status
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
  */
 final class Release extends Model
 {
@@ -90,7 +92,7 @@ final class Release extends Model
     }
 
     /**
-     * @return BelongsToMany<Artist, $this>
+     * @return BelongsToMany<Artist, $this, ReleaseArtist, 'pivot'>
      */
     public function artists(): BelongsToMany
     {
@@ -102,7 +104,7 @@ final class Release extends Model
     }
 
     /**
-     * @return BelongsToMany<Artist, $this>
+     * @return BelongsToMany<Artist, $this, ReleaseArtist, 'pivot'>
      */
     public function primaryArtists(): BelongsToMany
     {
@@ -110,7 +112,7 @@ final class Release extends Model
     }
 
     /**
-     * @return BelongsToMany<Track, $this>
+     * @return BelongsToMany<Track, $this, ReleaseTrack, 'pivot'>
      */
     public function tracks(): BelongsToMany
     {
