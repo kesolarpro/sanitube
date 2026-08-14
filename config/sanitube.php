@@ -84,6 +84,29 @@ return [
     'health' => [
         'token' => env('SANITUBE_HEALTH_TOKEN'),
         'header' => 'X-SaniTube-Health-Token',
+
+        /*
+         * Liveness is throttled like everything else, but it must never touch
+         * the database — a probe that queries the database stops answering the
+         * moment the database does, which is precisely when a load balancer
+         * needs to know the process is alive. The default throttle store is
+         * therefore the file cache, independent of CACHE_STORE.
+         *
+         * Limits are per client IP, per decay window.
+         */
+        'throttle' => [
+            'store' => env('SANITUBE_HEALTH_THROTTLE_STORE', 'file'),
+
+            'live' => [
+                'max_attempts' => (int) env('SANITUBE_HEALTH_LIVE_RATE_LIMIT', 120),
+                'decay_seconds' => 60,
+            ],
+
+            'privileged' => [
+                'max_attempts' => (int) env('SANITUBE_HEALTH_PRIVILEGED_RATE_LIMIT', 30),
+                'decay_seconds' => 60,
+            ],
+        ],
     ],
 
     /*

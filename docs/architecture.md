@@ -170,20 +170,38 @@ the detector reports it as never-run, stale (>15 min) or healthy.
 
 ## 7. HTTP surface
 
-`/up` — framework liveness probe, public.
+Health is three distinct things, and conflating them is a classic outage
+amplifier:
 
-`/api/v1/health` — liveness, public, discloses nothing.
+| Endpoint | Access | Cost |
+|---|---|---|
+| `/up` | public | framework probe |
+| `/api/v1/health/live` | public, throttled | process only |
+| `/api/v1/health/ready` | token, throttled | runs every detector |
+| `/api/v1/system/capabilities` | token, throttled | runs every detector |
 
-`/api/v1/health/ready` — readiness. 503 while any required capability is
-missing, so a deployment can hold traffic back instead of serving errors.
+**Liveness answers from the process alone** — no database, no cache store, no
+object storage, no capability detector. A probe that queries the database
+reports the *process* as dead whenever the *database* is down, and an
+orchestrator responds by restarting containers that were never broken. Two
+tests enforce this: one counts database queries during the request and asserts
+zero, the other registers a detector that throws and asserts liveness still
+returns 200 without ever invoking it.
 
-`/api/v1/system/capabilities` — the full report backing the System screen.
+That forces one consequence: liveness cannot use Laravel's `throttle`
+middleware, which counts through the default cache store — the database, in a
+portable install. It is excluded from `throttle:api` and uses
+`ThrottleHealthRequests`, a fixed-window limiter on a store of its own
+(`file` by default). So liveness is still rate limited, and still answers
+while everything behind it is down.
 
-The last two describe the environment in detail, so they are protected by a
-shared token (`SANITUBE_HEALTH_TOKEN`) and **return 404 until that token is
-set**. A fresh install therefore cannot leak its configuration by accident.
-This is a stopgap: they move behind real authentication when the Identity
-module lands.
+Readiness and the capability report do run every detector, describe the
+environment in detail, and are therefore both **token-protected**
+(`SANITUBE_HEALTH_TOKEN`) and throttled more tightly. They **return 404 until
+that token is set**, so a fresh install cannot leak its configuration by
+accident. Throttling is applied *before* the token check, so the token cannot
+be probed one request at a time. This is a stopgap: they move behind real
+authentication when the Identity module lands.
 
 The API is versioned from the first commit. `/api/v2` will be added as a new
 route file, never by editing v1.
