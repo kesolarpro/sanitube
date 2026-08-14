@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Foundation;
 
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Schema;
 use PHPUnit\Framework\Attributes\Test;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
@@ -18,6 +20,8 @@ use Tests\TestCase;
  */
 final class PortabilityTest extends TestCase
 {
+    use RefreshDatabase;
+
     #[Test]
     public function no_domain_is_hard_coded_in_application_code(): void
     {
@@ -121,23 +125,103 @@ final class PortabilityTest extends TestCase
     }
 
     #[Test]
-    public function no_postgresql_specific_column_type_is_used_in_migrations(): void
+    public function no_engine_specific_construct_is_used_in_any_migration(): void
     {
-        // The schema must stay portable to MySQL/MariaDB, the only engines
-        // shared hosting offers.
-        $forbidden = ['jsonb', '->tsvector(', '->ipAddress()->useCurrent()', 'ARRAY['];
+        // The schema has to be identical on SQLite, MySQL 8 and both MariaDB
+        // releases. Each construct below either does not exist on one of them,
+        // or exists with different semantics — and the difference only shows
+        // up on whichever engine CI did not run.
+        $forbidden = [
+            'jsonb' => 'PostgreSQL-only type',
+            'ARRAY[' => 'PostgreSQL-only type',
+            'tsvector' => 'PostgreSQL-only type',
+            '->enum(' => 'SQL ENUM: changing a value means an ALTER TABLE, and semantics differ per engine',
+            'CHECK (' => 'CHECK constraints are enforced inconsistently across the matrix',
+            'storedAs' => 'generated column',
+            'virtualAs' => 'generated column',
+            'DEFAULT(uuid())' => 'engine-generated UUID default',
+            'DEFAULT (uuid())' => 'engine-generated UUID default',
+            'FULLTEXT' => 'engine-specific index type',
+            'ENGINE=' => 'engine-specific table option',
+        ];
 
-        foreach ((array) glob(database_path('migrations/*.php')) as $migration) {
-            $contents = (string) file_get_contents((string) $migration);
+        $offenders = [];
 
-            foreach ($forbidden as $needle) {
-                $this->assertStringNotContainsString(
-                    $needle,
-                    $contents,
-                    sprintf('%s uses the non-portable construct [%s].', basename((string) $migration), $needle),
+        foreach ($this->migrationFiles() as $migration) {
+            $contents = (string) file_get_contents($migration);
+
+            foreach ($forbidden as $needle => $why) {
+                if (str_contains($contents, $needle)) {
+                    $offenders[] = sprintf('%s uses [%s] — %s', basename($migration), $needle, $why);
+                }
+            }
+        }
+
+        $this->assertSame([], $offenders, implode('; ', $offenders));
+    }
+
+    #[Test]
+    public function every_migration_can_be_undone(): void
+    {
+        // A migration without a working down() turns a bad deployment into a
+        // restore-from-backup.
+        foreach ($this->migrationFiles() as $migration) {
+            $contents = (string) file_get_contents($migration);
+
+            $this->assertStringContainsString(
+                'public function down(): void',
+                $contents,
+                sprintf('%s has no down() method.', basename($migration)),
+            );
+
+            $this->assertMatchesRegularExpression(
+                '/public function down\(\): void\s*\{\s*\S/',
+                $contents,
+                sprintf('%s has an empty down() method.', basename($migration)),
+            );
+        }
+    }
+
+    #[Test]
+    public function domain_tables_use_string_columns_for_enumerated_values(): void
+    {
+        // Statuses and types are PHP backed enums, stored as VARCHAR. Adding a
+        // case must be a code change, never a schema migration on a table with
+        // hundreds of thousands of rows.
+        foreach ([
+            'tracks' => ['status', 'source'],
+            'releases' => ['status', 'type'],
+            'artists' => ['status', 'type'],
+            'assets' => ['kind', 'status'],
+            'external_identifiers' => ['type', 'source'],
+        ] as $table => $columns) {
+            foreach ($columns as $column) {
+                // Engines spell it differently — `varchar` here, `varchar(32)`
+                // there — so the assertion is on the family, not the exact
+                // name. What must never appear is `enum`.
+                $type = strtolower(Schema::getColumnType($table, $column));
+
+                $this->assertStringContainsString(
+                    'char',
+                    $type,
+                    sprintf('[%s.%s] should be a string column backed by a PHP enum, got [%s].', $table, $column, $type),
                 );
             }
         }
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function migrationFiles(): array
+    {
+        return array_map(
+            strval(...),
+            array_merge(
+                (array) glob(database_path('migrations/*.php')),
+                (array) glob(base_path('src/*/Database/Migrations/*.php')),
+            ),
+        );
     }
 
     #[Test]
