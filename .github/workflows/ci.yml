@@ -109,18 +109,27 @@ jobs:
             -p 3306:3306 \
             ${{ matrix.image }}
 
+          # Probed over TCP from the host, with the credentials the
+          # application will use — never with `docker exec ... ping`. During
+          # initialisation these images run a temporary server that answers on
+          # the container's unix socket with `port: 0`, so a socket ping
+          # reports "ready" seconds before TCP is listening and the migrate
+          # step then fails against a database that was never up.
           for attempt in $(seq 1 60); do
-            if docker exec sanitube-db sh -c \
-              'mariadb-admin ping -uroot -proot --silent 2>/dev/null || mysqladmin ping -uroot -proot --silent 2>/dev/null'; then
-              echo "Database ready after ${attempt} attempt(s)."
-              docker exec sanitube-db sh -c \
-                'mariadb --version 2>/dev/null || mysql --version'
+            if php -r '
+              try {
+                  new PDO("mysql:host=127.0.0.1;port=3306;dbname=sanitube_test", "root", "root");
+                  exit(0);
+              } catch (Throwable $e) {
+                  exit(1);
+              }'; then
+              echo "Database accepted a TCP connection after ${attempt} attempt(s)."
               exit 0
             fi
             sleep 2
           done
 
-          echo "Database did not become ready."
+          echo "Database did not become reachable over TCP."
           docker logs sanitube-db
           exit 1
 

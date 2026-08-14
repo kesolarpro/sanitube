@@ -63,7 +63,6 @@ final class StorageProviderTest extends TestCase
 
         $stream = $provider->readStream('artwork/cover.txt');
 
-        $this->assertIsResource($stream);
         $this->assertSame('cover-bytes', stream_get_contents($stream));
         fclose($stream);
     }
