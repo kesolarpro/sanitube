@@ -53,6 +53,32 @@ return [
     |
     */
 
+    /*
+
+     * Preview URLs.
+
+     *
+
+     * A signed URL is a temporary bearer credential, so the window it is useful
+
+     * for is the window an accidental disclosure is useful for. Fifteen minutes
+
+     * is long enough to start playback on a slow connection and short enough
+
+     * that a URL pasted into a chat is dead before anybody reads it. The value
+
+     * is clamped to 300-900 seconds in code: a misconfiguration here must not
+
+     * be able to quietly mint day-long credentials.
+
+     */
+
+    'preview' => [
+
+        'ttl_seconds' => (int) env('SANITUBE_ASSET_PREVIEW_TTL', 900),
+
+    ],
+
     'staging' => [
         'ttl_hours' => (int) env('SANITUBE_STAGING_TTL_HOURS', 24),
     ],

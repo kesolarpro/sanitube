@@ -212,12 +212,19 @@
       "review": "CORRECTIONS REQUIRED (C1-C3) -> applied -> merged"
     },
     "UI-003c": {
-      "status": "pr_open",
-      "branch": "claude/ui-003c-catalogue",
+      "status": "merged",
+      "merge_commit": "8b0dc10",
+      "pr": 19,
+      "ci": "10/10 green",
+      "note": "Contributors + Compositions. Credit shares named credited_share and asserted never to read as ownership."
+    },
+    "UI-003d": {
+      "status": "pr_open_review_required",
+      "branch": "claude/ui-003d-assets",
       "pr": null,
       "ci": "awaiting run",
-      "report": "docs/reports/UI-003c.md",
-      "note": "Contributors + Compositions index and detail. Assets deliberately NOT in this PR: the signed preview boundary is a security decision and gets its own branch from main. Credit shares are named credited_share and asserted never to read as ownership."
+      "report": "docs/reports/UI-003d.md",
+      "note": "Assets index + detail + signed preview. REVIEW_REQUIRED: introduces the capability to hand out time-limited access to stored objects including masters. Preview minted only by POST, never on the detail GET, TTL clamped 300-900s, VERIFIED required for masters, masters and stems also require canWriteCatalogue (the one un-arbitrated judgement call), Preview unavailable when the provider cannot sign, never persisted, never logged in full."
     }
   },
   "architecture_amendments": [
@@ -288,10 +295,10 @@
   "open_pull_requests": [
     {
       "pr": null,
-      "ticket": "UI-003c",
+      "ticket": "UI-003d",
       "base": "main",
       "ci": "awaiting run",
-      "why_open": "Read-only catalogue screens; mergeable on green CI under the wave policy."
+      "why_open": "REVIEW_REQUIRED — new capability granting time-limited access to masters."
     }
   ],
   "next_session": {
@@ -315,11 +322,11 @@
     "since": "UI-001",
     "note": "Nine tickets (ING/MED/CAT/AI/GEN/REL/DIST/SEC-001 and PR #12) were merged under an earlier autonomous-chaining instruction that bypassed review. A retroactive audit is under way; they stay in main and any correction becomes a follow-up ticket, not a revert."
   },
-  "main_sha": "4cc385e69904cd0c5ff30f257ac95180d3a96bc3",
-  "current_ticket": "UI-003c",
+  "main_sha": "8b0dc10b9b6e9641b93ff7c01242112d3d681bfd",
+  "current_ticket": "UI-003d",
   "tests": {
-    "php": 692,
-    "php_assertions": 2675,
+    "php": 708,
+    "php_assertions": 2774,
     "php_skipped": 1,
     "component": 16
   },
@@ -337,11 +344,11 @@
     "note": "PHP suite stubs Vite when no manifest exists; the frontend CI job renders against a real one."
   },
   "next_action": {
-    "ticket": "UI-003d",
-    "name": "Catalogue: assets + signed preview",
+    "ticket": "BULK-001",
+    "name": "Bulk ingestion of the ~900 track library",
     "state": "not started",
     "blocked_by": null,
-    "note": "Branch from main, not from claude/ui-003c-catalogue. Implement decisions.asset_preview_url exactly: no signed URL in the detail GET, minted only by an authorised action, 900s default, VERIFIED required for an audio master, never persisted, never logged in full, Preview unavailable when the provider cannot issue temporary URLs. Mark the PR REVIEW_REQUIRED: it creates a new capability to hand out access to masters."
+    "note": "Branch from main. UI-003 is complete once UI-003d is reviewed; BULK-001 is independent of it and can proceed in parallel. Batch + jobs + resumable state, no transaction spanning hundreds of files, partial failure must not roll back the successes, browser need not stay open, existing ISRC/UPC preserved and never regenerated, provenance LEGACY_IMPORT."
   },
   "session_boundary": {
     "reason": "Context capacity reached at a clean ticket boundary.",

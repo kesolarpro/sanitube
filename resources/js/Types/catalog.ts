@@ -294,3 +294,76 @@ export interface CompositionDetail {
     recordings_shown: number;
     recordings_truncated: boolean;
 }
+
+export interface AssetRow {
+    uuid: string;
+    kind: string;
+    status: string;
+    mime_type: string;
+    byte_size: number;
+    checksum_short: string;
+    duration_ms: number | null;
+    is_duplicate: boolean;
+    is_derivative: boolean;
+    stored_at: string | null;
+    verified_at: string | null;
+    created_at: string | null;
+}
+
+export interface AssetPage {
+    rows: AssetRow[];
+    next_cursor: string | null;
+    previous_cursor: string | null;
+    per_page: number;
+}
+
+export interface AssetFilters {
+    kind: string | null;
+    status: string | null;
+    duplicates: string | null;
+}
+
+export interface AssetDetail {
+    uuid: string;
+    kind: string;
+    status: string;
+    mime_type: string;
+    byte_size: number;
+    checksum_short: string;
+    duration_ms: number | null;
+    sample_rate: number | null;
+    bit_depth: number | null;
+    channels: number | null;
+    width: number | null;
+    height: number | null;
+    stored_at: string | null;
+    verified_at: string | null;
+    created_at: string | null;
+    updated_at: string | null;
+    parent: { uuid: string; kind: string } | null;
+    duplicate_of: { uuid: string; kind: string } | null;
+    derivative_count: number;
+    analysis: {
+        succeeded: boolean;
+        failed: boolean;
+        analyzer: string | null;
+        codec: string | null;
+        container: string | null;
+        sample_rate: number | null;
+        bit_depth: number | null;
+        channels: number | null;
+        bitrate: number | null;
+        loudness_lufs: number | null;
+        analyzed_at: string | null;
+    } | null;
+    /**
+     * Whether a preview *could* be minted — never a URL.
+     *
+     * There is deliberately no `url` field on this type: a signed URL is a
+     * bearer credential, and one must never arrive with a page load.
+     */
+    preview: {
+        available: boolean;
+        reason: string | null;
+    };
+}
