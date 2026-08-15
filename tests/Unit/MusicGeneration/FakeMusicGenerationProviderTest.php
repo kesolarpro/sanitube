@@ -26,7 +26,7 @@ final class FakeMusicGenerationProviderTest extends TestCase
     {
         $provider = new FakeMusicGenerationProvider;
 
-        $result = $provider->generate(new GenerationRequest(prompt: 'warm analog house'));
+        $result = $provider->createGeneration(new GenerationRequest(prompt: 'warm analog house'));
 
         $this->assertSame(GenerationStatus::Pending, $result->status);
         $this->assertFalse($result->isTerminal());
@@ -39,8 +39,8 @@ final class FakeMusicGenerationProviderTest extends TestCase
     {
         $provider = new FakeMusicGenerationProvider;
 
-        $first = $provider->generate(new GenerationRequest(prompt: 'a'));
-        $second = $provider->generate(new GenerationRequest(prompt: 'b'));
+        $first = $provider->createGeneration(new GenerationRequest(prompt: 'a'));
+        $second = $provider->createGeneration(new GenerationRequest(prompt: 'b'));
 
         $this->assertNotSame($first->providerJobId, $second->providerJobId);
     }
@@ -49,10 +49,10 @@ final class FakeMusicGenerationProviderTest extends TestCase
     public function a_completed_generation_exposes_downloadable_audio(): void
     {
         $provider = new FakeMusicGenerationProvider;
-        $started = $provider->generate(new GenerationRequest(prompt: 'lofi'));
+        $started = $provider->createGeneration(new GenerationRequest(prompt: 'lofi'));
 
-        $provider->complete($started->providerJobId, 'https://provider.example/audio.mp3', 212);
-        $result = $provider->status($started->providerJobId);
+        $provider->complete($started->providerJobId, 212);
+        $result = $provider->getGenerationStatus($started->providerJobId);
 
         $this->assertTrue($result->isSuccessful());
         $this->assertTrue($result->hasDownloadableAudio());
@@ -65,20 +65,20 @@ final class FakeMusicGenerationProviderTest extends TestCase
         // A provider that reports success without a file is a provider bug;
         // ingestion must not create an empty track from it.
         $provider = new FakeMusicGenerationProvider;
-        $started = $provider->generate(new GenerationRequest(prompt: 'lofi'));
-        $provider->complete($started->providerJobId, '');
+        $started = $provider->createGeneration(new GenerationRequest(prompt: 'lofi'));
+        $provider->completeWithNothing($started->providerJobId);
 
-        $this->assertFalse($provider->status($started->providerJobId)->hasDownloadableAudio());
+        $this->assertFalse($provider->getGenerationStatus($started->providerJobId)->hasDownloadableAudio());
     }
 
     #[Test]
     public function a_failed_generation_carries_its_reason(): void
     {
         $provider = new FakeMusicGenerationProvider;
-        $started = $provider->generate(new GenerationRequest(prompt: 'lofi'));
+        $started = $provider->createGeneration(new GenerationRequest(prompt: 'lofi'));
 
         $provider->fail($started->providerJobId, 'quota exceeded');
-        $result = $provider->status($started->providerJobId);
+        $result = $provider->getGenerationStatus($started->providerJobId);
 
         $this->assertTrue($result->isTerminal());
         $this->assertFalse($result->isSuccessful());
@@ -89,11 +89,11 @@ final class FakeMusicGenerationProviderTest extends TestCase
     public function a_pending_generation_can_be_cancelled_once(): void
     {
         $provider = new FakeMusicGenerationProvider;
-        $started = $provider->generate(new GenerationRequest(prompt: 'lofi'));
+        $started = $provider->createGeneration(new GenerationRequest(prompt: 'lofi'));
 
-        $this->assertTrue($provider->cancel($started->providerJobId));
-        $this->assertSame(GenerationStatus::Cancelled, $provider->status($started->providerJobId)->status);
-        $this->assertFalse($provider->cancel($started->providerJobId));
+        $this->assertTrue($provider->cancelGeneration($started->providerJobId));
+        $this->assertSame(GenerationStatus::Cancelled, $provider->getGenerationStatus($started->providerJobId)->status);
+        $this->assertFalse($provider->cancelGeneration($started->providerJobId));
     }
 
     #[Test]
@@ -101,10 +101,10 @@ final class FakeMusicGenerationProviderTest extends TestCase
     {
         $provider = new FakeMusicGenerationProvider;
 
-        $result = $provider->status('never-existed');
+        $result = $provider->getGenerationStatus('never-existed');
 
         $this->assertSame(GenerationStatus::Failed, $result->status);
-        $this->assertFalse($provider->cancel('never-existed'));
+        $this->assertFalse($provider->cancelGeneration('never-existed'));
     }
 
     #[Test]
