@@ -7,11 +7,13 @@ namespace SaniTube\Ui\Queries;
 use Illuminate\Contracts\Pagination\CursorPaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\Relation;
+use InvalidArgumentException;
 use SaniTube\Artists\Models\Artist;
 use SaniTube\Catalog\Enums\ExternalIdentifierType;
 use SaniTube\Catalog\Enums\TrackArtistRole;
 use SaniTube\Catalog\Enums\TrackSource;
 use SaniTube\Catalog\Enums\TrackStatus;
+use SaniTube\Catalog\Models\ExternalIdentifier;
 use SaniTube\Catalog\Models\Track;
 
 /**
@@ -50,8 +52,25 @@ final readonly class TrackIndexQuery
         $query = Track::query()
             ->with([
                 'artists',
-                'externalIdentifiers' => fn (Relation $relation) => $relation->where('type', ExternalIdentifierType::Isrc->value),
+                // Active identifiers only, and the authoritative one first.
+                //
+                // A revoked ISRC is a historical fact, not the track's current
+                // identity — showing one in a catalogue list is how a wrong code
+                // ends up in a delivery. `active()` at this boundary rather than
+                // a global scope on the model, because audit and reconciliation
+                // code must stay able to ask for revoked rows explicitly.
+                //
+                // The ordering decides which one `first()` returns when a track
+                // legitimately carries more than one active ISRC: the
+                // authoritative one wins, then the most recently assigned.
+                'externalIdentifiers' => fn (Relation $relation) => $relation
+                    ->where('type', ExternalIdentifierType::Isrc->value)
+                    ->where('active_marker', ExternalIdentifier::ACTIVE)
+                    ->orderByDesc('is_authoritative')
+                    ->orderByDesc('assigned_at'),
             ]);
+
+        $cursor = $this->validCursor($cursor);
 
         $this->applySearch($query, $this->stringOrNull($filters['search'] ?? null));
         $this->applyFilters($query, $filters);
@@ -120,9 +139,14 @@ final readonly class TrackIndexQuery
      * Deliberately three `LIKE`s rather than a full-text index: MySQL, MariaDB
      * and SQLite disagree about full-text syntax and about which storage
      * engines support it at all, and this platform promises to run on every one
-     * of them. At the size SaniTube is built for — a catalogue in the
-     * thousands — a prefix-anchored LIKE on an indexed column is not the
-     * bottleneck. If it ever becomes one, that is a decision to make with a
+     * of them.
+     *
+     * The match is `%term%` — a *contains* search, not prefix-anchored, which
+     * means the index on `title` does not serve it. That is the deliberate
+     * trade: an operator looking for "Ferry" expects to find "Midnight Ferry",
+     * and a prefix-only search on a catalogue of song titles is the kind of
+     * search people stop using. At the sizes SaniTube targets it is not the
+     * bottleneck; if it becomes one, that is a decision to make with a
      * measurement, not in advance.
      *
      * @param  Builder<Track>  $query
@@ -142,6 +166,7 @@ final readonly class TrackIndexQuery
                     'externalIdentifiers',
                     fn (Builder $relation) => $relation
                         ->where('type', ExternalIdentifierType::Isrc->value)
+                        ->where('active_marker', ExternalIdentifier::ACTIVE)
                         ->where('value', 'like', $term),
                 )
                 ->orWhereHas('artists', fn (Builder $relation) => $relation->where('name', 'like', $term));
@@ -154,20 +179,23 @@ final readonly class TrackIndexQuery
      */
     private function applyFilters(Builder $query, array $filters): void
     {
-        // Each filter is matched against the enum rather than passed through.
-        // An unrecognised value narrows nothing instead of reaching the
-        // database, so a hand-edited query string cannot become a SQL surprise
-        // or, worse, silently return everything while looking filtered.
+        // An unrecognised value is refused, not ignored.
+        //
+        // Silently discarding one returns the whole catalogue while the caller
+        // believes a filter is applied — the worst of both readings. HTTP
+        // callers never get here, because TrackIndexRequest answers 422 first;
+        // this is the boundary that keeps the guarantee true for every other
+        // caller, including future console commands and tests.
         $status = $this->stringOrNull($filters['status'] ?? null);
 
-        if ($status !== null && TrackStatus::tryFrom($status) !== null) {
-            $query->where('status', $status);
+        if ($status !== null) {
+            $query->where('status', $this->enum(TrackStatus::class, $status, 'status')->value);
         }
 
         $source = $this->stringOrNull($filters['source'] ?? null);
 
-        if ($source !== null && TrackSource::tryFrom($source) !== null) {
-            $query->where('source', $source);
+        if ($source !== null) {
+            $query->where('source', $this->enum(TrackSource::class, $source, 'source')->value);
         }
 
         $language = $this->stringOrNull($filters['language'] ?? null);
@@ -196,7 +224,8 @@ final readonly class TrackIndexQuery
 
         $role = $this->stringOrNull($filters['artist_role'] ?? null);
 
-        if ($artist !== null && $role !== null && TrackArtistRole::tryFrom($role) !== null) {
+        if ($artist !== null && $role !== null) {
+            $role = $this->enum(TrackArtistRole::class, $role, 'artist_role')->value;
             // The pivot table by name: inside `whereHas` the builder is a
             // plain query over artists joined to the pivot, so `wherePivot` —
             // which belongs to the relation object — is not available.
@@ -205,6 +234,80 @@ final readonly class TrackIndexQuery
                 fn (Builder $relation) => $relation->where('uuid', $artist)->whereRaw('track_artist.role = ?', [$role]),
             );
         }
+    }
+
+    /**
+     * The cursor, if it is one this query could have issued.
+     *
+     * Laravel decodes a cursor into the ordering parameters it was built from
+     * and then asks the paginator for each of them by name. A string that
+     * base64-decodes to valid JSON but does not carry `title`, `uuid` and
+     * `_pointsToNextItems` therefore reaches `UnexpectedValueException` deep
+     * inside the paginator — a 500 for what is, at worst, a mangled URL.
+     *
+     * Checking the shape here turns that into a refusal the caller can act on.
+     * A cursor is opaque to the reader but not arbitrary: it either came from
+     * this query or it did not.
+     */
+    private function validCursor(?string $cursor): ?string
+    {
+        if ($cursor === null || $cursor === '') {
+            return null;
+        }
+
+        if (! self::describesThisOrdering($cursor)) {
+            throw new InvalidArgumentException('The pagination cursor is not one this list issued.');
+        }
+
+        return $cursor;
+    }
+
+    /**
+     * Whether an encoded cursor carries the parameters this query orders by.
+     *
+     * Public so the HTTP layer can answer 422 before the request reaches here,
+     * without either side keeping its own copy of the ordering.
+     */
+    public static function describesThisOrdering(string $cursor): bool
+    {
+        $decoded = base64_decode($cursor, true);
+
+        if ($decoded === false) {
+            return false;
+        }
+
+        $parameters = json_decode($decoded, true);
+
+        if (! is_array($parameters)) {
+            return false;
+        }
+
+        foreach (['title', 'uuid', '_pointsToNextItems'] as $required) {
+            if (! array_key_exists($required, $parameters)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * One enum case, or an exception naming the filter that was wrong.
+     *
+     * @template T of \BackedEnum
+     *
+     * @param  class-string<T>  $enum
+     * @return T
+     */
+    private function enum(string $enum, string $value, string $filter): \BackedEnum
+    {
+        $case = $enum::tryFrom($value);
+
+        if ($case === null) {
+            throw new InvalidArgumentException(sprintf('[%s] is not a valid %s filter.', $value, $filter));
+        }
+
+        return $case;
     }
 
     private function stringOrNull(mixed $value): ?string

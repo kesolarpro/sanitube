@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace SaniTube\Ui\Queries;
 
+use Illuminate\Database\Eloquent\Relations\Relation;
 use SaniTube\Assets\Models\Asset;
+use SaniTube\Catalog\Models\ExternalIdentifier;
 use SaniTube\Catalog\Models\Track;
 use SaniTube\Catalog\Models\TrackArtist;
 use SaniTube\Catalog\Models\TrackContributor;
@@ -36,7 +38,19 @@ final readonly class TrackDetailQuery
         // relations. `$artist->pivot->role` is an untyped property bag that
         // static analysis cannot check and a rename would silently break;
         // TrackArtist and ReleaseTrack are real models with real casts.
-        $track->load(['composition', 'masterAsset', 'externalIdentifiers']);
+        $track->load([
+            'composition',
+            'masterAsset',
+            // Active identifiers only. A revoked ISRC is a historical fact and
+            // belongs to an audit view; presenting it here as the track's
+            // identity is how a superseded code reaches a distributor.
+            // Scoped at this boundary rather than globally on the model, so
+            // reconciliation code can still ask for revoked rows on purpose.
+            'externalIdentifiers' => fn (Relation $relation) => $relation
+                ->where('active_marker', ExternalIdentifier::ACTIVE)
+                ->orderByDesc('is_authoritative')
+                ->orderByDesc('assigned_at'),
+        ]);
 
         $artistCredits = TrackArtist::query()->with('artist')->where('track_id', $track->getKey())->get();
         $contributorCredits = TrackContributor::query()->with('contributor')->where('track_id', $track->getKey())->get();
