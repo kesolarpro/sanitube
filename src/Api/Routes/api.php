@@ -5,8 +5,10 @@ declare(strict_types=1);
 use Illuminate\Support\Facades\Route;
 use SaniTube\Api\Http\Controllers\V1\ArtistController;
 use SaniTube\Api\Http\Controllers\V1\CompositionController;
+use SaniTube\Api\Http\Controllers\V1\GenerationProjectController;
 use SaniTube\Api\Http\Controllers\V1\HealthController;
 use SaniTube\Api\Http\Controllers\V1\IngestionBatchController;
+use SaniTube\Api\Http\Controllers\V1\MusicGenerationController;
 use SaniTube\Api\Http\Controllers\V1\ReleaseController;
 use SaniTube\Api\Http\Controllers\V1\TrackCandidateController;
 use SaniTube\Api\Http\Controllers\V1\TrackController;
@@ -119,6 +121,35 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
             ->name('ingestion.candidates.promote');
         Route::post('ingestion/candidates/{candidate}/reject', [TrackCandidateController::class, 'reject'])
             ->name('ingestion.candidates.reject');
+
+        /*
+         * Music generation — the Studio's surface.
+         *
+         * Everything here creates or moves a *generation*. Selecting a result
+         * produces a TrackCandidate, never a Track, so a campaign that runs
+         * overnight cannot write nine hundred rows into the catalogue: each
+         * one still goes through the same review CAT-001 defines.
+         *
+         * No provider credential, endpoint or job identifier crosses this
+         * boundary in either direction.
+         */
+        Route::post('generation/projects', [GenerationProjectController::class, 'store'])
+            ->name('generation.projects.store');
+        Route::get('generation/projects', [GenerationProjectController::class, 'index'])
+            ->name('generation.projects.index');
+        Route::get('generation/projects/{project}', [GenerationProjectController::class, 'show'])
+            ->name('generation.projects.show');
+
+        Route::post('generations', [MusicGenerationController::class, 'store'])
+            ->name('generations.store');
+        Route::get('generations/{generation}', [MusicGenerationController::class, 'show'])
+            ->name('generations.show');
+        Route::post('generations/{generation}/cancel', [MusicGenerationController::class, 'cancel'])
+            ->name('generations.cancel');
+        Route::get('generations/{generation}/results', [MusicGenerationController::class, 'results'])
+            ->name('generations.results');
+        Route::post('generation/results/{result}/select', [MusicGenerationController::class, 'select'])
+            ->name('generation.results.select');
     });
 
 });
