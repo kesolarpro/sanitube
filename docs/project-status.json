@@ -1,8 +1,8 @@
 {
   "$comment": "Machine-readable project state. Any new session reads this first, then verifies it against GitHub before trusting it. Written at the end of each ticket, so a stale entry means a session ended mid-ticket — check the branch and CI rather than the status field.",
   "updated_at": "2026-08-15",
-  "current_phase": "AI-001",
-  "last_completed_ticket": "CAT-001",
+  "current_phase": "CAT-001",
+  "last_completed_ticket": "MED-001",
   "default_branch": "main",
   "tickets": {
     "ARCH-001": {
@@ -38,20 +38,19 @@
       "merge_commit": "8ff35e4"
     },
     "MED-001": {
-      "status": "pr_open",
+      "status": "merged",
       "branch": "claude/med-001-audio-analysis",
       "pr": 6,
       "ci": "green",
       "report": "docs/reports/MED-001.md",
-      "note": "Left open for review: carries a declared behaviour change to ING-001."
+      "merge_commit": "4c1f6c6"
     },
     "CAT-001": {
       "status": "pr_open",
       "branch": "claude/cat-001-candidate-promotion",
       "pr": 7,
-      "ci": "green (run 31874233971)",
-      "report": "docs/reports/CAT-001.md",
-      "stacked_on": "claude/med-001-audio-analysis"
+      "ci": "rebased onto main, awaiting run",
+      "report": "docs/reports/CAT-001.md"
     },
     "AI-001": {
       "status": "not_started",
@@ -88,7 +87,7 @@
     {
       "ticket": "MED-001",
       "change": "TrackCandidate is created PENDING instead of READY; SettleCandidateAfterAnalysis moves it to READY, NEEDS_REVIEW or WAITING_CAPABILITY",
-      "status": "declared, awaiting review",
+      "status": "validated by review; merged",
       "note": "Pre-announced in ING-001's report. No schema change: both statuses were declared in TrackCandidateStatus by ING-001 for this purpose.",
       "recorded_in": "docs/reports/MED-001.md"
     }
@@ -110,18 +109,11 @@
   },
   "open_pull_requests": [
     {
-      "pr": 6,
-      "ticket": "MED-001",
-      "base": "main",
-      "ci": "green (run 31873509564)",
-      "why_open": "Carries a declared behaviour change to ING-001 (candidates born PENDING). Recorded under architecture_amendments, so left for review rather than self-merged."
-    },
-    {
       "pr": 7,
       "ticket": "CAT-001",
-      "base": "claude/med-001-audio-analysis",
-      "ci": "green 10/10 (run 31874233971)",
-      "why_open": "Stacked on PR #6. Retarget to main once #6 merges."
+      "base": "main",
+      "ci": "awaiting run after rebase",
+      "why_open": "Validated by review; merge once CI is green on the rebased head."
     }
   ]
 }
