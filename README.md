@@ -91,6 +91,8 @@ composer check     # all of the above
 
 - [`docs/architecture.md`](docs/architecture.md) — modules, boundaries,
   portability rules, provider contracts, known limitations.
+- [`docs/domain-model.md`](docs/domain-model.md) — the catalogue core: entities,
+  identity, invariants, the identifier lifecycle, the read-only API.
 - [`docs/adr/`](docs/adr/README.md) — architecture decision records, including
   the decisions deliberately deferred to a later ticket and what unblocks them.
 

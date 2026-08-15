@@ -170,6 +170,9 @@ final class BrokenCache extends Repository
         parent::__construct(new ArrayStore);
     }
 
+    /**
+     * @param  array<array-key, mixed>|string  $key
+     */
     public function get($key, $default = null): mixed
     {
         throw new \RuntimeException('SQLSTATE[HY000] [2002] Connection refused');

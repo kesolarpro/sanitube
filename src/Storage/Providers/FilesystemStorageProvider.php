@@ -37,6 +37,9 @@ class FilesystemStorageProvider implements StorageProvider
         return $this->temporaryUrls;
     }
 
+    /**
+     * @param  array<string, mixed>  $options
+     */
     public function put(string $key, mixed $contents, array $options = []): StoredObject
     {
         if ($this->disk->put($key, $contents, $options) === false) {
@@ -46,6 +49,9 @@ class FilesystemStorageProvider implements StorageProvider
         return $this->describe($key);
     }
 
+    /**
+     * @param  array<string, mixed>  $options
+     */
     public function putFile(string $key, string $localPath, array $options = []): StoredObject
     {
         $stream = @fopen($localPath, 'rb');

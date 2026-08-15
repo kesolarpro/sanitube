@@ -30,12 +30,16 @@ interface StorageProvider
 
     /**
      * Store raw contents (string or stream resource) at the given key.
+     *
+     * @param  array<string, mixed>  $options
      */
     public function put(string $key, mixed $contents, array $options = []): StoredObject;
 
     /**
      * Store a file already present on the local filesystem, streaming it so
      * that a 900-track import never has to fit a master in memory.
+     *
+     * @param  array<string, mixed>  $options
      */
     public function putFile(string $key, string $localPath, array $options = []): StoredObject;
 

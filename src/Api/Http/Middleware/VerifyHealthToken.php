@@ -4,36 +4,28 @@ declare(strict_types=1);
 
 namespace SaniTube\Api\Http\Middleware;
 
-use Closure;
-use Illuminate\Http\Request;
-use Symfony\Component\HttpFoundation\Response;
-
 /**
  * Guards the endpoints that describe the environment.
  *
  * A readiness probe or a capability report tells an attacker which PHP
- * extensions, storage provider and database engine are in play. Until the
- * Identity module exists, these routes are protected by a shared token — and
- * when no token is configured they are not reachable at all, so a fresh
- * install never exposes them by accident.
+ * extensions, storage provider and database engine are in play, so these
+ * routes carry their own token — separate from the catalogue token, because
+ * the two have different blast radii and are handed to different systems.
  */
-final class VerifyHealthToken
+final class VerifyHealthToken extends VerifiesSharedToken
 {
-    public function handle(Request $request, Closure $next): Response
+    protected function tokenConfigKey(): string
     {
-        $expected = config('sanitube.health.token');
+        return 'sanitube.health.token';
+    }
 
-        if (! is_string($expected) || $expected === '') {
-            abort(404);
-        }
+    protected function headerConfigKey(): string
+    {
+        return 'sanitube.health.header';
+    }
 
-        $header = (string) config('sanitube.health.header', 'X-SaniTube-Health-Token');
-        $provided = $request->header($header);
-
-        if (! is_string($provided) || ! hash_equals($expected, $provided)) {
-            abort(401, 'Invalid health token.');
-        }
-
-        return $next($request);
+    protected function defaultHeader(): string
+    {
+        return 'X-SaniTube-Health-Token';
     }
 }

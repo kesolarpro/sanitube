@@ -3,9 +3,14 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Facades\Route;
+use SaniTube\Api\Http\Controllers\V1\ArtistController;
+use SaniTube\Api\Http\Controllers\V1\CompositionController;
 use SaniTube\Api\Http\Controllers\V1\HealthController;
+use SaniTube\Api\Http\Controllers\V1\ReleaseController;
+use SaniTube\Api\Http\Controllers\V1\TrackController;
 use SaniTube\Api\Http\Middleware\ThrottleHealthRequests;
 use SaniTube\Api\Http\Middleware\VerifyHealthToken;
+use SaniTube\Api\Http\Middleware\VerifyInternalApiToken;
 
 /*
 |--------------------------------------------------------------------------
@@ -38,9 +43,9 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
         ->middleware(ThrottleHealthRequests::class.':live');
 
     /*
-     * Readiness and the capability report describe the environment in detail
-     * and do run every detector, so they are token-protected and throttled
-     * more tightly than liveness.
+     * Readiness and the capability report describe the environment and do run
+     * every detector, so they are token-protected and throttled more tightly
+     * than liveness.
      */
     Route::middleware([
         ThrottleHealthRequests::class.':privileged',
@@ -48,6 +53,31 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
     ])->group(function (): void {
         Route::get('health/ready', [HealthController::class, 'ready'])->name('health.ready');
         Route::get('system/capabilities', [HealthController::class, 'capabilities'])->name('system.capabilities');
+    });
+
+    /*
+     * Read-only catalogue.
+     *
+     * Read-only is a deliberate boundary, not a stage of completion: writes
+     * carry invariants that belong in domain services, and exposing them
+     * before the Identity module can say who is calling would mean an
+     * unauthenticated shared token could mutate the catalogue.
+     *
+     * Route binding resolves on `uuid` (see HasPublicUuid), so no internal id
+     * can appear in a URL.
+     */
+    Route::middleware(VerifyInternalApiToken::class)->group(function (): void {
+        Route::get('artists', [ArtistController::class, 'index'])->name('artists.index');
+        Route::get('artists/{artist}', [ArtistController::class, 'show'])->name('artists.show');
+
+        Route::get('compositions', [CompositionController::class, 'index'])->name('compositions.index');
+        Route::get('compositions/{composition}', [CompositionController::class, 'show'])->name('compositions.show');
+
+        Route::get('tracks', [TrackController::class, 'index'])->name('tracks.index');
+        Route::get('tracks/{track}', [TrackController::class, 'show'])->name('tracks.show');
+
+        Route::get('releases', [ReleaseController::class, 'index'])->name('releases.index');
+        Route::get('releases/{release}', [ReleaseController::class, 'show'])->name('releases.show');
     });
 
 });

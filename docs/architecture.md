@@ -49,10 +49,19 @@ src/
 ├── Storage/        object storage abstraction
 ├── Observability/  capability detection, health, scheduler heartbeat
 ├── Api/            REST API v1 surface
+├── Artists/        public credits
+├── Contributors/   creating and administering parties
+├── Catalog/        compositions, tracks, external identifiers
+├── Releases/       releases and their running order
+├── Assets/         files, lineage, integrity
 ├── MusicGeneration/  generation provider contract + fake
 ├── AI/             LLM provider contract + null provider
 └── Distribution/   distributor contract + null provider
 ```
+
+The catalogue core — what those five domain modules contain, the invariants
+they enforce and why — is documented separately in
+[`docs/domain-model.md`](domain-model.md).
 
 Modules are declared in `config/sanitube.php`. Declaring a module that has no
 directory yet is free — the loader only wires up what exists. Each module may

@@ -68,13 +68,14 @@ final class ModuleRegistryTest extends TestCase
     #[Test]
     public function installed_only_returns_modules_that_exist_on_disk(): void
     {
-        // The real src/ directory: Catalog is a declared but not yet created
-        // module, Localization exists.
-        $registry = new ModuleRegistry(['Localization', 'Catalog'], dirname(__DIR__, 3).'/src');
+        // The real src/ directory. Royalties is declared in configuration but
+        // has no code yet, which is the state every module starts in and must
+        // cost nothing.
+        $registry = new ModuleRegistry(['Localization', 'Royalties'], dirname(__DIR__, 3).'/src');
 
         $installed = array_map(static fn ($module): string => $module->name, $registry->installed());
 
         $this->assertContains('Localization', $installed);
-        $this->assertNotContains('Catalog', $installed);
+        $this->assertNotContains('Royalties', $installed);
     }
 }

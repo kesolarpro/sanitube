@@ -9,10 +9,11 @@ parameters:
         - routes
         - tests
 
-    # Level 5 is the honest starting point for a codebase this young: it
-    # catches real mistakes without demanding annotations on scaffolding that
-    # has not been written yet. Raised as the domain model lands.
-    level: 5
+    # Raised to 6 with the domain model: from here on, every method that
+    # returns or accepts a collection has to say what is in it. On a catalogue
+    # this is the difference between "a list" and "a list of tracks", and it is
+    # the annotation that stops a Release quietly holding Assets.
+    level: 6
 
     checkModelProperties: true
 
