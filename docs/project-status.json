@@ -192,10 +192,12 @@
     "UI-003a": {
       "status": "pr_open_awaiting_review",
       "branch": "claude/ui-003-catalogue",
-      "pr": null,
-      "ci": "awaiting run",
+      "pr": 16,
+      "ci": "10/10 green — run 31902837883",
       "report": "docs/reports/UI-003a.md",
-      "note": "Catalogue: tracks index + detail. Cursor pagination ordered by (title, uuid) so no internal key rides in the cursor; filters validated against domain enums; detail payload carries no disk/path/bucket/internal id; checksum abbreviated. Artists, contributors, compositions and assets remain: UI-003b."
+      "note": "Catalogue: tracks index + detail. Cursor pagination ordered by (title, uuid) so no internal key rides in the cursor; filters validated against domain enums; detail payload carries no disk/path/bucket/internal id; checksum abbreviated. Artists, contributors, compositions and assets remain: UI-003b.",
+      "pr_url": "https://github.com/kesolarpro/sanitube/pull/16",
+      "ci_url": "https://github.com/kesolarpro/sanitube/actions/runs/31902837883"
     }
   },
   "architecture_amendments": [
@@ -265,11 +267,12 @@
   },
   "open_pull_requests": [
     {
-      "pr": null,
+      "pr": 16,
       "ticket": "UI-003a",
       "base": "main",
-      "ci": "awaiting run",
-      "why_open": "Review rule active for catalogue read models - awaiting verdict before merge."
+      "ci": "10/10 green — run 31902837883",
+      "why_open": "Left for review deliberately. The wave policy permits merging a UI ticket that does not write or modify business data, and UI-003a only reads — but it introduces a new payload contract for the catalogue, and the PR body already states it is awaiting a verdict. Owner may merge on green CI if the read-only reading of the policy is the intended one.",
+      "url": "https://github.com/kesolarpro/sanitube/pull/16"
     }
   ],
   "next_session": {
@@ -324,8 +327,8 @@
   "session_boundary": {
     "reason": "Context capacity reached at a clean ticket boundary.",
     "repository_state": "green",
-    "main_sha": "9d2a4ac50088933fadf0e0ea65c470970d589afe",
-    "note": "UI-002 is complete and awaiting architectural review. Do NOT stack UI-003 on the claude/ui-002-dashboard branch. Resume from next_action in this file."
+    "main_sha": "16d37c20b604cf468fec4be7674b34955a4159a3",
+    "note": "UI-001 and UI-002 merged and verified on main. UI-003a complete, CI green, PR #16 open. Do NOT stack UI-003b on claude/ui-003-catalogue — branch from main. Resume from next_action."
   },
   "v1_progress_percent": {
     "value": 38,
