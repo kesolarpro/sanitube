@@ -6,6 +6,7 @@ namespace SaniTube\Assets\Observers;
 
 use SaniTube\Assets\Enums\AssetStatus;
 use SaniTube\Assets\Events\AssetDuplicateDetected;
+use SaniTube\Assets\Events\AssetMissing;
 use SaniTube\Assets\Events\AssetQuarantined;
 use SaniTube\Assets\Events\AssetStored;
 use SaniTube\Assets\Events\AssetVerified;
@@ -13,7 +14,7 @@ use SaniTube\Assets\Exceptions\AssetIntegrityException;
 use SaniTube\Assets\Models\Asset;
 
 /**
- * Enforces the asset invariants (I1, I2a–I2e).
+ * Enforces the asset invariants (I1, I2a–I2e, I10).
  *
  * These live in an observer rather than in a service so that they hold no
  * matter how the row was written — a seeder, a factory, an import job or a
@@ -27,6 +28,7 @@ final class AssetObserver
         $this->assertLineageShape($asset);
         $this->assertNoSelfReference($asset);
         $this->assertNoCycles($asset);
+        $this->assertMeasured($asset);
     }
 
     public function updating(Asset $asset): void
@@ -67,6 +69,36 @@ final class AssetObserver
 
         if ($asset->wasChanged('duplicate_of_asset_id') && $asset->duplicate_of_asset_id !== null) {
             event(new AssetDuplicateDetected($asset));
+        }
+    }
+
+    /**
+     * I10 — a stored asset knows what it is holding.
+     *
+     * `sha256`, `byte_size` and `mime_type` are nullable so that a PENDING
+     * asset can exist before anything has been hashed. Nullable is not
+     * optional: the moment an asset claims its bytes are in storage, the
+     * measurements of those bytes have to be there too.
+     *
+     * Without this, VERIFIED could be reached with a NULL checksum — a status
+     * the whole platform treats as proof, resting on nothing.
+     */
+    private function assertMeasured(Asset $asset): void
+    {
+        if (! $asset->status->isImmutable()) {
+            return;
+        }
+
+        $missing = [];
+
+        foreach (Asset::REQUIRED_ONCE_STORED as $field) {
+            if (blank($asset->getAttribute($field))) {
+                $missing[] = $field;
+            }
+        }
+
+        if ($missing !== []) {
+            throw AssetIntegrityException::unmeasured($asset->status->value, $missing);
         }
     }
 
@@ -152,6 +184,7 @@ final class AssetObserver
             AssetStatus::Stored => event(new AssetStored($asset)),
             AssetStatus::Verified => event(new AssetVerified($asset)),
             AssetStatus::Quarantined => event(new AssetQuarantined($asset)),
+            AssetStatus::Missing => event(new AssetMissing($asset)),
             default => null,
         };
     }
