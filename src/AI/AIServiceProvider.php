@@ -16,7 +16,11 @@ final class AIServiceProvider extends ServiceProvider
             /** @var array<string, array<string, mixed>> $providers */
             $providers = (array) config('ai.providers', []);
 
-            return new AiManager($providers, (string) config('ai.default', 'null'));
+            // The configuration boundary. `(string) config(...)` alone is what
+            // broke: with SANITUBE_AI_PROVIDER=null in a .env file the config
+            // value is PHP null, the env() default never applies because the
+            // key is present, and the cast produces an empty provider name.
+            return new AiManager($providers, AiManager::normaliseProviderName(config('ai.default')));
         });
 
         // Resolving the contract gives the configured default, so a caller

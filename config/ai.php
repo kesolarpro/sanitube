@@ -9,17 +9,26 @@ return [
     | Default provider
     |--------------------------------------------------------------------------
     |
-    | `null` on a fresh install, and that is the correct default rather than a
+    | `none` on a fresh install, and that is the correct default rather than a
     | placeholder. Every AI feature in SaniTube is an assistant to a person who
     | could do the job without it, so an installation with no API key must
     | catalogue, import, analyse and release exactly as well as one with a key.
     | It simply reports the assistance as unavailable.
     |
+    | **The disabled provider is called `none`, never `null`.** Laravel's
+    | `Env::get()` converts the literal string `null` in a `.env` file into PHP
+    | `null`, so `SANITUBE_AI_PROVIDER=null` does not mean "the provider named
+    | null" — it means no value at all, the `env()` default never applies
+    | because the key *is* present, and the manager is asked to resolve an
+    | empty name. That is not a hypothetical: it turned every AI test red in
+    | CI while passing locally, because CI copies `.env.example` and a local
+    | run may not have the key at all.
+    |
     | Set to "openai" or "claude" once the matching key is configured.
     |
     */
 
-    'default' => env('SANITUBE_AI_PROVIDER', 'null'),
+    'default' => env('SANITUBE_AI_PROVIDER', 'none'),
 
     /*
     |--------------------------------------------------------------------------
@@ -41,7 +50,11 @@ return [
 
     'providers' => [
 
-        'null' => [
+        // The public name is `none`; the internal driver keeps the word `null`
+        // because {@see \SaniTube\AI\Providers\NullAiProvider} is a null
+        // object and that is what it is. Only the value a human types had to
+        // change.
+        'none' => [
             'driver' => 'null',
         ],
 

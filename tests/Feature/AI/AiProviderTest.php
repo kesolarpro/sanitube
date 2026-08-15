@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Tests\Feature\AI;
 
+use Dotenv\Dotenv;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Env;
 use Illuminate\Support\Facades\Http;
 use PHPUnit\Framework\Attributes\Test;
 use SaniTube\AI\AiCompletion;
@@ -43,6 +45,24 @@ final class AiProviderTest extends TestCase
         // Nothing in this file may reach the network. Any request the fake
         // does not describe is an assertion failure rather than a real call.
         Http::preventStrayRequests();
+
+        // AiManager is a singleton that reads configuration once, at
+        // construction — the same deliberate design as StorageManager. A test
+        // that changes `ai.*` after the container has resolved it would get
+        // the stale one, and would then pass or fail depending on whether an
+        // earlier test in the file had resolved it first. Dropping the
+        // instance here makes every test in this file independent of order.
+        $this->app->forgetInstance(AiManager::class);
+    }
+
+    /**
+     * Resolve the manager against configuration as it stands *now*.
+     */
+    private function manager(): AiManager
+    {
+        $this->app->forgetInstance(AiManager::class);
+
+        return $this->app->make(AiManager::class);
     }
 
     // ------------------------------------------------------- absent by default
@@ -50,10 +70,107 @@ final class AiProviderTest extends TestCase
     #[Test]
     public function a_fresh_install_reports_ai_as_unavailable_rather_than_failing(): void
     {
-        $manager = new AiManager((array) config('ai.providers'), 'null');
+        $manager = $this->manager();
 
+        $this->assertSame(AiManager::DISABLED, $manager->defaultName());
         $this->assertFalse($manager->isAvailable());
         $this->assertInstanceOf(NullAiProvider::class, $manager->default());
+    }
+
+    #[Test]
+    public function the_shipped_env_example_resolves_to_a_working_disabled_provider(): void
+    {
+        // The test that would have caught this in CI. `.env.example` is copied
+        // to `.env` by every CI job and by every fresh install, so whatever it
+        // says about the AI provider has to resolve — and `null` did not.
+        $values = Dotenv::parse((string) file_get_contents(base_path('.env.example')));
+
+        $this->assertArrayHasKey('SANITUBE_AI_PROVIDER', $values);
+        $configured = $values['SANITUBE_AI_PROVIDER'];
+
+        $this->assertSame(
+            'none',
+            $configured,
+            'The shipped default must not be the literal string "null": Laravel reads it as PHP null.',
+        );
+
+        config(['ai.default' => $configured]);
+
+        $this->assertInstanceOf(NullAiProvider::class, $this->manager()->default());
+    }
+
+    #[Test]
+    public function the_literal_string_null_from_a_dotenv_file_becomes_php_null(): void
+    {
+        // The mechanism itself, stated once so nobody re-introduces it. This
+        // is why the provider is called `none`.
+        $this->assertNull(Env::get('SANITUBE_AI_PROVIDER_PROBE_UNSET'));
+        $this->assertSame(AiManager::DISABLED, AiManager::normaliseProviderName(null));
+    }
+
+    #[Test]
+    public function an_empty_or_absent_configuration_is_the_disabled_provider(): void
+    {
+        // Empty configuration means none. A fresh install, an unset variable,
+        // a blank field and the legacy value `null` all mean "no AI here", and
+        // every one of them must leave the platform working.
+        foreach ([null, '', '   ', 'null', 'NULL', 'none', false, []] as $configured) {
+            $this->assertSame(
+                AiManager::DISABLED,
+                AiManager::normaliseProviderName($configured),
+                sprintf('[%s] must resolve to the disabled provider.', var_export($configured, true)),
+            );
+        }
+    }
+
+    #[Test]
+    public function a_misspelt_provider_is_an_error_rather_than_silently_disabled(): void
+    {
+        // The asymmetry that makes the rule useful. Somebody who typed
+        // `openaai` intended a provider; disabling AI quietly would hide that
+        // until an audit asked which model wrote a description.
+        $this->assertSame('openaai', AiManager::normaliseProviderName('openaai'));
+
+        config(['ai.default' => 'openaai']);
+
+        $this->expectException(UnknownAiProvider::class);
+
+        $this->manager()->default();
+    }
+
+    #[Test]
+    public function an_empty_provider_name_asked_for_directly_is_still_an_error(): void
+    {
+        // Normalisation happens once, at the configuration boundary. An empty
+        // name reaching the manager means a caller passed one, and answering
+        // it with the disabled provider would turn a bug into a silently
+        // AI-less installation.
+        $this->expectException(UnknownAiProvider::class);
+
+        $this->manager()->provider('');
+    }
+
+    #[Test]
+    public function these_tests_do_not_depend_on_the_order_they_run_in(): void
+    {
+        // The guard the review asked for. AiManager reads configuration once,
+        // so a test that resolves it and a later test that changes config
+        // would otherwise interact through the container.
+        config(['ai.default' => 'openai']);
+        $this->assertSame('openai', $this->manager()->defaultName());
+
+        config(['ai.default' => AiManager::DISABLED]);
+        $this->assertSame(AiManager::DISABLED, $this->manager()->defaultName());
+
+        // And the documented consequence, stated out loud: without dropping
+        // the instance, the manager keeps the configuration it was built with.
+        $stale = $this->app->make(AiManager::class);
+        config(['ai.default' => 'openai']);
+        $this->assertSame(
+            AiManager::DISABLED,
+            $stale->defaultName(),
+            'Configuration is read once at construction — rebind or forget the instance to change it.',
+        );
     }
 
     #[Test]
@@ -82,11 +199,9 @@ final class AiProviderTest extends TestCase
     {
         // Deliberately not a silent fallback: falling back would hide the
         // mistake until an audit asked which model wrote a description.
-        $manager = new AiManager((array) config('ai.providers'), 'null');
-
         $this->expectException(UnknownAiProvider::class);
 
-        $manager->provider('gemini');
+        $this->manager()->provider('gemini');
     }
 
     // ---------------------------------------------------------------- openai
@@ -346,8 +461,8 @@ final class AiProviderTest extends TestCase
     #[Test]
     public function a_registered_provider_replaces_the_configured_one(): void
     {
-        $manager = $this->app->make(AiManager::class);
-        $manager->register('null', new FakeAiProvider);
+        $manager = $this->manager();
+        $manager->register(AiManager::DISABLED, new FakeAiProvider);
 
         $this->assertTrue($manager->isAvailable());
         $this->assertContains('openai', $manager->names());
@@ -372,7 +487,7 @@ final class AiProviderTest extends TestCase
     private function registerFake(): FakeAiProvider
     {
         $fake = new FakeAiProvider;
-        $this->app->make(AiManager::class)->register('null', $fake);
+        $this->app->make(AiManager::class)->register(AiManager::DISABLED, $fake);
 
         return $fake;
     }

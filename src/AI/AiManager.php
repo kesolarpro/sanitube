@@ -24,6 +24,16 @@ use SaniTube\Storage\StorageManager;
  */
 final class AiManager
 {
+    /**
+     * What an absent or blank configuration means.
+     *
+     * Public because it is the *name*, not an implementation detail: callers
+     * and tests both need to be able to say "the disabled one" without
+     * spelling it, and the one thing this ticket learned is that spelling it
+     * `null` breaks.
+     */
+    public const DISABLED = 'none';
+
     /** @var array<string, AiProvider> */
     private array $resolved = [];
 
@@ -34,6 +44,41 @@ final class AiManager
         private readonly array $providers,
         private readonly string $defaultProvider,
     ) {}
+
+    /**
+     * The one place a configured provider name is interpreted.
+     *
+     * **Empty configuration means `none`. Unknown non-empty configuration is
+     * an error.** Those two halves are deliberately asymmetric, and the
+     * asymmetry is the whole point: a fresh install, an unset variable, a
+     * blank line and the legacy value `null` all mean "no AI here", and every
+     * one of them must leave the platform working. A typo like `openaai` means
+     * somebody intended a provider and misspelt it, and silently disabling AI
+     * would hide that until an audit asked which model wrote a description.
+     *
+     * Laravel converts the literal string `null` in a `.env` file to PHP null,
+     * so the null case below is not defensive programming — it is the exact
+     * value `SANITUBE_AI_PROVIDER=null` produces, and it is what turned every
+     * AI test red in CI while passing locally.
+     *
+     * This is the documented configuration boundary. Nothing downstream
+     * normalises anything: {@see provider()} refuses an empty name, because at
+     * that point it is a caller's bug rather than an operator's blank field.
+     */
+    public static function normaliseProviderName(mixed $configured): string
+    {
+        if (! is_string($configured)) {
+            return self::DISABLED;
+        }
+
+        $trimmed = trim($configured);
+
+        // `null` and `none` both arrive here as strings when the value comes
+        // from somewhere other than the environment — a config cache, a test.
+        return $trimmed === '' || strtolower($trimmed) === 'null'
+            ? self::DISABLED
+            : $trimmed;
+    }
 
     public function default(): AiProvider
     {
@@ -84,7 +129,11 @@ final class AiManager
 
     private function resolve(string $name): AiProvider
     {
-        $configuration = $this->providers[$name] ?? null;
+        // Deliberately not normalised here. Normalisation happens once, at the
+        // configuration boundary; an empty name reaching this point means a
+        // caller passed one, and answering it with the disabled provider would
+        // turn a bug into a silently AI-less installation.
+        $configuration = $name === '' ? null : ($this->providers[$name] ?? null);
 
         if (! is_array($configuration)) {
             throw UnknownAiProvider::named($name, array_keys($this->providers));
