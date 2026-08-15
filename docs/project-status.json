@@ -1,8 +1,8 @@
 {
   "$comment": "Machine-readable project state. Any new session reads this first, then verifies it against GitHub before trusting it. Written at the end of each ticket, so a stale entry means a session ended mid-ticket — check the branch and CI rather than the status field.",
   "updated_at": "2026-08-15",
-  "current_phase": "CAT-001",
-  "last_completed_ticket": "MED-001",
+  "current_phase": "AI-001",
+  "last_completed_ticket": "CAT-001",
   "default_branch": "main",
   "tickets": {
     "ARCH-001": {
@@ -40,15 +40,18 @@
     "MED-001": {
       "status": "pr_open",
       "branch": "claude/med-001-audio-analysis",
-      "pr": null,
-      "ci": null,
-      "report": "docs/reports/MED-001.md"
+      "pr": 6,
+      "ci": "green",
+      "report": "docs/reports/MED-001.md",
+      "note": "Left open for review: carries a declared behaviour change to ING-001."
     },
     "CAT-001": {
-      "status": "not_started",
-      "branch": null,
+      "status": "pr_open",
+      "branch": "claude/cat-001-candidate-promotion",
       "pr": null,
-      "ci": null
+      "ci": null,
+      "report": "docs/reports/CAT-001.md",
+      "stacked_on": "claude/med-001-audio-analysis"
     },
     "AI-001": {
       "status": "not_started",
@@ -100,6 +103,7 @@
   ],
   "notes": {
     "portability": "$table->json() is forbidden platform-wide. MariaDB's json is an alias for longtext/utf8mb4_bin while MySQL 8's is a native binary type, so one migration yields two types with two comparison semantics. Use ->longText() with an Eloquent array cast. Enforced by PortabilityTest::no_engine_specific_construct_is_used_in_any_migration.",
-    "capabilities": "FFmpeg is a capability, never a dependency. SANITUBE_MEDIA_ANALYSIS_REQUIRED defaults to false so a cPanel host without ffprobe still produces promotable candidates."
+    "capabilities": "FFmpeg is a capability, never a dependency. SANITUBE_MEDIA_ANALYSIS_REQUIRED defaults to false so a cPanel host without ffprobe still produces promotable candidates.",
+    "catalogue_writes": "Promotion is the only v1 write that creates a Track. It always creates it DRAFT, mints no ISRC, and is refusable for six reasons each carrying a machine-readable code. One-master-one-track is enforced in PromoteTrackCandidate rather than by a unique index, because tracks is ARCH-002's validated schema."
   }
 }

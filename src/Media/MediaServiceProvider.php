@@ -7,10 +7,12 @@ namespace SaniTube\Media;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Support\ServiceProvider;
 use SaniTube\Ingestion\Events\TrackCandidateCreated;
+use SaniTube\Ingestion\Events\TrackCandidatePromoted;
 use SaniTube\Media\Analyzers\FfprobeAudioAnalyzer;
 use SaniTube\Media\Analyzers\UnavailableAudioAnalyzer;
 use SaniTube\Media\Console\AnalyzeAudioCommand;
 use SaniTube\Media\Contracts\AudioAnalyzer;
+use SaniTube\Media\Listeners\RecordMeasuredDurationOnTrack;
 use SaniTube\Media\Listeners\ScheduleCandidateAnalysis;
 
 final class MediaServiceProvider extends ServiceProvider
@@ -35,6 +37,11 @@ final class MediaServiceProvider extends ServiceProvider
         // and should not have to. It announces that a candidate exists; Media
         // decides what to do about it.
         $this->app['events']->listen(TrackCandidateCreated::class, ScheduleCandidateAnalysis::class);
+
+        // The catalogue takes the measurement Media made, rather than Media
+        // being asked for it — which would point Ingestion at Media and close
+        // a cycle between two modules that already reference each other.
+        $this->app['events']->listen(TrackCandidatePromoted::class, RecordMeasuredDurationOnTrack::class);
 
         if ($this->app->runningInConsole()) {
             $this->commands([AnalyzeAudioCommand::class]);
