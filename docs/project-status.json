@@ -210,6 +210,14 @@
       "note": "Artists index + detail. C1 tracks_shown reports what was returned, not the cap. C2 the capped selection is ordered by track title then track uuid, so it is stable across loads and across the four engines. C3 the truncation test was strengthened, which caught a fixture of mine that made the determinism assertion pass against a deliberately broken ordering.",
       "merge_commit": "54e72bb",
       "review": "CORRECTIONS REQUIRED (C1-C3) -> applied -> merged"
+    },
+    "UI-003c": {
+      "status": "pr_open",
+      "branch": "claude/ui-003c-catalogue",
+      "pr": null,
+      "ci": "awaiting run",
+      "report": "docs/reports/UI-003c.md",
+      "note": "Contributors + Compositions index and detail. Assets deliberately NOT in this PR: the signed preview boundary is a security decision and gets its own branch from main. Credit shares are named credited_share and asserted never to read as ownership."
     }
   },
   "architecture_amendments": [
@@ -277,7 +285,15 @@
     "design_system": "Semantic tokens only (--color-surface, never --color-zinc-900). Status colour is decided in StatusBadge alone; labels always come from translations. Navigation is built server-side and unbuilt sections show as disabled — 'available' is presentation, never authorisation. MetricCard takes number|null and renders null as an em dash, never 0.",
     "frontend_toolchain": "@vitejs/plugin-vue@5 peers Vite ^5||^6; the project is on Vite 7. Resolved with plugin-vue@6 (which supports Vite 7), NOT --force or --legacy-peer-deps: a peer conflict is compatibility information, and overriding it keeps the incompatibility. Same for vue-tsc@3. npm run types runs in CI."
   },
-  "open_pull_requests": [],
+  "open_pull_requests": [
+    {
+      "pr": null,
+      "ticket": "UI-003c",
+      "base": "main",
+      "ci": "awaiting run",
+      "why_open": "Read-only catalogue screens; mergeable on green CI under the wave policy."
+    }
+  ],
   "next_session": {
     "start_with": "UI-001 — design system + real dashboard. Branch from main.",
     "then": [
@@ -299,11 +315,11 @@
     "since": "UI-001",
     "note": "Nine tickets (ING/MED/CAT/AI/GEN/REL/DIST/SEC-001 and PR #12) were merged under an earlier autonomous-chaining instruction that bypassed review. A retroactive audit is under way; they stay in main and any correction becomes a follow-up ticket, not a revert."
   },
-  "main_sha": "54e72bbb969fc12897ed83e0c0617211a0d94d0f",
-  "current_ticket": null,
+  "main_sha": "4cc385e69904cd0c5ff30f257ac95180d3a96bc3",
+  "current_ticket": "UI-003c",
   "tests": {
-    "php": 663,
-    "php_assertions": 2512,
+    "php": 692,
+    "php_assertions": 2675,
     "php_skipped": 1,
     "component": 16
   },
@@ -321,11 +337,11 @@
     "note": "PHP suite stubs Vite when no manifest exists; the frontend CI job renders against a real one."
   },
   "next_action": {
-    "ticket": "UI-003c",
-    "name": "Catalogue: contributors, compositions, assets",
+    "ticket": "UI-003d",
+    "name": "Catalogue: assets + signed preview",
     "state": "not started",
     "blocked_by": null,
-    "note": "Branch from main (54e72bb). Contributors and compositions are the same shape as artists and should be cheap: ArtistIndexQuery/ArtistDetailQuery are the template. Assets last and separately — the asset detail carries the preview-URL boundary, already arbitrated in decisions.asset_preview_url; implement it exactly as written and do not re-open it. Any LIMIT added must carry a deterministic ORDER BY, and any new guardrail must be verified to fail against the broken form before being trusted."
+    "note": "Branch from main, not from claude/ui-003c-catalogue. Implement decisions.asset_preview_url exactly: no signed URL in the detail GET, minted only by an authorised action, 900s default, VERIFIED required for an audio master, never persisted, never logged in full, Preview unavailable when the provider cannot issue temporary URLs. Mark the PR REVIEW_REQUIRED: it creates a new capability to hand out access to masters."
   },
   "session_boundary": {
     "reason": "Context capacity reached at a clean ticket boundary.",

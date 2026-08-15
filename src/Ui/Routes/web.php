@@ -5,6 +5,10 @@ declare(strict_types=1);
 use Illuminate\Support\Facades\Route;
 use SaniTube\Ui\Http\Controllers\Catalog\ArtistDetailController;
 use SaniTube\Ui\Http\Controllers\Catalog\ArtistIndexController;
+use SaniTube\Ui\Http\Controllers\Catalog\CompositionDetailController;
+use SaniTube\Ui\Http\Controllers\Catalog\CompositionIndexController;
+use SaniTube\Ui\Http\Controllers\Catalog\ContributorDetailController;
+use SaniTube\Ui\Http\Controllers\Catalog\ContributorIndexController;
 use SaniTube\Ui\Http\Controllers\Catalog\TrackDetailController;
 use SaniTube\Ui\Http\Controllers\Catalog\TrackIndexController;
 use SaniTube\Ui\Http\Controllers\DashboardController;
@@ -27,6 +31,10 @@ use SaniTube\Ui\Http\Middleware\HandleInertiaRequests;
 
 Route::middleware(['web', HandleInertiaRequests::class, 'auth', 'active'])->group(function (): void {
     Route::get('/', DashboardController::class)->name('dashboard');
+    Route::get('catalog/contributors', ContributorIndexController::class)->name('catalog.contributors');
+    Route::get('catalog/contributors/{contributor}', ContributorDetailController::class)->name('catalog.contributors.show');
+    Route::get('catalog/compositions', CompositionIndexController::class)->name('catalog.compositions');
+    Route::get('catalog/compositions/{composition}', CompositionDetailController::class)->name('catalog.compositions.show');
     Route::get('catalog/artists', ArtistIndexController::class)->name('catalog.artists');
     Route::get('catalog/artists/{artist}', ArtistDetailController::class)->name('catalog.artists.show');
     Route::get('catalog/tracks', TrackIndexController::class)->name('catalog.tracks');
