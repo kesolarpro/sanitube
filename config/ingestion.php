@@ -49,4 +49,20 @@ return [
     'item_tries' => (int) env('SANITUBE_INGESTION_ITEM_TRIES', 3),
     'retry_backoff_seconds' => [30, 120, 600],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Manifest size
+    |--------------------------------------------------------------------------
+    |
+    | The most rows one manifest may carry. A manifest is parsed into memory in
+    | full — every reference has to be known before the batch is written, so
+    | that a batch is never half-created — and a shared host has a modest
+    | memory_limit. The ceiling is well above the batch limit on purpose: a
+    | manifest that is merely too big for one batch should say so by name
+    | rather than by exhausting memory.
+    |
+    */
+
+    'manifest_max_rows' => (int) env('SANITUBE_INGESTION_MANIFEST_MAX_ROWS', 5000),
+
 ];

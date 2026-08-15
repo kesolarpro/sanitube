@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SaniTube\Ingestion;
 
 use Illuminate\Support\ServiceProvider;
+use SaniTube\Ingestion\Console\ImportCommand;
 use SaniTube\Ingestion\Models\IngestionItem;
 use SaniTube\Ingestion\Observers\IngestionItemObserver;
 
@@ -16,5 +17,9 @@ final class IngestionServiceProvider extends ServiceProvider
         // index that carries the idempotency guarantee cannot drift out of
         // step with the state it is supposed to describe.
         IngestionItem::observe(IngestionItemObserver::class);
+
+        if ($this->app->runningInConsole()) {
+            $this->commands([ImportCommand::class]);
+        }
     }
 }
