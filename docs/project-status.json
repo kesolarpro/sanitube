@@ -212,12 +212,21 @@
       "review": "CORRECTIONS REQUIRED (C1-C3) -> applied -> merged"
     },
     "UI-003c": {
-      "status": "pr_open",
-      "branch": "claude/ui-003c-catalogue",
-      "pr": null,
-      "ci": "awaiting run",
-      "report": "docs/reports/UI-003c.md",
-      "note": "Contributors + Compositions index and detail. Assets deliberately NOT in this PR: the signed preview boundary is a security decision and gets its own branch from main. Credit shares are named credited_share and asserted never to read as ownership."
+      "status": "merged",
+      "merge_commit": "8b0dc10",
+      "pr": 19,
+      "ci": "10/10 green — run 31906393614",
+      "note": "Contributors + Compositions index and detail. Credit shares travel as credited_share and a test asserts neither a bare `share` key nor the words ownership/royalty/entitlement appear in any payload — the rights domain does not exist yet. Legal name and display name kept as separate labelled facts. CursorShape extracted and shared by four lists."
+    },
+    "UI-003d": {
+      "status": "pr_open_review_required",
+      "branch": "claude/ui-003d-assets",
+      "pr": 20,
+      "pr_url": "https://github.com/kesolarpro/sanitube/pull/20",
+      "ci": "10/10 green — run 31906991871",
+      "report": "docs/reports/UI-003d.md",
+      "review_required_because": "Introduces the capability to hand out time-limited access to stored objects including masters.",
+      "note": "Assets index + detail + signed preview. No URL in the detail GET; minted only by POST; TTL clamped 300-900s; VERIFIED required for masters; masters and stems also require canWriteCatalogue (the one un-arbitrated judgement call, flagged for the reviewer); Preview unavailable when the provider cannot sign; never persisted; never logged in full."
     }
   },
   "architecture_amendments": [
@@ -287,11 +296,12 @@
   },
   "open_pull_requests": [
     {
-      "pr": null,
-      "ticket": "UI-003c",
+      "pr": 20,
+      "ticket": "UI-003d",
       "base": "main",
-      "ci": "awaiting run",
-      "why_open": "Read-only catalogue screens; mergeable on green CI under the wave policy."
+      "url": "https://github.com/kesolarpro/sanitube/pull/20",
+      "ci": "10/10 green — run 31906991871",
+      "why_open": "REVIEW_REQUIRED — new capability granting time-limited access to masters."
     }
   ],
   "next_session": {
@@ -315,13 +325,14 @@
     "since": "UI-001",
     "note": "Nine tickets (ING/MED/CAT/AI/GEN/REL/DIST/SEC-001 and PR #12) were merged under an earlier autonomous-chaining instruction that bypassed review. A retroactive audit is under way; they stay in main and any correction becomes a follow-up ticket, not a revert."
   },
-  "main_sha": "4cc385e69904cd0c5ff30f257ac95180d3a96bc3",
-  "current_ticket": "UI-003c",
+  "main_sha": "8b0dc10b9b6e9641b93ff7c01242112d3d681bfd",
+  "current_ticket": null,
   "tests": {
     "php": 692,
     "php_assertions": 2675,
     "php_skipped": 1,
-    "component": 16
+    "component": 16,
+    "note": "On main. UI-003d adds 16 more (708 / 2774) once merged."
   },
   "phpstan": {
     "level": 6,
@@ -337,21 +348,21 @@
     "note": "PHP suite stubs Vite when no manifest exists; the frontend CI job renders against a real one."
   },
   "next_action": {
-    "ticket": "UI-003d",
-    "name": "Catalogue: assets + signed preview",
+    "ticket": "BULK-001",
+    "name": "Bulk ingestion of the ~900 track library",
     "state": "not started",
     "blocked_by": null,
-    "note": "Branch from main, not from claude/ui-003c-catalogue. Implement decisions.asset_preview_url exactly: no signed URL in the detail GET, minted only by an authorised action, 900s default, VERIFIED required for an audio master, never persisted, never logged in full, Preview unavailable when the provider cannot issue temporary URLs. Mark the PR REVIEW_REQUIRED: it creates a new capability to hand out access to masters."
+    "note": "Branch from main. Independent of the UI-003d review, so it can proceed in parallel. Batch + jobs + resumable state; no transaction spanning hundreds of files; a partial failure must not roll back the successes; the browser must not need to stay open; existing ISRC/UPC preserved and never regenerated; provenance LEGACY_IMPORT. Counters must be derivable or a rebuildable projection — not a second source of truth that can drift from the item rows."
   },
   "session_boundary": {
     "reason": "Context capacity reached at a clean ticket boundary.",
     "repository_state": "green",
-    "main_sha": "54e72bbb969fc12897ed83e0c0617211a0d94d0f",
-    "note": "UI-001, UI-002, UI-003a and UI-003b merged. No open PR. Resume from next_action."
+    "main_sha": "8b0dc10b9b6e9641b93ff7c01242112d3d681bfd",
+    "note": "UI-003 is functionally complete: tracks, artists, contributors and compositions merged; assets awaiting review in PR #20. BULK-001 is next and does not depend on that review."
   },
   "v1_progress_percent": {
-    "value": 34,
-    "method": "weighted by block, not by file or ticket count",
+    "value": 38,
+    "method": "weighted by block, production-ready not implemented-only",
     "breakdown": {
       "core_domain": {
         "weight": 20,
@@ -360,8 +371,8 @@
       },
       "asset_catalogue": {
         "weight": 15,
-        "implemented": 60,
-        "production_ready": 35
+        "implemented": 85,
+        "production_ready": 55
       },
       "ai_generation": {
         "weight": 10,
@@ -380,8 +391,8 @@
       },
       "ui_ux": {
         "weight": 15,
-        "implemented": 45,
-        "production_ready": 35
+        "implemented": 60,
+        "production_ready": 45
       },
       "api": {
         "weight": 5,
@@ -394,7 +405,7 @@
         "production_ready": 5
       }
     },
-    "note": "Production-ready percentages, weighted, give ~34. The implemented-only figure would be ~50. Earlier sessions reported 38-42 by counting tickets, which overstated readiness — this is the corrected basis, not a regression."
+    "note": "Up from 34 because the catalogue block moved substantially: five resources browsable with their guarantees tested. Rights, royalties and ops/deployment are unchanged at or near zero, which is what keeps the overall figure where it is."
   },
   "decisions": {
     "asset_preview_url": {
@@ -424,16 +435,17 @@
   "known_limitations": [
     {
       "id": "filter-422-json",
-      "where": "Track and Artist index filter forms",
-      "what": "A refused filter answers 422 with a JSON body rather than an error rendered inside the filter form.",
-      "why_not_fixed": "Refusing loudly is the behaviour that must not regress; presenting the refusal nicely needs inline error display on the filter form.",
-      "severity": "cosmetic, not correctness"
+      "where": "All five catalogue index filter forms",
+      "what": "A refused filter answers 422 with a JSON body rather than an error rendered inside the form.",
+      "why_not_fixed": "Refusing loudly is what must not regress; presenting it nicely needs inline error display.",
+      "severity": "cosmetic",
+      "priority_note": "Now applies to five lists rather than two, which raises it."
     },
     {
-      "id": "title-uuid-index",
-      "where": "tracks and artists list ordering",
-      "what": "Ordering is (title, uuid) / (name, uuid) with no composite index over the pair.",
-      "why_not_fixed": "Not measurable at the catalogue sizes SaniTube targets. Adding one is a migration and belongs in a CAT ticket with a measurement behind it.",
+      "id": "list-ordering-index",
+      "where": "All catalogue list orderings",
+      "what": "Orderings are (natural key, uuid) with no composite index over the pair.",
+      "why_not_fixed": "Not measurable at target catalogue sizes; a migration belongs in a CAT ticket with a measurement behind it.",
       "severity": "none observed"
     }
   ]
