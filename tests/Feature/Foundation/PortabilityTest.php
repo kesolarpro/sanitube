@@ -133,6 +133,8 @@ final class PortabilityTest extends TestCase
         // up on whichever engine CI did not run.
         $forbidden = [
             'jsonb' => 'PostgreSQL-only type',
+            '->json(' => 'not one type across the matrix: native binary on MySQL 8, an alias for '
+                .'longtext/utf8mb4_bin on MariaDB. Use ->longText() and cast on the model',
             'ARRAY[' => 'PostgreSQL-only type',
             'tsvector' => 'PostgreSQL-only type',
             '->enum(' => 'SQL ENUM: changing a value means an ALTER TABLE, and semantics differ per engine',

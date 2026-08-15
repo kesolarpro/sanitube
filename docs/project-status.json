@@ -1,0 +1,92 @@
+{
+  "$comment": "Machine-readable project state. Any new session reads this first, then verifies it against GitHub before trusting it. Written at the end of each ticket, so a stale entry means a session ended mid-ticket \u2014 check the branch and CI rather than the status field.",
+  "updated_at": "2026-08-15",
+  "current_phase": "MED-001",
+  "last_completed_ticket": "ING-001",
+  "default_branch": "main",
+  "tickets": {
+    "ARCH-001": {
+      "status": "merged",
+      "branch": "claude/arch-001-hardening",
+      "pr": 1,
+      "ci": "green"
+    },
+    "ARCH-002": {
+      "status": "merged",
+      "branch": "claude/arch-002-domain-model",
+      "pr": 2,
+      "ci": "green"
+    },
+    "ARCH-003": {
+      "status": "merged",
+      "branch": "claude/arch-003-portability-guardrails",
+      "pr": 3,
+      "ci": "green"
+    },
+    "AST-001": {
+      "status": "merged",
+      "branch": "claude/ast-001-asset-registry-storage",
+      "pr": 4,
+      "ci": "green"
+    },
+    "ING-001": {
+      "status": "pr_open",
+      "branch": "claude/ing-001-ingestion-pipeline",
+      "pr": null,
+      "ci": null,
+      "report": "docs/reports/ING-001.md"
+    },
+    "MED-001": {
+      "status": "not_started",
+      "branch": null,
+      "pr": null,
+      "ci": null
+    },
+    "CAT-001": {
+      "status": "not_started",
+      "branch": null,
+      "pr": null,
+      "ci": null
+    },
+    "AI-001": {
+      "status": "not_started",
+      "branch": null,
+      "pr": null,
+      "ci": null
+    },
+    "GEN-001": {
+      "status": "not_started",
+      "branch": null,
+      "pr": null,
+      "ci": null
+    },
+    "UI-001": {
+      "status": "not_started",
+      "branch": null,
+      "pr": null,
+      "ci": null
+    },
+    "INS-001": {
+      "status": "not_started",
+      "branch": null,
+      "pr": null,
+      "ci": null
+    }
+  },
+  "architecture_amendments": [
+    {
+      "ticket": "AST-001",
+      "change": "assets.sha256, byte_size and mime_type nullable; invariant I10 added",
+      "status": "approved",
+      "recorded_in": "docs/adr/ADR-0012-asset-storage-compensation.md"
+    }
+  ],
+  "external_blockers": [
+    {
+      "id": "STO-002",
+      "summary": "No validation against a real S3-compatible endpoint. Contract is proved by two independent implementations and the multi-engine matrix, but no real bucket has been exercised.",
+      "blocking": "production staging, not ING-001",
+      "status": "deferred by review"
+    }
+  ]
+}

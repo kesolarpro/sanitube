@@ -6,7 +6,9 @@ use Illuminate\Support\Facades\Route;
 use SaniTube\Api\Http\Controllers\V1\ArtistController;
 use SaniTube\Api\Http\Controllers\V1\CompositionController;
 use SaniTube\Api\Http\Controllers\V1\HealthController;
+use SaniTube\Api\Http\Controllers\V1\IngestionBatchController;
 use SaniTube\Api\Http\Controllers\V1\ReleaseController;
+use SaniTube\Api\Http\Controllers\V1\TrackCandidateController;
 use SaniTube\Api\Http\Controllers\V1\TrackController;
 use SaniTube\Api\Http\Middleware\ThrottleHealthRequests;
 use SaniTube\Api\Http\Middleware\VerifyHealthToken;
@@ -78,6 +80,25 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
 
         Route::get('releases', [ReleaseController::class, 'index'])->name('releases.index');
         Route::get('releases/{release}', [ReleaseController::class, 'show'])->name('releases.show');
+
+        /*
+         * Ingestion.
+         *
+         * The one write in v1, and it writes to the *staging* side of the
+         * platform rather than the catalogue: a batch imports material and
+         * produces candidates, which are proposals. Nothing here can create a
+         * Track, so exposing it before the Identity module exists does not
+         * hand a shared token the ability to mutate the catalogue.
+         *
+         * The POST carries references, never payloads. Bytes arrive through
+         * the storage pipeline.
+         */
+        Route::post('ingestion/batches', [IngestionBatchController::class, 'store'])->name('ingestion.batches.store');
+        Route::get('ingestion/batches', [IngestionBatchController::class, 'index'])->name('ingestion.batches.index');
+        Route::get('ingestion/batches/{batch}', [IngestionBatchController::class, 'show'])->name('ingestion.batches.show');
+
+        Route::get('ingestion/candidates', [TrackCandidateController::class, 'index'])->name('ingestion.candidates.index');
+        Route::get('ingestion/candidates/{candidate}', [TrackCandidateController::class, 'show'])->name('ingestion.candidates.show');
     });
 
 });
