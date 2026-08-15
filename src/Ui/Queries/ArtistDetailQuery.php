@@ -22,7 +22,13 @@ use SaniTube\Catalog\Models\TrackArtist;
  */
 final readonly class ArtistDetailQuery
 {
-    /** Enough to show the body of work without turning a page into an export. */
+    /**
+     * Enough to show the body of work without turning a page into an export.
+     *
+     * A cap, not a page: this is a preview of the artist's catalogue, and the
+     * full filtered list is what the track screen is for. Offset pagination
+     * here would be a second, weaker way to browse the same rows.
+     */
     private const TRACK_LIMIT = 50;
 
     /**
@@ -41,10 +47,23 @@ final readonly class ArtistDetailQuery
 
         // Through the typed pivot rather than `$track->pivot`, which static
         // analysis cannot check and a column rename would silently break.
+        //
+        // Ordered before it is capped, and ordered by something a reader can
+        // reason about. A bare LIMIT with no ORDER BY returns whatever the
+        // engine finds convenient, which means the same artist can show a
+        // different fifty on two consecutive loads — and the four engines this
+        // platform runs on will disagree with each other as well. Title is the
+        // meaningful field; the track UUID is the stable tiebreaker, chosen
+        // over the pivot's own key so the ordering is defined entirely by
+        // values the UI contract already exposes.
         $credits = TrackArtist::query()
             ->with('track')
-            ->where('artist_id', $artist->getKey())
+            ->join('tracks', 'tracks.id', '=', 'track_artist.track_id')
+            ->whereRaw('track_artist.artist_id = ?', [$artist->getKey()])
+            ->orderBy('tracks.title')
+            ->orderBy('tracks.uuid')
             ->limit(self::TRACK_LIMIT)
+            ->select('track_artist.*')
             ->get();
 
         return [
@@ -83,8 +102,13 @@ final readonly class ArtistDetailQuery
             // Stated rather than left to be inferred from a short list: a page
             // showing fifty of nine hundred tracks with no note reads as an
             // artist with fifty tracks.
+            //
+            // `tracks_shown` is how many were actually returned, not the cap.
+            // Reporting the cap made it wrong for every artist under it — an
+            // artist with one track claimed fifty were shown, which is the
+            // opposite of the honesty this field exists to provide.
             'tracks_truncated' => (int) $artist->tracks_count > self::TRACK_LIMIT,
-            'tracks_shown' => self::TRACK_LIMIT,
+            'tracks_shown' => $credits->count(),
         ];
     }
 }

@@ -14,8 +14,10 @@ use SaniTube\Artists\Enums\ArtistStatus;
 use SaniTube\Artists\Models\Artist;
 use SaniTube\Catalog\Enums\ExternalIdentifierSource;
 use SaniTube\Catalog\Enums\ExternalIdentifierType;
+use SaniTube\Catalog\Enums\TrackArtistRole;
 use SaniTube\Catalog\Models\ExternalIdentifier;
 use SaniTube\Catalog\Models\Track;
+use SaniTube\Catalog\Models\TrackArtist;
 use SaniTube\Identity\Enums\UserRole;
 use SaniTube\Ui\Queries\ArtistDetailQuery;
 use SaniTube\Ui\Queries\ArtistIndexQuery;
@@ -103,16 +105,70 @@ final class CatalogArtistsTest extends TestCase
     }
 
     #[Test]
-    public function the_track_list_is_capped_and_says_so(): void
+    public function tracks_shown_reports_what_was_actually_returned(): void
     {
-        // A page showing fifty of nine hundred with no note reads as an artist
-        // with fifty tracks.
-        $artist = Artist::factory()->create();
+        // The previous version of this test only asserted the keys existed and
+        // that a fresh artist was not truncated — which passed happily while
+        // `tracks_shown` reported the cap for every artist under it. An artist
+        // with one track claimed fifty were shown, the exact opposite of what
+        // the field exists to say.
+        foreach ([0, 1, 49] as $credited) {
+            $artist = $this->artistWithTracks($credited);
+            $detail = app(ArtistDetailQuery::class)->forArtist($artist);
+
+            $this->assertSame($credited, $detail['tracks_shown'], sprintf('with %d tracks', $credited));
+            $this->assertCount($credited, $detail['tracks']);
+            $this->assertFalse($detail['tracks_truncated'], sprintf('with %d tracks', $credited));
+        }
+    }
+
+    #[Test]
+    public function exactly_fifty_tracks_is_shown_in_full_and_not_marked_truncated(): void
+    {
+        // The boundary. Fifty is the cap, so fifty is complete — flagging it as
+        // truncated would send a reader looking for a fifty-first track that
+        // does not exist.
+        $artist = $this->artistWithTracks(50);
         $detail = app(ArtistDetailQuery::class)->forArtist($artist);
 
-        $this->assertArrayHasKey('tracks_truncated', $detail);
-        $this->assertArrayHasKey('tracks_shown', $detail);
+        $this->assertSame(50, $detail['tracks_shown']);
         $this->assertFalse($detail['tracks_truncated']);
+    }
+
+    #[Test]
+    public function beyond_the_cap_the_list_is_capped_and_flagged(): void
+    {
+        $artist = $this->artistWithTracks(51);
+        $detail = app(ArtistDetailQuery::class)->forArtist($artist);
+
+        $this->assertSame(50, $detail['tracks_shown']);
+        $this->assertCount(50, $detail['tracks']);
+        $this->assertTrue($detail['tracks_truncated']);
+        $this->assertSame(51, $detail['track_count']);
+    }
+
+    #[Test]
+    public function the_capped_selection_is_the_same_on_every_load(): void
+    {
+        // A bare LIMIT with no ORDER BY returns whatever the engine finds
+        // convenient, so the same artist can show a different fifty on two
+        // consecutive loads — and the four engines this platform runs on will
+        // disagree with each other as well.
+        $artist = $this->artistWithTracks(60);
+        $query = app(ArtistDetailQuery::class);
+
+        $first = array_column($query->forArtist($artist)['tracks'], 'uuid');
+        $second = array_column($query->forArtist($artist->fresh())['tracks'], 'uuid');
+
+        $this->assertCount(50, $first);
+        $this->assertSame($first, $second, 'The capped selection changed between two identical loads.');
+
+        // And it is the ordering the read model claims: title, then UUID.
+        $titles = array_column($query->forArtist($artist)['tracks'], 'title');
+        $sorted = $titles;
+        sort($sorted);
+
+        $this->assertSame($sorted, $titles, 'The capped selection is not ordered by title.');
     }
 
     #[Test]
@@ -215,6 +271,35 @@ final class CatalogArtistsTest extends TestCase
     }
 
     // --------------------------------------------------------------- helpers
+
+    /**
+     * An artist credited on a known number of tracks, with distinct titles so
+     * the ordering assertion has something to order.
+     */
+    private function artistWithTracks(int $count): Artist
+    {
+        $artist = Artist::factory()->create();
+
+        for ($index = 0; $index < $count; $index++) {
+            // Titles deliberately uncorrelated with insertion order. A
+            // monotonic title would come out sorted under *any* key-based
+            // ordering, so the ordering assertion would pass against a broken
+            // implementation — which is exactly what happened when this
+            // fixture counted downwards.
+            $track = Track::factory()->create([
+                'title' => sprintf('Track %03d', ($index * 37) % 997),
+            ]);
+
+            TrackArtist::query()->create([
+                'track_id' => $track->getKey(),
+                'artist_id' => $artist->getKey(),
+                'role' => TrackArtistRole::Primary,
+                'position' => 1,
+            ]);
+        }
+
+        return $artist;
+    }
 
     private function identifier(Artist $artist, string $value, bool $active = true): void
     {
