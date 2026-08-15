@@ -4,7 +4,11 @@ on:
   push:
     branches: [main]
   pull_request:
-    branches: [main]
+    # `claude/**` as well as main, so that a pull request stacked on another
+    # ticket's branch still gets the full matrix. Without it a stacked PR runs
+    # no checks at all and reads as "no CI configured" rather than "not run" —
+    # which is the failure mode this project is least able to afford.
+    branches: [main, 'claude/**']
   workflow_dispatch:
 
 concurrency:
