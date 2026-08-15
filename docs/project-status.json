@@ -1,8 +1,8 @@
 {
   "$comment": "Machine-readable project state. Any new session reads this first, then verifies it against GitHub before trusting it. Written at the end of each ticket, so a stale entry means a session ended mid-ticket — check the branch and CI rather than the status field.",
   "updated_at": "2026-08-15",
-  "current_phase": "CAT-001",
-  "last_completed_ticket": "MED-001",
+  "current_phase": "AI-001",
+  "last_completed_ticket": "CAT-001",
   "default_branch": "main",
   "tickets": {
     "ARCH-001": {
@@ -46,17 +46,19 @@
       "merge_commit": "4c1f6c6"
     },
     "CAT-001": {
-      "status": "pr_open",
+      "status": "merged",
       "branch": "claude/cat-001-candidate-promotion",
       "pr": 7,
-      "ci": "rebased onto main, awaiting run",
-      "report": "docs/reports/CAT-001.md"
+      "ci": "green 10/10 (run 31875231715)",
+      "report": "docs/reports/CAT-001.md",
+      "merge_commit": "ee050fa"
     },
     "AI-001": {
-      "status": "not_started",
-      "branch": null,
-      "pr": null,
-      "ci": null
+      "status": "pr_open",
+      "branch": "claude/ai-001-provider-foundation",
+      "pr": 8,
+      "ci": "awaiting run after hardening + rebase",
+      "report": "docs/reports/AI-001.md"
     },
     "GEN-001": {
       "status": "not_started",
@@ -98,6 +100,12 @@
       "summary": "No validation against a real S3-compatible endpoint. Contract is proved by two independent implementations and the multi-engine matrix, but no real bucket has been exercised.",
       "blocking": "production staging, not ING-001",
       "status": "deferred by review"
+    },
+    {
+      "id": "AI-002",
+      "summary": "No validation against a real OpenAI or Anthropic endpoint. Both adapters are proved against captured response shapes with stray requests blocked; no key was available or requested. Wire formats are the documented public ones.",
+      "blocking": "relying on an AI-assisted feature in production, nothing before then",
+      "status": "open"
     }
   ],
   "notes": {
@@ -105,15 +113,17 @@
     "capabilities": "FFmpeg is a capability, never a dependency. SANITUBE_MEDIA_ANALYSIS_REQUIRED defaults to false so a cPanel host without ffprobe still produces promotable candidates.",
     "catalogue_writes": "Promotion is the only v1 write that creates a Track. It always creates it DRAFT, mints no ISRC, and is refusable for six reasons each carrying a machine-readable code. One-master-one-track is enforced in PromoteTrackCandidate rather than by a unique index, because tracks is ARCH-002's validated schema.",
     "ci_triggers": "The workflow only built pull requests whose base was main, so a PR stacked on another claude/** branch showed zero checks — indistinguishable from a repo with no CI. The pull_request branch filter now includes 'claude/**'. Fixed on the CAT-001 branch; it reaches main when that branch merges.",
-    "migration_rollback": "MySQL and MariaDB drop the index they generate for a foreign key once a user-created index can serve it. A migration that adds a unique index on an FK column must therefore drop the foreign key before dropping that index in down(), then restore it. SQLite enforces none of this, so a local rollback check on SQLite proves nothing about the server engines. Enforced by PortabilityTest::an_index_added_over_a_foreign_key_column_is_undone_in_the_right_order."
+    "migration_rollback": "MySQL and MariaDB drop the index they generate for a foreign key once a user-created index can serve it. A migration that adds a unique index on an FK column must therefore drop the foreign key before dropping that index in down(), then restore it. SQLite enforces none of this, so a local rollback check on SQLite proves nothing about the server engines. Enforced by PortabilityTest::an_index_added_over_a_foreign_key_column_is_undone_in_the_right_order.",
+    "ai_disabled_provider": "The disabled AI provider is named 'none', never 'null'. Laravel's Env::get() turns the literal string null in a .env file into PHP null, so SANITUBE_AI_PROVIDER=null yields an empty provider name and the env() default never applies. Empty/absent/null configuration normalises to 'none' at AiManager::normaliseProviderName(); an unknown non-empty name is an error.",
+    "no_hosts_in_php": "PortabilityTest rejects any absolute http(s) host in PHP, config included. Vendor endpoints come from the environment with no PHP default; .env.example ships the public URLs."
   },
   "open_pull_requests": [
     {
-      "pr": 7,
-      "ticket": "CAT-001",
+      "pr": 8,
+      "ticket": "AI-001",
       "base": "main",
-      "ci": "awaiting run after rebase",
-      "why_open": "Validated by review; merge once CI is green on the rebased head."
+      "ci": "awaiting run",
+      "why_open": "Hardening applied; merge once green."
     }
   ]
 }
