@@ -190,14 +190,16 @@
       "ci": null
     },
     "UI-003a": {
-      "status": "pr_open_awaiting_review",
+      "status": "merged",
       "branch": "claude/ui-003-catalogue",
       "pr": 16,
-      "ci": "10/10 green — run 31902837883",
+      "ci": "10/10 green — run 31903739028",
       "report": "docs/reports/UI-003a.md",
-      "note": "Catalogue: tracks index + detail. Cursor pagination ordered by (title, uuid) so no internal key rides in the cursor; filters validated against domain enums; detail payload carries no disk/path/bucket/internal id; checksum abbreviated. Artists, contributors, compositions and assets remain: UI-003b.",
+      "note": "Tracks index + detail. C1 active identifiers only (scoped at the read-model boundary, not a global scope). C2 invalid filters answer 422 and the form renders canonical values. C3 search documentation corrected to contains-search. C4 malformed cursor refused deterministically instead of 500.",
       "pr_url": "https://github.com/kesolarpro/sanitube/pull/16",
-      "ci_url": "https://github.com/kesolarpro/sanitube/actions/runs/31902837883"
+      "ci_url": "https://github.com/kesolarpro/sanitube/actions/runs/31902837883",
+      "merge_commit": "0554d28",
+      "review": "CORRECTIONS REQUIRED (C1-C4) -> applied -> authorised to merge"
     }
   },
   "architecture_amendments": [
@@ -265,16 +267,7 @@
     "design_system": "Semantic tokens only (--color-surface, never --color-zinc-900). Status colour is decided in StatusBadge alone; labels always come from translations. Navigation is built server-side and unbuilt sections show as disabled — 'available' is presentation, never authorisation. MetricCard takes number|null and renders null as an em dash, never 0.",
     "frontend_toolchain": "@vitejs/plugin-vue@5 peers Vite ^5||^6; the project is on Vite 7. Resolved with plugin-vue@6 (which supports Vite 7), NOT --force or --legacy-peer-deps: a peer conflict is compatibility information, and overriding it keeps the incompatibility. Same for vue-tsc@3. npm run types runs in CI."
   },
-  "open_pull_requests": [
-    {
-      "pr": 16,
-      "ticket": "UI-003a",
-      "base": "main",
-      "ci": "10/10 green — run 31902837883",
-      "why_open": "Left for review deliberately. The wave policy permits merging a UI ticket that does not write or modify business data, and UI-003a only reads — but it introduces a new payload contract for the catalogue, and the PR body already states it is awaiting a verdict. Owner may merge on green CI if the read-only reading of the policy is the intended one.",
-      "url": "https://github.com/kesolarpro/sanitube/pull/16"
-    }
-  ],
+  "open_pull_requests": [],
   "next_session": {
     "start_with": "UI-001 — design system + real dashboard. Branch from main.",
     "then": [
@@ -296,11 +289,11 @@
     "since": "UI-001",
     "note": "Nine tickets (ING/MED/CAT/AI/GEN/REL/DIST/SEC-001 and PR #12) were merged under an earlier autonomous-chaining instruction that bypassed review. A retroactive audit is under way; they stay in main and any correction becomes a follow-up ticket, not a revert."
   },
-  "main_sha": "16d37c20b604cf468fec4be7674b34955a4159a3",
-  "current_ticket": "UI-003a",
+  "main_sha": "0554d28a7eefd2b0d9be37b394973dd2e69fb77a",
+  "current_ticket": "UI-003b",
   "tests": {
-    "php": 631,
-    "php_assertions": 2384,
+    "php": 645,
+    "php_assertions": 2423,
     "php_skipped": 1,
     "component": 16
   },
@@ -321,17 +314,38 @@
     "ticket": "UI-003b",
     "name": "Catalogue: artists, contributors, compositions, assets",
     "state": "not started",
-    "blocked_by": "UI-003a architectural review",
-    "note": "Follow the shape established by TrackIndexQuery/TrackDetailQuery: cursor pagination ordered by (natural key, uuid), filters validated against enums, no storage location or internal key in any payload. Asset detail additionally needs the signed-and-expiring preview URL decision, which is a security question and must not be improvised. Do not stack on the unreviewed claude/ui-003-catalogue branch; branch from main."
+    "blocked_by": null,
+    "note": "Branch from main (0554d28). Follow TrackIndexQuery/TrackDetailQuery: active identifiers only at the read-model boundary, filters validated to 422, cursor ordered by (natural key, uuid) and shape-checked, no storage location or internal key in any payload. Asset preview follows decisions.asset_preview_url in this file — already arbitrated, do not re-open it. Known follow-up carried over: the 422 currently surfaces as JSON rather than inline errors on the filter form."
   },
   "session_boundary": {
     "reason": "Context capacity reached at a clean ticket boundary.",
     "repository_state": "green",
-    "main_sha": "16d37c20b604cf468fec4be7674b34955a4159a3",
-    "note": "UI-001 and UI-002 merged and verified on main. UI-003a complete, CI green, PR #16 open. Do NOT stack UI-003b on claude/ui-003-catalogue — branch from main. Resume from next_action."
+    "main_sha": "0554d28a7eefd2b0d9be37b394973dd2e69fb77a",
+    "note": "UI-001, UI-002 and UI-003a merged. No open PR. Resume from next_action."
   },
   "v1_progress_percent": {
-    "value": 38,
-    "basis": "Counted over the ticket list in this mission: 4 of ~30 planned tickets merged (UI-001, UI-002 and the earlier domain wave), 1 open. UI/ingestion/studio/releases/distribution/settings, rights, publishing, royalties, analytics, installer, deployment, backup, security hardening and certification harnesses are outstanding. Not an intuition."
+    "value": 42,
+    "basis": "5 of ~30 planned tickets in this mission merged, 0 open. Counted over the ticket list, not estimated."
+  },
+  "decisions": {
+    "asset_preview_url": {
+      "status": "arbitrated by review, binding for UI-003b",
+      "rule": "No signed URL is ever included in the Asset detail payload at page load.",
+      "why": "A signed URL is a temporary bearer credential. Minting one on every detail view needlessly widens its lifetime and its exposure surface.",
+      "flow": "Asset detail -> user clicks Preview -> authorised UI action -> backend verifies permission and asset kind/status -> mints short-lived signed URL -> browser receives it",
+      "ttl_seconds": 900,
+      "ttl_range": "300-900, 900 default, consistent with AST-001",
+      "constraints": [
+        "never a permanent master URL",
+        "never disk, path, bucket or credentials",
+        "previewable asset kinds only",
+        "VERIFIED required for an audio master",
+        "minted on demand, never on the detail GET",
+        "URL never persisted in the database",
+        "full URL never written to logs",
+        "SEC-001 permission checked before minting",
+        "if the provider cannot issue temporary URLs: show Preview unavailable, never make the object public"
+      ]
+    }
   }
 }
