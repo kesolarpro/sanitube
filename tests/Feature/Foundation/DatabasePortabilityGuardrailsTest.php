@@ -4,11 +4,15 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Foundation;
 
-use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use PHPUnit\Framework\Attributes\Test;
-use SaniTube\Foundation\Database\SchemaPortabilityInspector;
+use SaniTube\Foundation\Database\Schema\ArraySchemaSource;
+use SaniTube\Foundation\Database\Schema\LiveSchemaSource;
+use SaniTube\Foundation\Database\Schema\SchemaPortabilityInspector;
+use SaniTube\Foundation\Database\Schema\TableColumn;
+use SaniTube\Foundation\Database\Schema\TableIndex;
 use Tests\TestCase;
 
 /**
@@ -23,7 +27,14 @@ use Tests\TestCase;
  * Half of this file exists to answer a question the guardrails themselves
  * cannot: *do they fire?* A check that has never rejected anything is
  * indistinguishable from a check that cannot. So each rule is also run against
- * a table built to violate it.
+ * a schema built to violate it.
+ *
+ * Those violations are *described*, never created. The first attempt built
+ * them with `Schema::create()` and all three server engines rejected the DDL
+ * outright — a 65-character identifier is precisely what MySQL will not let
+ * you make. The engines that enforce a rule are the engines on which its
+ * violation cannot exist, so the self-verification reads from
+ * {@see ArraySchemaSource} and runs identically everywhere.
  */
 final class DatabasePortabilityGuardrailsTest extends TestCase
 {
@@ -68,14 +79,18 @@ final class DatabasePortabilityGuardrailsTest extends TestCase
     }
 
     #[Test]
-    public function no_domain_table_relies_on_a_column_level_collation(): void
+    public function no_column_diverges_from_the_configured_collation(): void
     {
-        // A per-column collation is a portability trap: the name that works on
-        // one engine may not exist on the other, and the failure appears at
-        // migrate time on someone's shared hosting.
-        $offenders = $this->inspector()->columnLevelCollations($this->applicationTables());
+        // A column carrying a collation the rest of the installation does not
+        // is a portability trap: the name that works on one engine may not
+        // exist on the other, and the failure appears at migrate or restore
+        // time on someone's shared hosting.
+        //
+        // On SQLite there is no collation to diverge from and this is vacuous,
+        // which is exactly why the rule is also proved to fire below.
+        $offenders = $this->inspector()->divergentCollations($this->applicationTables());
 
-        $this->assertSame([], $offenders, 'Column-level collations found: '.implode('; ', $offenders));
+        $this->assertSame([], $offenders, 'Divergent collations found: '.implode('; ', $offenders));
     }
 
     #[Test]
@@ -104,15 +119,9 @@ final class DatabasePortabilityGuardrailsTest extends TestCase
     {
         // 65 characters: exactly the case that reached CI. SQLite accepts it
         // without complaint, which is the whole problem.
-        $name = str_repeat('a', 65);
-
-        Schema::create('guardrail_probe', function (Blueprint $table) use ($name): void {
-            $table->id();
-            $table->string('value', 32);
-            $table->index('value', $name);
-        });
-
-        $offenders = $this->inspector()->overlongIdentifiers(['guardrail_probe']);
+        $offenders = $this->describing([
+            'probe' => ['indexes' => [new TableIndex(str_repeat('a', 65), ['value'])]],
+        ])->overlongIdentifiers(['probe']);
 
         $this->assertCount(1, $offenders);
         $this->assertStringContainsString('65 chars', $offenders[0]);
@@ -123,13 +132,33 @@ final class DatabasePortabilityGuardrailsTest extends TestCase
     {
         // The boundary matters: rejecting a legal name would send someone
         // renaming indexes for no reason.
-        Schema::create('guardrail_probe', function (Blueprint $table): void {
-            $table->id();
-            $table->string('value', 32);
-            $table->index('value', str_repeat('a', 64));
-        });
+        $offenders = $this->describing([
+            'probe' => ['indexes' => [new TableIndex(str_repeat('a', 64), ['value'])]],
+        ])->overlongIdentifiers(['probe']);
 
-        $this->assertSame([], $this->inspector()->overlongIdentifiers(['guardrail_probe']));
+        $this->assertSame([], $offenders);
+    }
+
+    #[Test]
+    public function it_detects_a_table_name_too_long_for_the_server_engines(): void
+    {
+        $table = str_repeat('t', 65);
+
+        $offenders = $this->describing([$table => []])->overlongIdentifiers([$table]);
+
+        $this->assertCount(1, $offenders);
+        $this->assertStringContainsString('table', $offenders[0]);
+    }
+
+    #[Test]
+    public function it_detects_a_foreign_key_name_too_long_for_the_server_engines(): void
+    {
+        $offenders = $this->describing([
+            'probe' => ['foreign_keys' => [str_repeat('f', 70)]],
+        ])->overlongIdentifiers(['probe']);
+
+        $this->assertCount(1, $offenders);
+        $this->assertStringContainsString('foreign key', $offenders[0]);
     }
 
     #[Test]
@@ -137,68 +166,131 @@ final class DatabasePortabilityGuardrailsTest extends TestCase
     {
         // Two 400-character columns are 3200 bytes once every character costs
         // four. SQLite indexes them happily; InnoDB refuses at 3072.
-        Schema::create('guardrail_probe', function (Blueprint $table): void {
-            $table->id();
-            $table->string('left_side', 400);
-            $table->string('right_side', 400);
-            $table->index(['left_side', 'right_side'], 'guardrail_probe_wide_idx');
-        });
-
-        $inspector = new SchemaPortabilityInspector(Schema::getFacadeRoot(), [
-            'guardrail_probe' => ['left_side' => 400, 'right_side' => 400],
-        ]);
-
-        $offenders = $inspector->oversizedIndexKeys(['guardrail_probe']);
+        $offenders = $this->describing([
+            'probe' => [
+                'columns' => [
+                    new TableColumn('left_side', 'varchar', 400),
+                    new TableColumn('right_side', 'varchar', 400),
+                ],
+                'indexes' => [new TableIndex('probe_wide_idx', ['left_side', 'right_side'])],
+            ],
+        ])->oversizedIndexKeys(['probe']);
 
         $this->assertCount(1, $offenders);
         $this->assertStringContainsString('3200 bytes', $offenders[0]);
     }
 
     #[Test]
-    public function an_index_key_just_under_the_limit_is_accepted(): void
+    public function an_index_key_of_exactly_the_limit_is_accepted(): void
     {
-        Schema::create('guardrail_probe', function (Blueprint $table): void {
-            $table->id();
-            $table->string('value', 768);
-            $table->index('value', 'guardrail_probe_narrow_idx');
-        });
-
-        $inspector = new SchemaPortabilityInspector(Schema::getFacadeRoot(), [
-            'guardrail_probe' => ['value' => 768],
-        ]);
-
         // 768 × 4 = 3072, exactly the limit.
-        $this->assertSame([], $inspector->oversizedIndexKeys(['guardrail_probe']));
+        $offenders = $this->describing([
+            'probe' => [
+                'columns' => [new TableColumn('value', 'varchar', 768)],
+                'indexes' => [new TableIndex('probe_narrow_idx', ['value'])],
+            ],
+        ])->oversizedIndexKeys(['probe']);
+
+        $this->assertSame([], $offenders);
     }
 
     #[Test]
-    public function an_unknown_column_length_is_costed_at_the_maximum(): void
+    public function a_column_of_unknown_width_is_costed_at_the_maximum(): void
     {
-        // The conservative fallback: with no declared length available, a
-        // string column is priced as varchar(255) so the check errs towards a
-        // false alarm rather than a miss.
-        Schema::create('guardrail_probe', function (Blueprint $table): void {
-            $table->id();
-            $table->string('a', 255);
-            $table->string('b', 255);
-            $table->string('c', 255);
-            $table->string('d', 255);
-            $table->index(['a', 'b', 'c', 'd'], 'guardrail_probe_fallback_idx');
-        });
-
-        // No declared lengths passed in at all — the inspector must still
-        // notice that four string columns cannot fit.
-        $offenders = (new SchemaPortabilityInspector(Schema::getFacadeRoot()))
-            ->oversizedIndexKeys(['guardrail_probe']);
+        // The conservative fallback: with no width available — SQLite reports
+        // none — a string column is priced as varchar(255) so the check errs
+        // towards a false alarm rather than a miss. Four of them cannot fit.
+        $offenders = $this->describing([
+            'probe' => [
+                'columns' => [
+                    new TableColumn('a', 'varchar'),
+                    new TableColumn('b', 'varchar'),
+                    new TableColumn('c', 'varchar'),
+                    new TableColumn('d', 'varchar'),
+                ],
+                'indexes' => [new TableIndex('probe_fallback_idx', ['a', 'b', 'c', 'd'])],
+            ],
+        ])->oversizedIndexKeys(['probe']);
 
         $this->assertCount(1, $offenders);
     }
 
+    #[Test]
+    public function narrow_integer_columns_do_not_trip_the_index_key_rule(): void
+    {
+        // A wide composite index over integers is legal and common. Costing
+        // every column at 255 characters would condemn it.
+        $columns = [];
+        $names = [];
+
+        foreach (range(1, 40) as $position) {
+            $columns[] = new TableColumn('column_'.$position, 'bigint');
+            $names[] = 'column_'.$position;
+        }
+
+        $offenders = $this->describing([
+            'probe' => ['columns' => $columns, 'indexes' => [new TableIndex('probe_int_idx', $names)]],
+        ])->oversizedIndexKeys(['probe']);
+
+        $this->assertSame([], $offenders);
+    }
+
+    #[Test]
+    public function it_detects_a_column_carrying_a_collation_of_its_own(): void
+    {
+        // The rule that is vacuous on SQLite, shown working.
+        $inspector = new SchemaPortabilityInspector(
+            new ArraySchemaSource([
+                'probe' => [
+                    'columns' => [
+                        new TableColumn('inherited', 'varchar', 191, 'utf8mb4_unicode_ci'),
+                        new TableColumn('divergent', 'varchar', 191, 'utf8mb4_bin'),
+                    ],
+                ],
+            ]),
+            expectedCollation: 'utf8mb4_unicode_ci',
+        );
+
+        $offenders = $inspector->divergentCollations(['probe']);
+
+        $this->assertCount(1, $offenders);
+        $this->assertStringContainsString('divergent', $offenders[0]);
+        $this->assertStringContainsString('utf8mb4_bin', $offenders[0]);
+    }
+
+    #[Test]
+    public function the_collation_rule_reports_nothing_when_the_engine_has_no_collations(): void
+    {
+        // Inapplicable is not the same as satisfied. Saying so out loud is the
+        // difference between a guardrail and a green light.
+        $inspector = new SchemaPortabilityInspector(
+            new ArraySchemaSource([
+                'probe' => ['columns' => [new TableColumn('value', 'varchar', 191, 'utf8mb4_bin')]],
+            ]),
+            expectedCollation: null,
+        );
+
+        $this->assertSame([], $inspector->divergentCollations(['probe']));
+    }
+
     // -------------------------------------------------------- helpers
+
+    /**
+     * @param  array<string, array{columns?: list<TableColumn>, indexes?: list<TableIndex>, foreign_keys?: list<string>}>  $tables
+     */
+    private function describing(array $tables): SchemaPortabilityInspector
+    {
+        return new SchemaPortabilityInspector(new ArraySchemaSource($tables));
+    }
 
     private function inspector(): SchemaPortabilityInspector
     {
-        return new SchemaPortabilityInspector(Schema::getFacadeRoot(), $this->declaredColumnLengths());
+        $collation = config(sprintf('database.connections.%s.collation', DB::getDefaultConnection()));
+
+        return new SchemaPortabilityInspector(
+            new LiveSchemaSource(Schema::getFacadeRoot(), $this->declaredColumnLengths()),
+            expectedCollation: is_string($collation) && $collation !== '' ? $collation : null,
+        );
     }
 
     /**
@@ -206,19 +298,18 @@ final class DatabasePortabilityGuardrailsTest extends TestCase
      */
     private function applicationTables(): array
     {
-        $tables = array_map(
-            static fn (array $table): string => (string) $table['name'],
-            Schema::getTables(),
-        );
+        $tables = (new LiveSchemaSource(Schema::getFacadeRoot()))->tables();
 
-        return array_values(array_diff($tables, self::FRAMEWORK_TABLES, ['guardrail_probe']));
+        return array_values(array_diff($tables, self::FRAMEWORK_TABLES));
     }
 
     /**
-     * Declared string lengths, recovered from the migration source.
+     * Declared string widths, recovered from the migration source.
      *
-     * SQLite discards them — it reports `varchar` with no length — so the only
-     * place the intent survives locally is the migration itself.
+     * Only SQLite needs this: MySQL and MariaDB report `varchar(191)` and the
+     * width is read straight off the column. SQLite reports `varchar` with
+     * nothing in brackets, so the only place the intent survives locally is
+     * the migration itself.
      *
      * @return array<string, array<string, int>>
      */
@@ -229,23 +320,25 @@ final class DatabasePortabilityGuardrailsTest extends TestCase
         foreach ($this->migrationFiles() as $file) {
             $contents = (string) file_get_contents($file);
 
-            if (preg_match("/Schema::create\\('([a-z0-9_]+)'/i", $contents, $table) !== 1) {
+            if (preg_match("/Schema::create\('([a-z0-9_]+)'/i", $contents, $table) !== 1) {
                 continue;
             }
 
             $name = $table[1];
             $lengths[$name] ??= [];
 
-            if (preg_match_all("/->(?:string|char)\\('([a-z0-9_]+)'(?:\\s*,\\s*(\\d+))?\\)/i", $contents, $matches, PREG_SET_ORDER) > 0) {
+            if (preg_match_all("/->(?:string|char)\('([a-z0-9_]+)'(?:\s*,\s*(\d+))?\)/i", $contents, $matches, PREG_SET_ORDER) > 0) {
                 foreach ($matches as $match) {
-                    $lengths[$name][$match[1]] = isset($match[2]) && $match[2] !== '' ? (int) $match[2] : 255;
+                    $lengths[$name][$match[1]] = isset($match[2])
+                        ? (int) $match[2]
+                        : SchemaPortabilityInspector::ASSUMED_STRING_LENGTH;
                 }
             }
 
             // ->morphs('linkable') expands to a 255-character type column.
-            if (preg_match_all("/->(?:nullable)?[mM]orphs\\('([a-z0-9_]+)'\\)/", $contents, $matches, PREG_SET_ORDER) > 0) {
+            if (preg_match_all("/->(?:nullable)?[mM]orphs\('([a-z0-9_]+)'\)/", $contents, $matches, PREG_SET_ORDER) > 0) {
                 foreach ($matches as $match) {
-                    $lengths[$name][$match[1].'_type'] = 255;
+                    $lengths[$name][$match[1].'_type'] = SchemaPortabilityInspector::ASSUMED_STRING_LENGTH;
                 }
             }
         }
