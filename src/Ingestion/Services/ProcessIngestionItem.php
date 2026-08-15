@@ -177,11 +177,19 @@ final readonly class ProcessIngestionItem
             'suggested_title' => SuggestTitle::from($item->original_filename),
             'matched_asset_id' => $duplicateOf,
             'matched_track_id' => $duplicateOf === null ? null : $this->trackHolding($duplicateOf),
+            // PENDING, not READY: the bytes are verified but nothing has yet
+            // looked *inside* them. MED-001 settles this to READY — or to
+            // WAITING_CAPABILITY, or NEEDS_REVIEW — once analysis has had its
+            // turn. Publishing a candidate as review-ready before its duration
+            // and loudness are known means reviewing it without the numbers the
+            // review exists to consider.
+            //
             // Bytes that are already held are still a real import — recorded
             // for review rather than rejected, because the same master
-            // legitimately arrives twice.
+            // legitimately arrives twice. That case is settled already: the
+            // duplicate points at an asset the platform has analysed before.
             'status' => $duplicateOf === null
-                ? TrackCandidateStatus::Ready
+                ? TrackCandidateStatus::Pending
                 : TrackCandidateStatus::Duplicate,
         ]);
 

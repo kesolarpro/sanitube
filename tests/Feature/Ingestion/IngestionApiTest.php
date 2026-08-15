@@ -258,7 +258,10 @@ final class IngestionApiTest extends TestCase
         $this->store->put('library/a.wav', 'audio');
         $this->startAndRun('library');
 
-        $this->authenticated()->getJson('/api/v1/ingestion/candidates?status=READY')
+        // PENDING, not READY: a freshly imported candidate is awaiting the
+        // technical analysis MED-001 performs. The filter is what is under
+        // test here, so it is paired with a status that must return nothing.
+        $this->authenticated()->getJson('/api/v1/ingestion/candidates?status=PENDING')
             ->assertOk()
             ->assertJsonCount(1, 'data');
 
