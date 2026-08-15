@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { onMounted, ref, watch } from 'vue';
+import { onBeforeUnmount, onMounted, ref } from 'vue';
 import { router, usePage } from '@inertiajs/vue3';
 import AppSidebar from '@/Components/Layout/AppSidebar.vue';
 import AppAlert from '@/Components/Ui/AppAlert.vue';
+import { useModalSurface } from '@/Composables/useModalSurface';
 import { useTheme } from '@/Composables/useTheme';
 import { trans } from '@/Support/i18n';
 import type { SharedProps } from '@/Types/inertia';
@@ -21,17 +22,47 @@ import type { SharedProps } from '@/Types/inertia';
 const page = usePage<SharedProps>();
 const { preference, apply } = useTheme();
 const drawerOpen = ref(false);
+const drawer = ref<HTMLElement | null>(null);
 
 onMounted(apply);
 
-// Any navigation closes the drawer. Leaving it open over the new page is the
-// single most common mobile navigation bug.
-router.on('navigate', () => (drawerOpen.value = false));
+/*
+ * The drawer declares `role="dialog" aria-modal="true"`, so it owes the page
+ * modal behaviour: focus in, focus trapped, Escape to close, focus back to the
+ * trigger, background locked and inert. All of it comes from the same
+ * composable AppModal uses.
+ *
+ * Focus returns to whatever was focused at open time, which is the menu button
+ * — the only control that can open the drawer.
+ */
+const { onKeydown: onDrawerKeydown } = useModalSurface(
+    () => drawerOpen.value,
+    drawer,
+    () => closeDrawer(),
+);
 
-watch(drawerOpen, (open) => {
-    // The page behind a drawer must not scroll under it.
-    document.body.style.overflow = open ? 'hidden' : '';
+/*
+ * `router.on` returns its own unsubscribe function. AppLayout is persistent
+ * across Inertia navigations, but persistent is not permanent: a full page
+ * visit or a layout swap remounts it, and every remount would add another
+ * listener to the same global router. The leak is invisible until the drawer
+ * starts closing several times per navigation.
+ */
+const stopNavigationListener = router.on('navigate', () => {
+    drawerOpen.value = false;
 });
+
+onBeforeUnmount(() => {
+    stopNavigationListener();
+});
+
+function closeDrawer(): void {
+    drawerOpen.value = false;
+}
+
+function openDrawer(): void {
+    drawerOpen.value = true;
+}
 
 function cycleTheme(): void {
     preference.value = preference.value === 'light' ? 'dark' : preference.value === 'dark' ? 'system' : 'light';
@@ -59,12 +90,14 @@ function cycleTheme(): void {
 
         <!-- Mobile drawer -->
         <Teleport to="body">
-            <div v-if="drawerOpen" class="lg:hidden">
-                <div class="fixed inset-0 z-(--z-drawer) bg-black/40" aria-hidden="true" @click="drawerOpen = false" />
+            <div v-if="drawerOpen" class="lg:hidden" @keydown="onDrawerKeydown">
+                <div class="fixed inset-0 z-(--z-drawer) bg-black/40" aria-hidden="true" @click="closeDrawer" />
                 <aside
+                    ref="drawer"
                     class="fixed inset-y-0 left-0 z-(--z-drawer) w-72 border-r border-border bg-surface"
                     role="dialog"
                     aria-modal="true"
+                    tabindex="-1"
                     :aria-label="trans('ui.navigation.primary')"
                 >
                     <div class="flex h-14 items-center justify-between border-b border-border px-4">
@@ -73,7 +106,7 @@ function cycleTheme(): void {
                             type="button"
                             class="rounded p-1.5 text-muted hover:text-foreground"
                             :aria-label="trans('ui.actions.close')"
-                            @click="drawerOpen = false"
+                            @click="closeDrawer"
                         >
                             <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                                 <path d="M18 6 6 18M6 6l12 12" stroke-linecap="round" />
@@ -94,7 +127,7 @@ function cycleTheme(): void {
                     class="rounded p-1.5 text-muted hover:text-foreground lg:hidden"
                     :aria-label="trans('ui.navigation.open_menu')"
                     :aria-expanded="drawerOpen"
-                    @click="drawerOpen = true"
+                    @click="openDrawer"
                 >
                     <svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                         <path d="M4 6h16M4 12h16M4 18h16" stroke-linecap="round" />

@@ -147,6 +147,62 @@ This will recur: the frontend toolchain moves faster than the peer ranges
 declared against it. The rule is to find the version that supports the stack,
 and if none exists, to say so rather than force one.
 
+## One modal surface, not two focus traps
+
+`role="dialog" aria-modal="true"` tells assistive technology that the rest of
+the page is unreachable. Nothing enforces that on its own. A surface that
+declares the attributes without implementing the behaviour is worse than one
+that declares nothing: the screen reader announces a modal, and the user tabs
+straight out of it into a page they cannot see.
+
+Two surfaces make that claim — `AppModal` and the layout's mobile drawer. They
+share **one** implementation, `useModalSurface`, rather than one trap each:
+
+- focus is remembered, moved in, trapped at both ends, and given back;
+- Escape closes;
+- background scroll is locked and the application root is marked `inert`;
+- everything is undone on close **and** on unmount.
+
+Two decisions inside it are worth naming.
+
+**The lock is counted at module level, not per component.** A confirmation
+dialog can be raised from inside the drawer, and a per-component boolean would
+let whichever closed first hand scrolling back to a page still covered by the
+other. The saved overflow is the value from before the *first* lock, so a
+page-level overflow set for some other reason is not quietly discarded.
+
+**Cleanup runs on unmount, not only on close.** A surface torn down while still
+open — a route change, a parent `v-if` — would otherwise leave the page
+permanently unscrollable and inert, and that failure is silent.
+
+`inert` is the mechanism that actually removes the background from the tab
+order and the accessibility tree; the keydown trap is the belt, `inert` the
+braces, and it also covers pointer and screen-reader access that a key handler
+cannot.
+
+Alongside it, `AppLayout` now keeps the unsubscribe function `router.on`
+returns and calls it on unmount. The layout is persistent across Inertia
+visits, but persistent is not permanent: a full page load remounts it, and
+every remount would otherwise leave its predecessor's listener registered on
+the global router.
+
+### Testing this needed a browser-shaped environment
+
+None of the above is reachable from PHP. Vitest with jsdom and
+`@vue/test-utils` was added for it, run in CI as `npm run test`, and the
+sixteen specs assert focus entry, Tab and Shift+Tab wrapping, Escape, focus
+restoration, scroll lock and release, stacked surfaces, unmount cleanup and
+listener non-accumulation.
+
+Two honest limits are recorded in the specs themselves: jsdom does not
+implement what `inert` *does*, so only the attribute's application and removal
+are asserted; and jsdom does not focus a button on click the way a browser
+does, so the trigger is focused explicitly where focus restoration is under
+test.
+
+The three lifecycle specs were verified to fail against the previous code —
+listener leak, stale scroll lock on unmount — before being trusted.
+
 ## The PHP suite does not depend on a frontend build
 
 `@vite` throws when `public/build/manifest.json` is absent, and that file is a

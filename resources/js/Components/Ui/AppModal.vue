@@ -1,80 +1,26 @@
 <script setup lang="ts">
-import { nextTick, ref, watch } from 'vue';
+import { ref } from 'vue';
+import { useModalSurface } from '@/Composables/useModalSurface';
 import { trans } from '@/Support/i18n';
 
 /**
  * A dialog that behaves like one.
  *
- * Three things a styled <div> does not do, and all three are required:
- *
- *   - **Focus moves in.** Otherwise a keyboard user opens the dialog and their
- *     focus is still behind it, on a page they cannot see.
- *   - **Focus is trapped.** Tab from the last control wraps to the first
- *     rather than escaping into the page underneath.
- *   - **Focus returns.** On close, focus goes back to whatever opened it, so
- *     the user is where they were rather than at the top of the document.
- *
- * Escape closes. `aria-modal` and `role="dialog"` tell assistive technology
- * the rest of the page is inert.
+ * Focus moves in, is trapped, and returns; Escape closes; the page behind stops
+ * scrolling and goes `inert`. None of that is here — it is in `useModalSurface`,
+ * shared with the layout's mobile drawer, because two implementations of a
+ * focus trap is one implementation and one liability.
  */
 const props = defineProps<{ open: boolean; title: string; description?: string }>();
 const emit = defineEmits<{ close: [] }>();
 
 const panel = ref<HTMLElement | null>(null);
-const previouslyFocused = ref<HTMLElement | null>(null);
 
-watch(
+const { onKeydown } = useModalSurface(
     () => props.open,
-    async (open) => {
-        if (open) {
-            previouslyFocused.value = document.activeElement as HTMLElement | null;
-            await nextTick();
-            focusables()[0]?.focus() ?? panel.value?.focus();
-        } else {
-            previouslyFocused.value?.focus();
-        }
-    },
+    panel,
+    () => emit('close'),
 );
-
-function focusables(): HTMLElement[] {
-    if (!panel.value) {
-        return [];
-    }
-
-    return Array.from(
-        panel.value.querySelectorAll<HTMLElement>(
-            'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
-        ),
-    );
-}
-
-function onKeydown(event: KeyboardEvent): void {
-    if (event.key === 'Escape') {
-        emit('close');
-
-        return;
-    }
-
-    if (event.key !== 'Tab') {
-        return;
-    }
-
-    const items = focusables();
-    const first = items[0];
-    const last = items[items.length - 1];
-
-    if (!first || !last) {
-        return;
-    }
-
-    if (event.shiftKey && document.activeElement === first) {
-        event.preventDefault();
-        last.focus();
-    } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault();
-        first.focus();
-    }
-}
 </script>
 
 <template>

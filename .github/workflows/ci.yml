@@ -219,6 +219,13 @@ jobs:
       - name: Type-check
         run: npm run types
 
+      # Component behaviour that PHP cannot reach: focus trapping, Escape,
+      # scroll locking, and the listener cleanup that only shows up across a
+      # remount. `role="dialog" aria-modal="true"` is a promise, and this is
+      # where it is checked.
+      - name: Component tests
+        run: npm run test
+
       - name: Build
         run: npm run build
 
