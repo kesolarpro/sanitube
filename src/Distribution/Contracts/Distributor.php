@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace SaniTube\Distribution\Contracts;
 
 use SaniTube\Distribution\DeliveryStatus;
+use SaniTube\Distribution\DistributorSubmission;
+use SaniTube\Distribution\DistributorValidation;
+use SaniTube\Releases\Models\Release;
 
 /**
  * A music distributor, seen from inside SaniTube.
@@ -13,14 +16,29 @@ use SaniTube\Distribution\DeliveryStatus;
  * DTOs, their identifiers and their status wording never cross it: the
  * catalogue is the source of truth and a distributor is an outbound channel.
  *
- * Scope note (ARCH-001): only the identity and read-side of the contract is
- * fixed here. The write-side — createRelease, uploadAudio, uploadArtwork,
- * validateRelease, submitRelease, requestTakedown — is deliberately deferred
- * to DIST-001, when the Release aggregate exists. Typing those methods today
- * would mean inventing payloads, and the first real adapter would then either
- * bend the domain to fit or force the interface to be rewritten. The read-side
- * below is already enough to build delivery tracking, status polling and the
- * distribution screens against.
+ * ARCH-001 fixed the identity and read-side and deferred the write-side to
+ * DIST-001, when the Release aggregate would exist. It does now, and this is
+ * that finalisation.
+ *
+ * **Five methods.** `validateRelease` / `prepareRelease` / `submitRelease` /
+ * `deliveryStatus` / `requestTakedown`, and nothing else. Royalties and
+ * analytics are *not* here: a distributor that reports earnings and one that
+ * only delivers are both distributors, and a contract demanding both would
+ * force every adapter to stub the half it does not do. Those arrive as
+ * capability interfaces when a real adapter needs them.
+ *
+ * Validation and submission are separate because a label needs to know a
+ * package will be accepted *before* handing it over — every distributor's
+ * checks are stricter than SaniTube's, and discovering that during submission
+ * means discovering it on a delivery that has already half-happened.
+ *
+ * `prepareRelease` exists between them because uploading audio and artwork is
+ * the slow, resumable part, and a contract that folded it into `submitRelease`
+ * would make every retry re-upload a set of masters.
+ *
+ * Every method takes an idempotency key. A retry after a timeout — where
+ * SaniTube does not know whether the distributor received the package — must
+ * be recognisable as a repeat rather than a second delivery.
  */
 interface Distributor
 {
@@ -47,4 +65,38 @@ interface Distributor
      * Current state of a delivery, normalised to SaniTube's vocabulary.
      */
     public function deliveryStatus(string $externalReleaseId): DeliveryStatus;
+
+    /**
+     * Ask the distributor whether it would accept this package.
+     *
+     * Read-only and repeatable: it must change nothing at the distributor. A
+     * label runs it while still assembling, and a validation that quietly
+     * created a draft release upstream would leave abandoned records behind on
+     * every attempt.
+     */
+    public function validateRelease(Release $release): DistributorValidation;
+
+    /**
+     * Upload what the distributor needs before it can be given the release —
+     * masters, artwork — and return its handle on the prepared package.
+     *
+     * Separate from submission because this is the slow part, and because a
+     * retry must not re-upload masters it already sent. Repeatable under the
+     * same key.
+     */
+    public function prepareRelease(Release $release, string $idempotencyKey): DistributorSubmission;
+
+    /**
+     * Hand the release over.
+     *
+     * The one irreversible call in this contract. Under the same idempotency
+     * key it must be safe to repeat: a distributor that honours the key
+     * returns the original submission rather than creating a second.
+     */
+    public function submitRelease(Release $release, string $idempotencyKey): DistributorSubmission;
+
+    /**
+     * Ask for the release to be removed from stores.
+     */
+    public function requestTakedown(string $externalReleaseId, string $idempotencyKey): DistributorSubmission;
 }

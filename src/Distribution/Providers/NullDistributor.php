@@ -6,6 +6,9 @@ namespace SaniTube\Distribution\Providers;
 
 use SaniTube\Distribution\Contracts\Distributor;
 use SaniTube\Distribution\DeliveryStatus;
+use SaniTube\Distribution\DistributorSubmission;
+use SaniTube\Distribution\DistributorValidation;
+use SaniTube\Releases\Models\Release;
 
 /**
  * The distributor a fresh install has: none.
@@ -16,6 +19,8 @@ use SaniTube\Distribution\DeliveryStatus;
  */
 final readonly class NullDistributor implements Distributor
 {
+    private const REASON = 'No distributor is configured on this installation.';
+
     public function name(): string
     {
         return 'null';
@@ -34,5 +39,27 @@ final readonly class NullDistributor implements Distributor
     public function deliveryStatus(string $externalReleaseId): DeliveryStatus
     {
         return DeliveryStatus::Draft;
+    }
+
+    public function validateRelease(Release $release): DistributorValidation
+    {
+        // Not "the release is fine" — nothing looked at it. An empty error
+        // list would read as approval from a distributor that does not exist.
+        return new DistributorValidation(errors: [self::REASON]);
+    }
+
+    public function prepareRelease(Release $release, string $idempotencyKey): DistributorSubmission
+    {
+        return DistributorSubmission::failed(self::REASON);
+    }
+
+    public function submitRelease(Release $release, string $idempotencyKey): DistributorSubmission
+    {
+        return DistributorSubmission::failed(self::REASON);
+    }
+
+    public function requestTakedown(string $externalReleaseId, string $idempotencyKey): DistributorSubmission
+    {
+        return DistributorSubmission::failed(self::REASON);
     }
 }

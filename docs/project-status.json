@@ -1,8 +1,8 @@
 {
   "$comment": "Machine-readable project state. Any new session reads this first, then verifies it against GitHub before trusting it. Written at the end of each ticket, so a stale entry means a session ended mid-ticket — check the branch and CI rather than the status field.",
   "updated_at": "2026-08-15",
-  "current_phase": "DIST-001",
-  "last_completed_ticket": "REL-001",
+  "current_phase": "UI-001",
+  "last_completed_ticket": "DIST-001",
   "default_branch": "main",
   "tickets": {
     "ARCH-001": {
@@ -82,17 +82,19 @@
       "ci": null
     },
     "REL-001": {
-      "status": "pr_open",
+      "status": "merged",
       "branch": "claude/rel-001-release-workflow",
       "pr": 10,
-      "ci": "awaiting run after rebase",
-      "report": "docs/reports/REL-001.md"
+      "ci": "green 10/10 (run 31876446920)",
+      "report": "docs/reports/REL-001.md",
+      "merge_commit": "06a91c6"
     },
     "DIST-001": {
-      "status": "not_started",
-      "branch": null,
+      "status": "pr_open",
+      "branch": "claude/dist-001-distribution-core",
       "pr": null,
-      "ci": null
+      "ci": "awaiting run",
+      "report": "docs/reports/DIST-001.md"
     },
     "DEP-001": {
       "status": "not_started",
@@ -134,6 +136,12 @@
       "summary": "Suno (or any real music generation provider) unavailable: no credentials, no adapter. The fake provider exercises every path without a network.",
       "blocking": "AI-generated catalogue in production, nothing in development",
       "status": "open"
+    },
+    {
+      "id": "DIST-002",
+      "summary": "Too Lost (or any real distributor) credentials unavailable: no adapter, no delivery ever made. The fake distributor exercises validate/prepare/submit/poll/takedown without a network.",
+      "blocking": "actually delivering a release, nothing in development",
+      "status": "open"
     }
   ],
   "notes": {
@@ -146,15 +154,16 @@
     "no_hosts_in_php": "PortabilityTest rejects any absolute http(s) host in PHP, config included. Vendor endpoints come from the environment with no PHP default; .env.example ships the public URLs.",
     "generation": "Generation never creates a Track: a selected result becomes a VERIFIED asset and a TrackCandidate with source GENERATED, which CAT-001 reviews. commercial_rights_status defaults UNKNOWN and is never inferred from a successful generation. Polling is bounded twice — the job re-dispatches only while pollable, and the service fails the generation at max_polls.",
     "release_mutation": "ReleaseMutationPolicy is the single place that says which edits a status permits. DRAFT allows everything; READY allows nothing structural but can be reopened to DRAFT; SUBMITTED/DELIVERED/LIVE/TAKEN_DOWN allow nothing and cannot be reopened. I4 is called, never reimplemented or relaxed.",
-    "track_numbering": "release_tracks carries UNIQUE(release_id, disc_number, track_number). Renumbering must be two-phase — park every row above the occupied range, then write final numbers — because a row-by-row update collides the moment a track moves into a slot another has not yet left."
+    "track_numbering": "release_tracks carries UNIQUE(release_id, disc_number, track_number). Renumbering must be two-phase — park every row above the occupied range, then write final numbers — because a row-by-row update collides the moment a track moves into a slot another has not yet left.",
+    "distribution": "Submission is the one irreversible act. Three guards against a duplicate delivery: UNIQUE(release_id, provider), a guarded status UPDATE, and a derived (not random) idempotency key sha256(release uuid|distributor). Outage != rejection: unreachable and unconfigured both produce validation errors, an outage during submit leaves the delivery FAILED and retryable. DIST-001 never mints an ISRC or UPC — a missing one is a validation error."
   },
   "open_pull_requests": [
     {
-      "pr": 10,
-      "ticket": "REL-001",
+      "pr": null,
+      "ticket": "DIST-001",
       "base": "main",
-      "ci": "awaiting run after rebase",
-      "why_open": "Rebased onto main with GEN-001; merge once green."
+      "ci": "awaiting run",
+      "why_open": "Just pushed."
     }
   ]
 }

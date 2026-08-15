@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Illuminate\Support\Facades\Route;
 use SaniTube\Api\Http\Controllers\V1\ArtistController;
 use SaniTube\Api\Http\Controllers\V1\CompositionController;
+use SaniTube\Api\Http\Controllers\V1\DistributionController;
 use SaniTube\Api\Http\Controllers\V1\GenerationProjectController;
 use SaniTube\Api\Http\Controllers\V1\HealthController;
 use SaniTube\Api\Http\Controllers\V1\IngestionBatchController;
@@ -180,6 +181,25 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
             ->name('releases.ready');
         Route::post('releases/{release}/reopen', [ReleaseBuilderController::class, 'reopen'])
             ->name('releases.reopen');
+
+        /*
+         * Distribution.
+         *
+         * `validate` is read-only and repeatable; `submit` is the one
+         * irreversible act in the platform, and the two are separate so a
+         * label can see a distributor's verdict without handing anything over.
+         *
+         * The provider is named in the path rather than the body: which
+         * distributor receives a release is part of what the request *is*, and
+         * a body field makes it look like an option.
+         */
+        Route::post('releases/{release}/distribution/{provider}/validate', [DistributionController::class, 'validateDelivery'])
+            ->name('distribution.validate');
+        Route::post('releases/{release}/distribution/{provider}/submit', [DistributionController::class, 'submit'])
+            ->name('distribution.submit');
+
+        Route::get('distributions', [DistributionController::class, 'index'])->name('distributions.index');
+        Route::get('distributions/{delivery}', [DistributionController::class, 'show'])->name('distributions.show');
     });
 
 });
