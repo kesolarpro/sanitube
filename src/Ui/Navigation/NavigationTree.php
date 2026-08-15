@@ -40,6 +40,7 @@ final readonly class NavigationTree
             $this->group('library', 'library', [
                 $this->item('ingestion', null, 'ingestion', available: false),
                 $this->item('catalog', '/catalog/tracks', 'catalog', available: true),
+                $this->item('artists', '/catalog/artists', 'catalog', available: true),
                 $this->item('assets', null, 'assets', available: false),
             ]),
 
