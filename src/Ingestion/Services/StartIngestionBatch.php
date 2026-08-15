@@ -12,6 +12,7 @@ use SaniTube\Ingestion\Enums\IngestionItemStatus;
 use SaniTube\Ingestion\Enums\IngestionSource;
 use SaniTube\Ingestion\Exceptions\IngestionException;
 use SaniTube\Ingestion\Jobs\ProcessIngestionItemJob;
+use SaniTube\Ingestion\Manifest\Manifest;
 use SaniTube\Ingestion\Models\IngestionBatch;
 use SaniTube\Ingestion\Models\IngestionItem;
 use SaniTube\Ingestion\Sources\SourceReaderFactory;
@@ -42,6 +43,7 @@ final readonly class StartIngestionBatch
 
     /**
      * @param  list<string>  $references  explicit object keys; ignored when a prefix is given
+     * @param  Manifest|null  $manifest  a reference list with evidence attached; never combined with the other two
      */
     public function handle(
         IngestionSource $source,
@@ -49,13 +51,26 @@ final readonly class StartIngestionBatch
         array $references = [],
         ?string $provider = null,
         ?int $createdBy = null,
+        ?Manifest $manifest = null,
     ): IngestionBatch {
         if (! $source->isImplemented()) {
             throw IngestionException::unsupportedSource($source->value);
         }
 
+        // A manifest *is* the reference list. Accepting one alongside a prefix
+        // or an explicit list would mean two things naming what to import with
+        // no rule for which wins — which is how an import quietly does
+        // something nobody asked for.
+        if ($manifest instanceof Manifest && ($prefix !== null || $references !== [])) {
+            throw IngestionException::manifestWithOtherSelection();
+        }
+
         $reader = $this->readers->for($source, $provider);
-        $resolved = $prefix !== null ? $this->expand($prefix, $provider) : $references;
+        $resolved = match (true) {
+            $manifest instanceof Manifest => $manifest->references(),
+            $prefix !== null => $this->expand($prefix, $provider),
+            default => $references,
+        };
 
         if ($resolved === []) {
             throw IngestionException::nothingToImport($prefix ?? '(no references)');
@@ -73,7 +88,7 @@ final readonly class StartIngestionBatch
             $reader->assertAcceptable($reference);
         }
 
-        $batch = DB::transaction(function () use ($source, $createdBy, $resolved, $reader): IngestionBatch {
+        $batch = DB::transaction(function () use ($source, $createdBy, $resolved, $reader, $manifest): IngestionBatch {
             $batch = IngestionBatch::query()->create([
                 'source' => $source,
                 'status' => IngestionBatchStatus::Pending,
@@ -82,11 +97,17 @@ final readonly class StartIngestionBatch
 
             foreach ($resolved as $reference) {
                 $key = IngestionKey::for($source, $reference);
+                $row = $manifest?->rowFor($reference);
 
                 $batch->items()->create([
                     'ingestion_key' => $key,
                     'source_reference' => $reference,
                     'original_filename' => $reader->originalFilename($reference),
+                    // Recorded on the item, not only carried in memory: a
+                    // retry after a crash has to know what the manifest said,
+                    // and re-reading the operator's CSV is not available to a
+                    // queue worker.
+                    'manifest_metadata' => $row?->toEvidence(),
                     // Something already working on this exact intent means
                     // this item has nothing to do — recorded, not silently
                     // dropped, so the batch still accounts for every

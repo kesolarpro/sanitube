@@ -25,6 +25,7 @@ use SaniTube\Ingestion\Enums\IngestionItemStatus;
  * @property string $ingestion_key
  * @property string $source_reference
  * @property string $original_filename
+ * @property array<string, mixed>|null $manifest_metadata
  * @property IngestionItemStatus $status
  * @property int|null $active_marker
  * @property int|null $asset_id
@@ -55,6 +56,7 @@ final class IngestionItem extends Model
             'status' => IngestionItemStatus::class,
             'failure_code' => IngestionFailureCode::class,
             'attempt_count' => 'integer',
+            'manifest_metadata' => 'array',
         ];
     }
 

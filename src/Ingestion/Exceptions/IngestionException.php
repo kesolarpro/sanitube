@@ -54,6 +54,15 @@ final class IngestionException extends RuntimeException
         );
     }
 
+    public static function manifestWithOtherSelection(): self
+    {
+        return new self(
+            'A manifest already says what to import. Supplying a prefix or a list of references '
+                .'beside it leaves two things naming the batch with no rule for which one wins.',
+            IngestionFailureCode::UnsupportedSource,
+        );
+    }
+
     public static function batchTooLarge(int $requested, int $limit): self
     {
         return new self(

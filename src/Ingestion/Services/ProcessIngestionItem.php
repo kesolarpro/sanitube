@@ -15,6 +15,8 @@ use SaniTube\Ingestion\Enums\IngestionItemStatus;
 use SaniTube\Ingestion\Enums\TrackCandidateStatus;
 use SaniTube\Ingestion\Events\TrackCandidateCreated;
 use SaniTube\Ingestion\Exceptions\IngestionException;
+use SaniTube\Ingestion\Manifest\ManifestConflictDetector;
+use SaniTube\Ingestion\Manifest\ManifestRow;
 use SaniTube\Ingestion\Models\IngestionItem;
 use SaniTube\Ingestion\Models\TrackCandidate;
 use SaniTube\Ingestion\Sources\SourceReaderFactory;
@@ -52,6 +54,7 @@ final readonly class ProcessIngestionItem
         private AssetStorageService $assets,
         private AssetVerificationService $verification,
         private SourceReaderFactory $readers,
+        private ManifestConflictDetector $conflicts,
     ) {}
 
     public function handle(IngestionItem $item): IngestionItem
@@ -167,16 +170,23 @@ final readonly class ProcessIngestionItem
         }
 
         $duplicateOf = $asset->duplicate_of_asset_id;
+        $manifest = $this->manifestFor($item);
 
         $candidate = TrackCandidate::query()->create([
             'source' => $item->batch->source,
             'asset_id' => $asset->id,
             'original_filename' => $item->original_filename,
-            // A guess, and named as one. The filename is the only thing the
-            // platform knows at this point, and it is frequently wrong.
-            'suggested_title' => SuggestTitle::from($item->original_filename),
+            // A guess, and named as one. A manifest title is a better guess
+            // than a filename — somebody typed it deliberately — but it is
+            // still a guess, which is why it lands in the same `suggested_`
+            // field and not in the catalogue. Where the title came from is
+            // recorded beside it, because "the operator said so" and "we read
+            // it off the file name" deserve different amounts of trust from a
+            // reviewer.
+            'suggested_title' => $manifest['title'] ?? SuggestTitle::from($item->original_filename),
             'matched_asset_id' => $duplicateOf,
             'matched_track_id' => $duplicateOf === null ? null : $this->trackHolding($duplicateOf),
+            'metadata' => $manifest['metadata'],
             // PENDING, not READY: the bytes are verified but nothing has yet
             // looked *inside* them. MED-001 settles this to READY — or to
             // WAITING_CAPABILITY, or NEEDS_REVIEW — once analysis has had its
@@ -188,14 +198,74 @@ final readonly class ProcessIngestionItem
             // for review rather than rejected, because the same master
             // legitimately arrives twice. That case is settled already: the
             // duplicate points at an asset the platform has analysed before.
-            'status' => $duplicateOf === null
-                ? TrackCandidateStatus::Pending
-                : TrackCandidateStatus::Duplicate,
+            //
+            // A manifest conflict — an ISRC the catalogue already has on
+            // another track — settles the candidate as NEEDS_REVIEW here and
+            // now. That is deliberate: NEEDS_REVIEW is terminal, so analysis
+            // will not later settle it to READY and quietly make it
+            // promotable. The asset is still analysed either way, because the
+            // person who has to decide wants the duration and the loudness in
+            // front of them.
+            //
+            // DUPLICATE takes precedence when both apply. It is the more
+            // specific finding — these exact bytes are already held — and both
+            // states hold the candidate for a human, with the conflict
+            // recorded in `metadata` regardless.
+            'status' => match (true) {
+                $duplicateOf !== null => TrackCandidateStatus::Duplicate,
+                $manifest['conflicts'] !== [] => TrackCandidateStatus::NeedsReview,
+                default => TrackCandidateStatus::Pending,
+            },
         ]);
 
         event(new TrackCandidateCreated($candidate));
 
         return $candidate;
+    }
+
+    /**
+     * The manifest row for this item, turned into what the candidate records.
+     *
+     * Returns three things because they are decided together: the title to
+     * suggest, the metadata to store, and whether anything the manifest claims
+     * contradicts the catalogue.
+     *
+     * `metadata` is null when there was no manifest, rather than an empty
+     * array. "Nobody supplied one" and "one was supplied and said nothing" are
+     * different facts, and a reviewer reading an empty object would reasonably
+     * conclude the second.
+     *
+     * @return array{title: string|null, metadata: array<string, mixed>|null, conflicts: list<array<string, mixed>>}
+     */
+    private function manifestFor(IngestionItem $item): array
+    {
+        $evidence = $item->manifest_metadata;
+
+        if (! is_array($evidence) || $evidence === []) {
+            return ['title' => null, 'metadata' => null, 'conflicts' => []];
+        }
+
+        $row = ManifestRow::fromEvidence($evidence);
+        $inspection = $this->conflicts->inspect($row);
+
+        $metadata = ['manifest' => $evidence];
+
+        // Where the suggested title came from, stated rather than inferred.
+        $metadata['suggested_title_source'] = $row->title !== null ? 'MANIFEST' : 'FILENAME';
+
+        if ($inspection['conflicts'] !== []) {
+            $metadata['manifest_conflicts'] = $inspection['conflicts'];
+        }
+
+        if ($inspection['observations'] !== []) {
+            $metadata['manifest_observations'] = $inspection['observations'];
+        }
+
+        return [
+            'title' => $row->title,
+            'metadata' => $metadata,
+            'conflicts' => $inspection['conflicts'],
+        ];
     }
 
     /**
