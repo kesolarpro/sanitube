@@ -51,8 +51,11 @@ final readonly class MintAssetPreviewUrl
         $expiresAt = ($now ?? new DateTimeImmutable)->modify('+'.$this->ttlSeconds().' seconds');
 
         try {
+            // The asset's own recorded provider. Never the default: two
+            // backends can hold the same path, and signing the wrong one would
+            // hand out a link to somebody else's object.
             $url = $this->storage
-                ->provider($this->storage->defaultName())
+                ->provider($asset->disk)
                 ->temporaryUrl($asset->path, $expiresAt);
         } catch (Throwable) {
             // A provider that accepted the capability check but then failed is
@@ -71,6 +74,9 @@ final readonly class MintAssetPreviewUrl
         Log::info('Asset preview minted.', [
             'asset_uuid' => $asset->uuid,
             'asset_kind' => $asset->kind->value,
+            // The provider *name*, which is configuration rather than location.
+            // Not the path, not the disk's bucket, not the URL.
+            'storage_provider' => $asset->disk,
             'user_uuid' => $user->uuid,
             'expires_at' => $expiresAt->format(DATE_ATOM),
         ]);

@@ -79,20 +79,31 @@ final readonly class AssetPreviewPolicy
             }
         }
 
-        if (! $this->providerCanIssueTemporaryUrls()) {
+        if (! $this->providerCanIssueTemporaryUrls($asset)) {
             return AssetPreviewDecision::ProviderCannotIssueTemporaryUrls;
         }
 
         return AssetPreviewDecision::Allowed;
     }
 
-    private function providerCanIssueTemporaryUrls(): bool
+    /**
+     * Whether the backend that actually holds this asset can sign for it.
+     *
+     * `$asset->disk` is the SaniTube provider name recorded when the bytes were
+     * written, and it is immutable from that moment. Resolving it — rather than
+     * `defaultName()` — is what makes the preview follow the *asset*.
+     *
+     * The failure path is deliberately total. A provider that has been removed
+     * from configuration, or that cannot be reached, means no preview. Falling
+     * back to the default would sign a URL against a backend that does not hold
+     * these bytes: at best a broken link, at worst a link to a *different*
+     * object that happens to share the path.
+     */
+    private function providerCanIssueTemporaryUrls(Asset $asset): bool
     {
         try {
-            return $this->storage->provider($this->storage->defaultName())->supportsTemporaryUrls();
+            return $this->storage->provider($asset->disk)->supportsTemporaryUrls();
         } catch (Throwable) {
-            // Unreachable provider: refuse rather than assume. The failure mode
-            // of assuming is a permanent URL or a public object.
             return false;
         }
     }

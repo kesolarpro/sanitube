@@ -39,7 +39,9 @@ Route::middleware(['web', HandleInertiaRequests::class, 'auth', 'active'])->grou
 
     // POST, not GET: minting a preview creates a bearer credential, and a GET
     // that did so would be prefetched, cached and replayed from history.
-    Route::post('catalog/assets/{asset}/preview', AssetPreviewController::class)->name('catalog.assets.preview');
+    Route::post('catalog/assets/{asset}/preview', AssetPreviewController::class)
+        ->middleware('throttle:sanitube-asset-preview')
+        ->name('catalog.assets.preview');
 
     Route::get('catalog/contributors', ContributorIndexController::class)->name('catalog.contributors');
     Route::get('catalog/contributors/{contributor}', ContributorDetailController::class)->name('catalog.contributors.show');

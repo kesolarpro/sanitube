@@ -44,14 +44,23 @@ final class CatalogAssetsTest extends TestCase
      */
     private function useProviderThatSignsUrls(bool $canSign = true): void
     {
-        $manager = app(StorageManager::class);
-        $manager->register(
-            $manager->defaultName(),
-            new InMemoryStorageProvider(
-                name: $manager->defaultName(),
-                baseUrl: 'https://storage.example.test',
-                temporaryUrls: $canSign,
-            ),
+        // Registered under the name the fixtures record on the asset, because
+        // that — not the default — is what the policy resolves.
+        $this->registerProvider('local', canSign: $canSign, baseUrl: 'https://storage.example.test');
+    }
+
+    /**
+     * A provider registered under a name of our choosing.
+     *
+     * The base URL differs per provider so a signed URL can be traced back to
+     * the backend that produced it. That is what makes "signs B, not A"
+     * assertable at all.
+     */
+    private function registerProvider(string $name, bool $canSign = true, string $baseUrl = 'https://storage.example.test'): void
+    {
+        app(StorageManager::class)->register(
+            $name,
+            new InMemoryStorageProvider(name: $name, baseUrl: $baseUrl, temporaryUrls: $canSign),
         );
     }
 
@@ -255,6 +264,210 @@ final class CatalogAssetsTest extends TestCase
         $stored = (string) json_encode($asset->fresh()?->getAttributes());
         $this->assertStringNotContainsString('signature', $stored);
         $this->assertStringNotContainsString($url, $stored);
+    }
+
+    // ------------------------------------------- storage provenance is canonical
+
+    #[Test]
+    public function an_asset_is_signed_by_the_provider_it_records_not_the_default(): void
+    {
+        // The defect this correction exists for. An asset's `disk` is written
+        // when its bytes are stored and is immutable from that moment; the
+        // default provider is a configuration value that can change tomorrow.
+        // Resolving the default would sign against a backend that does not hold
+        // these bytes.
+        $this->registerProvider('provider-a', baseUrl: 'https://a.example.test');
+        $this->registerProvider('provider-b', baseUrl: 'https://b.example.test');
+        config(['storage.default' => 'provider-a']);
+
+        $asset = Asset::factory()->create([
+            'kind' => AssetKind::Artwork,
+            'status' => AssetStatus::Verified,
+            'verified_at' => now(),
+            'disk' => 'provider-b',
+        ]);
+
+        $url = (string) $this->actingAs($this->user())
+            ->post('/catalog/assets/'.$asset->uuid.'/preview')
+            ->assertOk()
+            ->json('url');
+
+        $this->assertStringStartsWith('https://b.example.test', $url, 'The asset was signed by the wrong backend.');
+        $this->assertStringNotContainsString('a.example.test', $url);
+    }
+
+    #[Test]
+    public function changing_the_default_provider_moves_no_historical_asset(): void
+    {
+        $this->registerProvider('provider-a', baseUrl: 'https://a.example.test');
+        $this->registerProvider('provider-b', baseUrl: 'https://b.example.test');
+
+        $asset = Asset::factory()->create([
+            'kind' => AssetKind::Artwork,
+            'status' => AssetStatus::Verified,
+            'verified_at' => now(),
+            'disk' => 'provider-a',
+        ]);
+
+        // The installation migrates to a new backend for *new* material.
+        config(['storage.default' => 'provider-b']);
+
+        $url = (string) $this->actingAs($this->user())
+            ->post('/catalog/assets/'.$asset->uuid.'/preview')
+            ->assertOk()
+            ->json('url');
+
+        $this->assertStringStartsWith('https://a.example.test', $url, 'A historical asset moved when the default changed.');
+    }
+
+    #[Test]
+    public function an_identical_path_on_two_backends_signs_only_the_recorded_one(): void
+    {
+        // The failure this prevents is not a broken link — it is a working link
+        // to somebody else's object that happens to share a path.
+        $this->registerProvider('provider-a', baseUrl: 'https://a.example.test');
+        $this->registerProvider('provider-b', baseUrl: 'https://b.example.test');
+        config(['storage.default' => 'provider-a']);
+
+        $shared = 'masters/2026/shared-path.wav';
+        $user = $this->user();
+
+        foreach (['provider-a' => 'a.example.test', 'provider-b' => 'b.example.test'] as $disk => $host) {
+            $asset = Asset::factory()->create([
+                'kind' => AssetKind::Artwork,
+                'status' => AssetStatus::Verified,
+                'verified_at' => now(),
+                'disk' => $disk,
+                'path' => $shared,
+            ]);
+
+            $url = (string) $this->actingAs($user)
+                ->post('/catalog/assets/'.$asset->uuid.'/preview')
+                ->assertOk()
+                ->json('url');
+
+            $this->assertStringStartsWith('https://'.$host, $url, sprintf('%s was signed by the wrong backend.', $disk));
+        }
+    }
+
+    #[Test]
+    public function an_asset_on_an_unknown_provider_is_refused_rather_than_falling_back(): void
+    {
+        // A provider removed from configuration. The tempting behaviour — sign
+        // with the default — is exactly what must not happen.
+        $this->registerProvider('provider-a', baseUrl: 'https://a.example.test');
+        config(['storage.default' => 'provider-a']);
+
+        $asset = Asset::factory()->create([
+            'kind' => AssetKind::Artwork,
+            'status' => AssetStatus::Verified,
+            'verified_at' => now(),
+            'disk' => 'a-provider-that-no-longer-exists',
+        ]);
+
+        $this->actingAs($this->user())
+            ->post('/catalog/assets/'.$asset->uuid.'/preview')
+            ->assertForbidden()
+            ->assertJson(['reason' => AssetPreviewDecision::ProviderCannotIssueTemporaryUrls->value]);
+    }
+
+    #[Test]
+    public function an_asset_on_a_backend_that_cannot_sign_is_refused_even_when_the_default_can(): void
+    {
+        $this->registerProvider('provider-a', canSign: true, baseUrl: 'https://a.example.test');
+        $this->registerProvider('provider-b', canSign: false, baseUrl: 'https://b.example.test');
+        config(['storage.default' => 'provider-a']);
+
+        $asset = Asset::factory()->create([
+            'kind' => AssetKind::Artwork,
+            'status' => AssetStatus::Verified,
+            'verified_at' => now(),
+            'disk' => 'provider-b',
+        ]);
+
+        $this->actingAs($this->user())
+            ->post('/catalog/assets/'.$asset->uuid.'/preview')
+            ->assertForbidden()
+            ->assertJson(['reason' => AssetPreviewDecision::ProviderCannotIssueTemporaryUrls->value]);
+    }
+
+    // -------------------------------------------------- the credential's edges
+
+    #[Test]
+    public function the_preview_response_may_never_be_written_down(): void
+    {
+        // A credential in a shared proxy cache, or a browser's disk cache,
+        // outlives the tab that asked for it. `no-store` is the only directive
+        // that forbids writing it at all.
+        $this->useProviderThatSignsUrls();
+        $asset = $this->asset(AssetKind::Artwork, AssetStatus::Verified);
+
+        $response = $this->actingAs($this->user())->post('/catalog/assets/'.$asset->uuid.'/preview')->assertOk();
+
+        $this->assertStringContainsString('no-store', (string) $response->headers->get('Cache-Control'));
+        $this->assertStringContainsString('private', (string) $response->headers->get('Cache-Control'));
+        $this->assertSame('no-cache', $response->headers->get('Pragma'));
+    }
+
+    #[Test]
+    public function a_refusal_is_uncacheable_and_says_nothing_about_storage(): void
+    {
+        $asset = $this->asset(AssetKind::LicenseDocument, AssetStatus::Verified);
+
+        $response = $this->actingAs($this->user())
+            ->post('/catalog/assets/'.$asset->uuid.'/preview')
+            ->assertForbidden();
+
+        $this->assertStringContainsString('no-store', (string) $response->headers->get('Cache-Control'));
+
+        // A cached "no" would survive the role or the status changing.
+        $body = $response->content();
+        $this->assertStringNotContainsString($asset->path, $body);
+        $this->assertStringNotContainsString($asset->disk, $body);
+    }
+
+    #[Test]
+    public function minting_is_rate_limited(): void
+    {
+        $this->useProviderThatSignsUrls();
+        $asset = $this->asset(AssetKind::Artwork, AssetStatus::Verified);
+        $user = $this->user();
+
+        for ($attempt = 0; $attempt < 60; $attempt++) {
+            $this->actingAs($user)->post('/catalog/assets/'.$asset->uuid.'/preview')->assertOk();
+        }
+
+        $this->actingAs($user)->post('/catalog/assets/'.$asset->uuid.'/preview')->assertStatus(429);
+    }
+
+    #[Test]
+    public function one_persons_exhausted_quota_is_not_anybody_elses(): void
+    {
+        // Keyed on the user, not the address: an office behind one IP must not
+        // share a budget, and one compromised session must not spend everyone's.
+        $this->useProviderThatSignsUrls();
+        $asset = $this->asset(AssetKind::Artwork, AssetStatus::Verified);
+
+        $heavy = $this->user(UserRole::Owner, 'heavy@example.test');
+        $other = $this->user(UserRole::Owner, 'other@example.test');
+
+        for ($attempt = 0; $attempt < 61; $attempt++) {
+            $this->actingAs($heavy)->post('/catalog/assets/'.$asset->uuid.'/preview');
+        }
+
+        $this->actingAs($heavy)->post('/catalog/assets/'.$asset->uuid.'/preview')->assertStatus(429);
+        $this->actingAs($other)->post('/catalog/assets/'.$asset->uuid.'/preview')->assertOk();
+    }
+
+    #[Test]
+    public function ordinary_catalogue_reads_are_not_throttled_by_the_preview_budget(): void
+    {
+        $asset = $this->asset();
+        $user = $this->user();
+
+        for ($attempt = 0; $attempt < 70; $attempt++) {
+            $this->actingAs($user)->get('/catalog/assets/'.$asset->uuid)->assertOk();
+        }
     }
 
     // -------------------------------------------------------------- filtering
