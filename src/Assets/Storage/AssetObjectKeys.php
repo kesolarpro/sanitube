@@ -119,6 +119,28 @@ final readonly class AssetObjectKeys
         };
     }
 
+    /**
+     * Every prefix the platform writes to and owns.
+     *
+     * Exposed so that anything offering to import "everything under X" can
+     * refuse to point X at the platform's own output. Without it, a cloud
+     * import aimed at the store root would re-ingest every master as though it
+     * were new material — and each pass would produce another generation of
+     * duplicates.
+     *
+     * @return list<string>
+     */
+    public function managedPrefixes(): array
+    {
+        $prefixes = [self::STAGING_PREFIX];
+
+        foreach (AssetKind::cases() as $kind) {
+            $prefixes[] = $this->prefixFor($kind);
+        }
+
+        return array_values(array_unique($prefixes));
+    }
+
     private function join(string $prefix, string $uuid, string $originalFilename): string
     {
         $extension = OriginalFilename::extension($originalFilename);
