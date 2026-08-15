@@ -120,10 +120,12 @@
     "UI-002": {
       "status": "pr_open_awaiting_review",
       "branch": "claude/ui-002-dashboard",
-      "pr": null,
-      "ci": "awaiting run",
+      "pr": 15,
+      "ci": "10/10 green — run 31888600654",
       "report": "docs/reports/UI-002.md",
-      "note": "Dashboard on real data. DashboardQuery read model: fixed query count regardless of catalogue size, null (never zero) for any figure that could not be taken, honest unknown for a provider that threw. / is now the dashboard; the routes/web.php redirect was removed rather than retargeted to avoid two routes on one URI."
+      "note": "Dashboard on real data. DashboardQuery read model: fixed query count regardless of catalogue size, null (never zero) for any figure that could not be taken, honest unknown for a provider that threw. / is now the dashboard; the routes/web.php redirect was removed rather than retargeted to avoid two routes on one URI.",
+      "pr_url": "https://github.com/kesolarpro/sanitube/pull/15",
+      "ci_url": "https://github.com/kesolarpro/sanitube/actions/runs/31888600654"
     },
     "UI-003": {
       "status": "not_started",
@@ -253,11 +255,12 @@
   },
   "open_pull_requests": [
     {
-      "pr": null,
+      "pr": 15,
       "ticket": "UI-002",
       "base": "main",
-      "ci": "awaiting run",
-      "why_open": "Review rule active - awaiting architectural verdict before merge."
+      "ci": "10/10 green — run 31888600654",
+      "why_open": "Review rule active - awaiting architectural verdict before merge.",
+      "url": "https://github.com/kesolarpro/sanitube/pull/15"
     }
   ],
   "next_session": {
@@ -308,5 +311,11 @@
     "state": "not started",
     "blocked_by": "UI-002 architectural review",
     "note": "List + search + filter + cursor pagination + detail + relationship views. Must go through domain services, never a CRUD controller shortcut. Needs a read model per resource in the shape of src/Ui/Queries/DashboardQuery.php. Do not start business logic on the unreviewed UI-002 branch; independent work available meanwhile: OPS/INST/DEP documentation tickets."
+  },
+  "session_boundary": {
+    "reason": "Context capacity reached at a clean ticket boundary.",
+    "repository_state": "green",
+    "main_sha": "9d2a4ac50088933fadf0e0ea65c470970d589afe",
+    "note": "UI-002 is complete and awaiting architectural review. Do NOT stack UI-003 on the claude/ui-002-dashboard branch. Resume from next_action in this file."
   }
 }
