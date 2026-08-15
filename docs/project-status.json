@@ -2,7 +2,7 @@
   "$comment": "Machine-readable project state. Any new session reads this first, then verifies it against GitHub before trusting it. Written at the end of each ticket, so a stale entry means a session ended mid-ticket — check the branch and CI rather than the status field.",
   "updated_at": "2026-08-15",
   "current_phase": "UI-001",
-  "last_completed_ticket": "DIST-001",
+  "last_completed_ticket": "SEC-001",
   "default_branch": "main",
   "tickets": {
     "ARCH-001": {
@@ -102,6 +102,80 @@
       "branch": null,
       "pr": null,
       "ci": null
+    },
+    "SEC-001": {
+      "status": "pr_open",
+      "branch": "claude/sec-001-identity-auth",
+      "pr": null,
+      "ci": "awaiting run",
+      "report": "docs/reports/SEC-001.md",
+      "note": "Took priority before UI publication per Wave 3's own rule: the platform can promote candidates and submit releases to distributors, and had no authentication at all."
+    },
+    "UI-002": {
+      "status": "not_started",
+      "branch": null,
+      "pr": null,
+      "ci": null
+    },
+    "UI-003": {
+      "status": "not_started",
+      "branch": null,
+      "pr": null,
+      "ci": null
+    },
+    "UI-004": {
+      "status": "not_started",
+      "branch": null,
+      "pr": null,
+      "ci": null
+    },
+    "UI-005": {
+      "status": "not_started",
+      "branch": null,
+      "pr": null,
+      "ci": null
+    },
+    "UI-006": {
+      "status": "not_started",
+      "branch": null,
+      "pr": null,
+      "ci": null
+    },
+    "UI-007": {
+      "status": "not_started",
+      "branch": null,
+      "pr": null,
+      "ci": null
+    },
+    "SYS-001": {
+      "status": "not_started",
+      "branch": null,
+      "pr": null,
+      "ci": null
+    },
+    "INS-002": {
+      "status": "not_started",
+      "branch": null,
+      "pr": null,
+      "ci": null
+    },
+    "DEP-002": {
+      "status": "not_started",
+      "branch": null,
+      "pr": null,
+      "ci": null
+    },
+    "DEP-003": {
+      "status": "not_started",
+      "branch": null,
+      "pr": null,
+      "ci": null
+    },
+    "OPS-001": {
+      "status": "not_started",
+      "branch": null,
+      "pr": null,
+      "ci": null
     }
   },
   "architecture_amendments": [
@@ -143,6 +217,13 @@
       "summary": "Too Lost (or any real distributor) credentials unavailable: no adapter, no delivery ever made. The fake distributor exercises validate/prepare/submit/poll/takedown without a network.",
       "blocking": "actually delivering a release, nothing in development",
       "status": "open"
+    },
+    {
+      "id": "EXTERNAL_ADMIN_ACTION_REQUIRED",
+      "summary": "The GitHub repository default branch is still 'claude/verifier-repertoire-git-k29ft2'; it should be 'main'. No tool in this environment can change repository settings — the GitHub MCP server exposes no repository-update tool and there is no gh CLI.",
+      "action": "A human with admin access: Settings -> General -> Default branch -> main.",
+      "blocking": "nothing in development; all work is on main and never returns to the old branch",
+      "status": "open"
     }
   ],
   "notes": {
@@ -156,9 +237,19 @@
     "generation": "Generation never creates a Track: a selected result becomes a VERIFIED asset and a TrackCandidate with source GENERATED, which CAT-001 reviews. commercial_rights_status defaults UNKNOWN and is never inferred from a successful generation. Polling is bounded twice — the job re-dispatches only while pollable, and the service fails the generation at max_polls.",
     "release_mutation": "ReleaseMutationPolicy is the single place that says which edits a status permits. DRAFT allows everything; READY allows nothing structural but can be reopened to DRAFT; SUBMITTED/DELIVERED/LIVE/TAKEN_DOWN allow nothing and cannot be reopened. I4 is called, never reimplemented or relaxed.",
     "track_numbering": "release_tracks carries UNIQUE(release_id, disc_number, track_number). Renumbering must be two-phase — park every row above the occupied range, then write final numbers — because a row-by-row update collides the moment a track moves into a slot another has not yet left.",
-    "distribution": "Submission is the one irreversible act. Three guards against a duplicate delivery: UNIQUE(release_id, provider), a guarded status UPDATE, and a derived (not random) idempotency key sha256(release uuid|distributor). Outage != rejection: unreachable and unconfigured both produce validation errors, an outage during submit leaves the delivery FAILED and retryable. DIST-001 never mints an ISRC or UPC — a missing one is a validation error."
+    "distribution": "Submission is the one irreversible act. Three guards against a duplicate delivery: UNIQUE(release_id, provider), a guarded status UPDATE, and a derived (not random) idempotency key sha256(release uuid|distributor). Outage != rejection: unreachable and unconfigured both produce validation errors, an outage during submit leaves the delivery FAILED and retryable. DIST-001 never mints an ISRC or UPC — a missing one is a validation error.",
+    "identity": "Session auth on Laravel's users table. Three roles (OWNER/ADMIN/MEMBER). role and is_active are NOT mass-assignable — set them with forceFill. Wrong password, unknown email and deactivated account answer identically to prevent account enumeration. Throttling is per email AND per IP. No self-registration: accounts come from sanitube:user:create.",
+    "translation_gate": "tests/Feature/Localization walks EVERY file in lang/en and checks all configured locales both directions. Any new UI string needs en/fr/es/it/pt/de or CI fails."
   },
-  "open_pull_requests": [],
+  "open_pull_requests": [
+    {
+      "pr": null,
+      "ticket": "SEC-001",
+      "base": "main",
+      "ci": "awaiting run",
+      "why_open": "Just pushed."
+    }
+  ],
   "next_session": {
     "start_with": "UI-001 — design system + real dashboard. Branch from main.",
     "then": [
