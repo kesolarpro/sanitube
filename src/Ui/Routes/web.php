@@ -16,6 +16,10 @@ use SaniTube\Ui\Http\Controllers\Catalog\TrackDetailController;
 use SaniTube\Ui\Http\Controllers\Catalog\TrackIndexController;
 use SaniTube\Ui\Http\Controllers\DashboardController;
 use SaniTube\Ui\Http\Controllers\DesignSystemController;
+use SaniTube\Ui\Http\Controllers\Ingestion\BatchDetailController;
+use SaniTube\Ui\Http\Controllers\Ingestion\BatchIndexController;
+use SaniTube\Ui\Http\Controllers\Ingestion\CandidateDetailController;
+use SaniTube\Ui\Http\Controllers\Ingestion\CandidateIndexController;
 use SaniTube\Ui\Http\Middleware\HandleInertiaRequests;
 
 /*
@@ -51,6 +55,14 @@ Route::middleware(['web', HandleInertiaRequests::class, 'auth', 'active'])->grou
     Route::get('catalog/artists/{artist}', ArtistDetailController::class)->name('catalog.artists.show');
     Route::get('catalog/tracks', TrackIndexController::class)->name('catalog.tracks');
     Route::get('catalog/tracks/{track}', TrackDetailController::class)->name('catalog.tracks.show');
+
+    // Ingestion. Read-only: these screens report what an import did, and the
+    // decisions taken on what it produced. Starting an import and promoting a
+    // candidate are writes and are not here.
+    Route::get('ingestion/batches', BatchIndexController::class)->name('ingestion.batches');
+    Route::get('ingestion/batches/{batch}', BatchDetailController::class)->name('ingestion.batches.show');
+    Route::get('ingestion/candidates', CandidateIndexController::class)->name('ingestion.candidates');
+    Route::get('ingestion/candidates/{candidate}', CandidateDetailController::class)->name('ingestion.candidates.show');
 
     Route::get('design-system', DesignSystemController::class)->name('design-system');
 });
