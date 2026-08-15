@@ -23,7 +23,7 @@ final class AssetFactory extends Factory
     {
         return [
             'kind' => AssetKind::AudioMaster,
-            'disk' => 'sanitube',
+            'disk' => 'local',
             'path' => 'masters/'.$this->faker->uuid().'.wav',
             'original_filename' => $this->faker->word().'.wav',
             'mime_type' => 'audio/wav',
