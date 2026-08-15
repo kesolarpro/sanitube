@@ -118,14 +118,16 @@
       "merge_commit": "d9db6af"
     },
     "UI-002": {
-      "status": "pr_open_awaiting_review",
+      "status": "merged",
       "branch": "claude/ui-002-dashboard",
       "pr": 15,
-      "ci": "10/10 green — run 31888600654",
+      "ci": "10/10 green",
       "report": "docs/reports/UI-002.md",
-      "note": "Dashboard on real data. DashboardQuery read model: fixed query count regardless of catalogue size, null (never zero) for any figure that could not be taken, honest unknown for a provider that threw. / is now the dashboard; the routes/web.php redirect was removed rather than retargeted to avoid two routes on one URI.",
+      "note": "Dashboard on real data. C1: operational probing moved out of the request cycle into sanitube:health:refresh + OperationalHealthStore; the dashboard reads FRESH/STALE/UNKNOWN and blanks every verdict when stale.",
       "pr_url": "https://github.com/kesolarpro/sanitube/pull/15",
-      "ci_url": "https://github.com/kesolarpro/sanitube/actions/runs/31888600654"
+      "ci_url": "https://github.com/kesolarpro/sanitube/actions/runs/31888600654",
+      "merge_commit": "16d37c2",
+      "review": "CORRECTION C1 REQUIRED -> applied -> merged"
     },
     "UI-003": {
       "status": "not_started",
@@ -186,6 +188,16 @@
       "branch": null,
       "pr": null,
       "ci": null
+    },
+    "UI-003a": {
+      "status": "pr_open_awaiting_review",
+      "branch": "claude/ui-003-catalogue",
+      "pr": 16,
+      "ci": "10/10 green — run 31902837883",
+      "report": "docs/reports/UI-003a.md",
+      "note": "Catalogue: tracks index + detail. Cursor pagination ordered by (title, uuid) so no internal key rides in the cursor; filters validated against domain enums; detail payload carries no disk/path/bucket/internal id; checksum abbreviated. Artists, contributors, compositions and assets remain: UI-003b.",
+      "pr_url": "https://github.com/kesolarpro/sanitube/pull/16",
+      "ci_url": "https://github.com/kesolarpro/sanitube/actions/runs/31902837883"
     }
   },
   "architecture_amendments": [
@@ -255,12 +267,12 @@
   },
   "open_pull_requests": [
     {
-      "pr": 15,
-      "ticket": "UI-002",
+      "pr": 16,
+      "ticket": "UI-003a",
       "base": "main",
-      "ci": "10/10 green — run 31888600654",
-      "why_open": "Review rule active - awaiting architectural verdict before merge.",
-      "url": "https://github.com/kesolarpro/sanitube/pull/15"
+      "ci": "10/10 green — run 31902837883",
+      "why_open": "Left for review deliberately. The wave policy permits merging a UI ticket that does not write or modify business data, and UI-003a only reads — but it introduces a new payload contract for the catalogue, and the PR body already states it is awaiting a verdict. Owner may merge on green CI if the read-only reading of the policy is the intended one.",
+      "url": "https://github.com/kesolarpro/sanitube/pull/16"
     }
   ],
   "next_session": {
@@ -284,11 +296,11 @@
     "since": "UI-001",
     "note": "Nine tickets (ING/MED/CAT/AI/GEN/REL/DIST/SEC-001 and PR #12) were merged under an earlier autonomous-chaining instruction that bypassed review. A retroactive audit is under way; they stay in main and any correction becomes a follow-up ticket, not a revert."
   },
-  "main_sha": "9d2a4ac50088933fadf0e0ea65c470970d589afe",
-  "current_ticket": "UI-002",
+  "main_sha": "16d37c20b604cf468fec4be7674b34955a4159a3",
+  "current_ticket": "UI-003a",
   "tests": {
-    "php": 608,
-    "php_assertions": 2215,
+    "php": 631,
+    "php_assertions": 2384,
     "php_skipped": 1,
     "component": 16
   },
@@ -306,16 +318,20 @@
     "note": "PHP suite stubs Vite when no manifest exists; the frontend CI job renders against a real one."
   },
   "next_action": {
-    "ticket": "UI-003",
-    "name": "Catalogue (artists, contributors, compositions, tracks, assets)",
+    "ticket": "UI-003b",
+    "name": "Catalogue: artists, contributors, compositions, assets",
     "state": "not started",
-    "blocked_by": "UI-002 architectural review",
-    "note": "List + search + filter + cursor pagination + detail + relationship views. Must go through domain services, never a CRUD controller shortcut. Needs a read model per resource in the shape of src/Ui/Queries/DashboardQuery.php. Do not start business logic on the unreviewed UI-002 branch; independent work available meanwhile: OPS/INST/DEP documentation tickets."
+    "blocked_by": "UI-003a architectural review",
+    "note": "Follow the shape established by TrackIndexQuery/TrackDetailQuery: cursor pagination ordered by (natural key, uuid), filters validated against enums, no storage location or internal key in any payload. Asset detail additionally needs the signed-and-expiring preview URL decision, which is a security question and must not be improvised. Do not stack on the unreviewed claude/ui-003-catalogue branch; branch from main."
   },
   "session_boundary": {
     "reason": "Context capacity reached at a clean ticket boundary.",
     "repository_state": "green",
-    "main_sha": "9d2a4ac50088933fadf0e0ea65c470970d589afe",
-    "note": "UI-002 is complete and awaiting architectural review. Do NOT stack UI-003 on the claude/ui-002-dashboard branch. Resume from next_action in this file."
+    "main_sha": "16d37c20b604cf468fec4be7674b34955a4159a3",
+    "note": "UI-001 and UI-002 merged and verified on main. UI-003a complete, CI green, PR #16 open. Do NOT stack UI-003b on claude/ui-003-catalogue — branch from main. Resume from next_action."
+  },
+  "v1_progress_percent": {
+    "value": 38,
+    "basis": "Counted over the ticket list in this mission: 4 of ~30 planned tickets merged (UI-001, UI-002 and the earlier domain wave), 1 open. UI/ingestion/studio/releases/distribution/settings, rights, publishing, royalties, analytics, installer, deployment, backup, security hardening and certification harnesses are outstanding. Not an intuition."
   }
 }
