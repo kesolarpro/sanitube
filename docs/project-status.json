@@ -1,8 +1,8 @@
 {
   "$comment": "Machine-readable project state. Any new session reads this first, then verifies it against GitHub before trusting it. Written at the end of each ticket, so a stale entry means a session ended mid-ticket — check the branch and CI rather than the status field.",
   "updated_at": "2026-08-15",
-  "current_phase": "UI-001",
-  "last_completed_ticket": "SEC-001",
+  "current_phase": "UI-002",
+  "last_completed_ticket": "UI-001",
   "default_branch": "main",
   "tickets": {
     "ARCH-001": {
@@ -70,10 +70,12 @@
       "merge_commit": "aca7d2b"
     },
     "UI-001": {
-      "status": "not_started",
-      "branch": null,
+      "status": "pr_open_awaiting_review",
+      "branch": "claude/ui-001-design-system",
       "pr": null,
-      "ci": null
+      "ci": "awaiting run",
+      "report": "docs/reports/UI-001.md",
+      "note": "Design system + shell + ONE showcase screen. No business screens by design — they wait for this to be reviewed."
     },
     "INS-001": {
       "status": "not_started",
@@ -104,12 +106,12 @@
       "ci": null
     },
     "SEC-001": {
-      "status": "pr_open",
+      "status": "merged",
       "branch": "claude/sec-001-identity-auth",
-      "pr": null,
-      "ci": "awaiting run",
+      "pr": 13,
+      "ci": "green 10/10 (run 31881814037)",
       "report": "docs/reports/SEC-001.md",
-      "note": "Took priority before UI publication per Wave 3's own rule: the platform can promote candidates and submit releases to distributors, and had no authentication at all."
+      "merge_commit": "d9db6af"
     },
     "UI-002": {
       "status": "not_started",
@@ -239,15 +241,17 @@
     "track_numbering": "release_tracks carries UNIQUE(release_id, disc_number, track_number). Renumbering must be two-phase — park every row above the occupied range, then write final numbers — because a row-by-row update collides the moment a track moves into a slot another has not yet left.",
     "distribution": "Submission is the one irreversible act. Three guards against a duplicate delivery: UNIQUE(release_id, provider), a guarded status UPDATE, and a derived (not random) idempotency key sha256(release uuid|distributor). Outage != rejection: unreachable and unconfigured both produce validation errors, an outage during submit leaves the delivery FAILED and retryable. DIST-001 never mints an ISRC or UPC — a missing one is a validation error.",
     "identity": "Session auth on Laravel's users table. Three roles (OWNER/ADMIN/MEMBER). role and is_active are NOT mass-assignable — set them with forceFill. Wrong password, unknown email and deactivated account answer identically to prevent account enumeration. Throttling is per email AND per IP. No self-registration: accounts come from sanitube:user:create.",
-    "translation_gate": "tests/Feature/Localization walks EVERY file in lang/en and checks all configured locales both directions. Any new UI string needs en/fr/es/it/pt/de or CI fails."
+    "translation_gate": "tests/Feature/Localization walks EVERY file in lang/en and checks all configured locales both directions. Any new UI string needs en/fr/es/it/pt/de or CI fails.",
+    "design_system": "Semantic tokens only (--color-surface, never --color-zinc-900). Status colour is decided in StatusBadge alone; labels always come from translations. Navigation is built server-side and unbuilt sections show as disabled — 'available' is presentation, never authorisation. MetricCard takes number|null and renders null as an em dash, never 0.",
+    "frontend_toolchain": "@vitejs/plugin-vue@5 peers Vite ^5||^6; the project is on Vite 7. Resolved with plugin-vue@6 (which supports Vite 7), NOT --force or --legacy-peer-deps: a peer conflict is compatibility information, and overriding it keeps the incompatibility. Same for vue-tsc@3. npm run types runs in CI."
   },
   "open_pull_requests": [
     {
       "pr": null,
-      "ticket": "SEC-001",
+      "ticket": "UI-001",
       "base": "main",
       "ci": "awaiting run",
-      "why_open": "Just pushed."
+      "why_open": "Review rule restored — awaiting architectural verdict before merge."
     }
   ],
   "next_session": {
@@ -264,5 +268,18 @@
       "A migration adding a unique index on an FK column must drop the FK first in down().",
       "Every new UI string needs en/fr/es/it/pt/de; no hardcoded UI text."
     ]
+  },
+  "review_policy": {
+    "active": true,
+    "rule": "Implement, get CI green, open the PR, write the report — then STOP. Do not merge. The owner sends the report to architectural review and reports the verdict; only then merge.",
+    "since": "UI-001",
+    "note": "Nine tickets (ING/MED/CAT/AI/GEN/REL/DIST/SEC-001 and PR #12) were merged under an earlier autonomous-chaining instruction that bypassed review. A retroactive audit is under way; they stay in main and any correction becomes a follow-up ticket, not a revert."
+  },
+  "next_ticket": {
+    "id": "UI-002",
+    "name": "Dashboard",
+    "state": "not started",
+    "blocked_by": "UI-001 architectural review",
+    "note": "Needs a DashboardQuery read model (no N+1, no browser-side fan-out) and real counts only."
   }
 }

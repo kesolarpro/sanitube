@@ -44,6 +44,7 @@ return [
         'Audit',
         'Jobs',
         'Observability',
+        'Ui',
         'Installer',
         'Deployment',
     ],
