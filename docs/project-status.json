@@ -90,11 +90,12 @@
       "merge_commit": "06a91c6"
     },
     "DIST-001": {
-      "status": "pr_open",
+      "status": "merged",
       "branch": "claude/dist-001-distribution-core",
-      "pr": null,
-      "ci": "awaiting run",
-      "report": "docs/reports/DIST-001.md"
+      "pr": 11,
+      "ci": "green 10/10 (run 31876804282)",
+      "report": "docs/reports/DIST-001.md",
+      "merge_commit": "6acfe26"
     },
     "DEP-001": {
       "status": "not_started",
@@ -157,13 +158,20 @@
     "track_numbering": "release_tracks carries UNIQUE(release_id, disc_number, track_number). Renumbering must be two-phase — park every row above the occupied range, then write final numbers — because a row-by-row update collides the moment a track moves into a slot another has not yet left.",
     "distribution": "Submission is the one irreversible act. Three guards against a duplicate delivery: UNIQUE(release_id, provider), a guarded status UPDATE, and a derived (not random) idempotency key sha256(release uuid|distributor). Outage != rejection: unreachable and unconfigured both produce validation errors, an outage during submit leaves the delivery FAILED and retryable. DIST-001 never mints an ISRC or UPC — a missing one is a validation error."
   },
-  "open_pull_requests": [
-    {
-      "pr": null,
-      "ticket": "DIST-001",
-      "base": "main",
-      "ci": "awaiting run",
-      "why_open": "Just pushed."
-    }
-  ]
+  "open_pull_requests": [],
+  "next_session": {
+    "start_with": "UI-001 — design system + real dashboard. Branch from main.",
+    "then": [
+      "INS-001 CLI installer",
+      "DEP-001 universal deployment"
+    ],
+    "suite_size": "570 tests / 1856 assertions at DIST-001",
+    "conventions_to_honour": [
+      "Disabled providers are named 'none', never 'null' (AI, generation, distribution managers all share the rule).",
+      "$table->json() is forbidden; use longText + array cast.",
+      "No absolute http(s) host anywhere in PHP, config included.",
+      "A migration adding a unique index on an FK column must drop the FK first in down().",
+      "Every new UI string needs en/fr/es/it/pt/de; no hardcoded UI text."
+    ]
+  }
 }
