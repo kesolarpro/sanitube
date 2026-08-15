@@ -126,6 +126,59 @@ final class AssetObjectKeysTest extends TestCase
         );
     }
 
+    // -------------------------------------- what the sweep is allowed to delete
+
+    #[Test]
+    public function a_key_this_platform_wrote_parses_back_to_its_asset(): void
+    {
+        // The parser has to accept everything canonical(), staging() and
+        // OriginalFilename can between them produce, or the sweep would leave
+        // real abandoned uploads behind forever.
+        $keys = new AssetObjectKeys;
+
+        foreach (['master.wav', 'cover.JPG', 'contract', 'x.verylongextension', '../../etc/passwd.wav', ''] as $filename) {
+            $key = $keys->staging(self::UUID, $filename);
+
+            $this->assertSame(
+                self::UUID,
+                $keys->parseStagingKey($key),
+                sprintf('The platform writes [%s] and the parser rejects it.', $key),
+            );
+        }
+    }
+
+    #[Test]
+    #[DataProvider('keysThePlatformNeverWrote')]
+    public function a_key_this_platform_did_not_write_does_not_parse(string $key): void
+    {
+        // `isStaging()` answers a question about a prefix; this answers one
+        // about a shape. Only the second is safe to delete on.
+        $keys = new AssetObjectKeys;
+
+        $this->assertNull($keys->parseStagingKey($key));
+        $this->assertFalse($keys->isValidStagingObjectKey($key));
+    }
+
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function keysThePlatformNeverWrote(): iterable
+    {
+        yield 'a name that is not a uuid' => ['staging/foo/bar'];
+        yield 'an extra path segment' => ['staging/'.self::UUID.'/nested/original.wav'];
+        yield 'a different object name' => ['staging/'.self::UUID.'/secrets.env'];
+        yield 'an empty extension' => ['staging/'.self::UUID.'/original.'];
+        yield 'an uppercase uuid' => ['staging/'.strtoupper(self::UUID).'/original.wav'];
+        yield 'a truncated uuid' => ['staging/0192f2b3-4c5d/original.wav'];
+        yield 'traversal' => ['staging/../masters/x/original.wav'];
+        yield 'encoded traversal' => ['staging/%2e%2e%2fmasters/original.wav'];
+        yield 'a trailing newline' => ['staging/'.self::UUID."/original.wav\n"];
+        yield 'a canonical key from another prefix' => ['masters/'.self::UUID.'/original.wav'];
+        yield 'the prefix alone' => ['staging/original.wav'];
+        yield 'an overlong extension' => ['staging/'.self::UUID.'/original.abcdefghi'];
+        yield 'empty' => [''];
+    }
+
     #[Test]
     public function the_original_name_is_kept_for_humans_but_stripped_of_its_path(): void
     {

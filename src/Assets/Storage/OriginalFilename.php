@@ -25,7 +25,7 @@ final readonly class OriginalFilename
     public const FALLBACK = 'unnamed';
 
     /** Long enough for every real extension, short enough to bound the key. */
-    private const MAX_EXTENSION_LENGTH = 8;
+    public const MAX_EXTENSION_LENGTH = 8;
 
     /**
      * The name, reduced to something safe to store and to display.

@@ -91,6 +91,13 @@ php artisan sanitube:storage:check     # real write, read-back and delete
 php artisan sanitube:assets:verify     # confirm stored assets against their checksums
 ```
 
+Before enabling the scheduler on a new install, see what the staging cleanup
+would remove:
+
+```bash
+php artisan sanitube:assets:cleanup-staging --dry-run
+```
+
 Local storage cannot sign expiring URLs, so audio is streamed through the
 application instead. Everything else behaves identically. See
 [`docs/storage.md`](docs/storage.md).

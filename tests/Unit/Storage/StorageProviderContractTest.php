@@ -106,6 +106,49 @@ final class StorageProviderContractTest extends TestCase
 
     #[Test]
     #[DataProvider('providers')]
+    public function a_listing_never_reaches_past_its_prefix(callable $make): void
+    {
+        // `staging-archive/` shares a prefix with `staging/` as a *string* and
+        // is a different place. The provider must draw that line itself: the
+        // staging sweep is downstream of this, and a caller that has to verify
+        // its own listing is a caller whose safety depends on remembering to.
+        $provider = $make();
+        $provider->put('staging/a/original.wav', 'a');
+        $provider->put('staging-archive/b/original.wav', 'b');
+        $provider->put('masters/c/original.wav', 'c');
+
+        $this->assertSame(['staging/a/original.wav'], $provider->files('staging'));
+    }
+
+    #[Test]
+    #[DataProvider('providers')]
+    public function a_prefix_is_normalised_rather_than_taken_literally(callable $make): void
+    {
+        $provider = $make();
+        $provider->put('staging/a/original.wav', 'a');
+
+        // The same place, however it is spelled.
+        $this->assertSame(['staging/a/original.wav'], $provider->files('staging'));
+        $this->assertSame(['staging/a/original.wav'], $provider->files('staging/'));
+        $this->assertSame(['staging/a/original.wav'], $provider->files('/staging/'));
+    }
+
+    #[Test]
+    #[DataProvider('providers')]
+    public function a_prefix_that_tries_to_climb_out_is_refused(callable $make): void
+    {
+        // Rejected rather than sanitised. A prefix that needs cleaning up is a
+        // prefix whose author was confused about the boundary.
+        $provider = $make();
+
+        $this->expectException(StorageOperationFailed::class);
+        $this->expectExceptionMessage('may not contain traversal');
+
+        $provider->files('staging/../masters');
+    }
+
+    #[Test]
+    #[DataProvider('providers')]
     public function it_reports_when_an_object_was_last_written(callable $make): void
     {
         $provider = $make();

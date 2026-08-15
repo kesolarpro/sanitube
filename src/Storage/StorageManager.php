@@ -19,6 +19,17 @@ use SaniTube\Storage\Providers\S3StorageProvider;
  * Providers are described in `config/storage.php`; each maps a SaniTube
  * provider name to a Laravel filesystem disk. Adding a future provider means
  * adding a driver here and a disk in `config/filesystems.php`.
+ *
+ * **Configuration is read once, when the manager is constructed.** That is
+ * deliberate: a default provider that can change under a running process is
+ * harder to reason about than one that cannot, and an upload half-written to
+ * one provider and half to another is not a state worth being able to reach.
+ *
+ * The consequence is worth stating plainly, because it surprises people:
+ * changing `storage.default` after the container has resolved this manager has
+ * no effect on it. Rebuild or rebind the singleton — or, in a test, set the
+ * configuration before resolving it. Addressing a specific provider needs no
+ * such thing: {@see provider()} and {@see register()} work at any time.
  */
 final class StorageManager
 {

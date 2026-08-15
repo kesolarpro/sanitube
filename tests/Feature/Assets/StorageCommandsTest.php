@@ -4,9 +4,12 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Assets;
 
+use Illuminate\Console\Scheduling\Event;
+use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Str;
 use PHPUnit\Framework\Attributes\Test;
 use SaniTube\Assets\Enums\AssetKind;
 use SaniTube\Assets\Enums\AssetStatus;
@@ -149,27 +152,62 @@ final class StorageCommandsTest extends TestCase
     #[Test]
     public function the_cleanup_removes_abandoned_uploads_and_names_them(): void
     {
-        $this->store->put('staging/abandoned/original.wav', 'half an upload');
-        $this->store->backdate('staging/abandoned/original.wav', Carbon::now()->subDays(3)->getTimestamp());
+        $key = $this->abandonedUpload();
 
         $this->artisan('sanitube:assets:cleanup-staging')
-            ->expectsOutputToContain('staging/abandoned/original.wav')
+            ->expectsOutputToContain($key)
             ->assertSuccessful();
 
-        $this->assertFalse($this->store->exists('staging/abandoned/original.wav'));
+        $this->assertFalse($this->store->exists($key));
     }
 
     #[Test]
     public function the_cleanup_can_be_asked_what_it_would_do(): void
     {
-        $this->store->put('staging/abandoned/original.wav', 'half an upload');
-        $this->store->backdate('staging/abandoned/original.wav', Carbon::now()->subDays(3)->getTimestamp());
+        // What the deployment docs tell an operator to run before enabling the
+        // cron for the first time.
+        $key = $this->abandonedUpload();
 
         $this->artisan('sanitube:assets:cleanup-staging', ['--dry-run' => true])
             ->expectsOutputToContain('dry run')
             ->assertSuccessful();
 
-        $this->assertTrue($this->store->exists('staging/abandoned/original.wav'));
+        $this->assertTrue($this->store->exists($key));
+    }
+
+    #[Test]
+    public function the_cleanup_warns_before_sweeping_below_the_age_floor(): void
+    {
+        // Allowed, because a person typed it. Never silent, because it can
+        // delete an upload that is still in flight.
+        $this->store->put($key = 'staging/'.Str::uuid7().'/original.wav', 'in flight');
+        $this->store->backdate($key, Carbon::now()->subMinutes(2)->getTimestamp());
+
+        $this->artisan('sanitube:assets:cleanup-staging', ['--hours' => '0'])
+            ->expectsOutputToContain('below the')
+            ->assertSuccessful();
+
+        $this->assertFalse($this->store->exists($key));
+    }
+
+    #[Test]
+    public function the_scheduled_cleanup_cannot_reach_the_age_override(): void
+    {
+        // The structural half of the floor: the scheduler passes no options,
+        // so there is no configuration of the environment that lets a cron run
+        // sweep below an hour.
+        $commands = array_map(
+            static fn (Event $event): string => $event->command ?? '',
+            $this->app->make(Schedule::class)->events(),
+        );
+
+        $cleanup = array_values(array_filter(
+            $commands,
+            static fn (string $command): bool => str_contains($command, 'assets:cleanup-staging'),
+        ));
+
+        $this->assertCount(1, $cleanup, 'The staging cleanup is not scheduled.');
+        $this->assertStringNotContainsString('--hours', $cleanup[0]);
     }
 
     #[Test]
@@ -191,6 +229,20 @@ final class StorageCommandsTest extends TestCase
         $this->assertContains('sanitube:storage:check', $registered);
         $this->assertContains('sanitube:assets:verify', $registered);
         $this->assertContains('sanitube:assets:cleanup-staging', $registered);
+    }
+
+    /**
+     * A staging object of the exact shape the platform writes, old enough to
+     * sweep.
+     */
+    private function abandonedUpload(): string
+    {
+        $key = 'staging/'.Str::uuid7().'/original.wav';
+
+        $this->store->put($key, 'half an upload');
+        $this->store->backdate($key, Carbon::now()->subDays(3)->getTimestamp());
+
+        return $key;
     }
 
     private function storedAsset(string $contents): Asset

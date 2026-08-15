@@ -199,6 +199,42 @@ php artisan sanitube:assets:cleanup-staging
 that parse are not credentials that work: a key with `PutObject` and no
 `DeleteObject` looks perfect right up until the first staging cleanup.
 
+### Before you enable the cleanup cron
+
+**Run it as a dry run first, and read what it says it would delete:**
+
+```bash
+php artisan sanitube:assets:cleanup-staging --dry-run
+```
+
+It should list only objects under `staging/`, and only ones whose upload
+plainly failed. If it names anything else, stop and report it — that is a bug
+in the sweep, not a configuration problem.
+
+### What the sweep will and will not delete
+
+An object is removed only when **all five** of these hold at once:
+
+1. the provider returned it inside the exact `staging/` scope
+2. the key parses as one this platform could have written —
+   `staging/{uuid}/original[.ext]`, exactly
+3. no asset of record claims that path
+4. it is older than the age threshold
+5. this is not a dry run
+
+Conditions 1 and 3 are unreachable given 2. They are checked anyway. This is
+the only scheduled task whose bug would read "deleted a master", and redundant
+checks cost a comparison and an indexed query.
+
+`staging/foo/bar` is under the right prefix and is **not** deleted: it is not a
+key SaniTube wrote, so it belongs to something else.
+
+The age threshold has a **floor of one hour that no configuration can lower**.
+Setting `SANITUBE_STAGING_TTL_HOURS=0` is clamped, not obeyed — otherwise a
+typo would mean "delete every upload currently in flight". Only the explicit
+`--hours` option goes below the floor, it warns when it does, and the scheduler
+passes no options at all.
+
 ---
 
 ## Deployment
@@ -238,6 +274,18 @@ The same application, with more options available:
   queue and the cron scheduler remain fully supported.
 - Run `sanitube:assets:verify` on a schedule if the egress cost is acceptable;
   the entry is in `routes/console.php`, commented out.
+
+### Changing provider at runtime
+
+The storage manager reads `storage.default` once, when it is constructed. A
+default that changes under a running process is harder to reason about than one
+that does not, and an upload half-written to one provider and half to another is
+not a state worth being able to reach.
+
+So changing that value after the container has resolved the manager has no
+effect on it: rebuild or rebind the singleton. Addressing a *specific* provider
+needs nothing special — `provider(name)` works at any time, and
+`register(name, provider)` adds one.
 
 ### Migrating between providers
 

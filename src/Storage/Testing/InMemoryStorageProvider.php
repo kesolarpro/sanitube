@@ -9,6 +9,7 @@ use DateTimeInterface;
 use SaniTube\Storage\Contracts\StorageProvider;
 use SaniTube\Storage\Exceptions\StorageOperationFailed;
 use SaniTube\Storage\Exceptions\TemporaryUrlsUnsupported;
+use SaniTube\Storage\ObjectPrefix;
 use SaniTube\Storage\StorageHealth;
 use SaniTube\Storage\StoredObject;
 
@@ -223,11 +224,11 @@ final class InMemoryStorageProvider implements StorageProvider
     {
         $this->guard();
 
-        $prefix = $prefix === '' ? '' : rtrim($prefix, '/').'/';
+        $scope = ObjectPrefix::normalise($prefix);
 
         $keys = array_values(array_filter(
             array_keys($this->objects),
-            static fn (string $key): bool => $prefix === '' || str_starts_with($key, $prefix),
+            static fn (string $key): bool => ObjectPrefix::contains($scope, $key),
         ));
 
         sort($keys);

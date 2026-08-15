@@ -63,6 +63,42 @@ final readonly class AssetObjectKeys
     }
 
     /**
+     * The asset UUID a staging key belongs to, or null when the key is not one
+     * this platform could have written.
+     *
+     * `isStaging()` answers a question about a prefix. This answers a question
+     * about a *shape*, and the difference is the one that matters to anything
+     * that deletes: `staging/foo/bar` starts with the right prefix and is not
+     * something SaniTube ever wrote.
+     *
+     * The grammar is exact — `staging/{uuid}/original[.ext]` — and expressed as
+     * an allowlist, so everything outside it is rejected without having to be
+     * anticipated: extra path segments, a malformed or uppercase UUID, an empty
+     * extension left by `original.`, `..`, percent-encoded traversal, control
+     * characters, a trailing newline. The pattern ends at `\z` rather than `$`
+     * because `$` would tolerate one.
+     */
+    public function parseStagingKey(string $key): ?string
+    {
+        $pattern = sprintf(
+            '#^%s/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/%s(?:\.[a-z0-9]{1,%d})?\z#',
+            preg_quote(self::STAGING_PREFIX, '#'),
+            preg_quote(self::OBJECT_NAME, '#'),
+            OriginalFilename::MAX_EXTENSION_LENGTH,
+        );
+
+        // Lowercase only, deliberately. It is the only form Str::uuid7()
+        // produces, so accepting anything else would widen the rule to admit
+        // keys this platform cannot have written.
+        return preg_match($pattern, $key, $matches) === 1 ? $matches[1] : null;
+    }
+
+    public function isValidStagingObjectKey(string $key): bool
+    {
+        return $this->parseStagingKey($key) !== null;
+    }
+
+    /**
      * The top-level directory for a kind.
      *
      * Deliberately descriptive of the domain rather than of a provider: these

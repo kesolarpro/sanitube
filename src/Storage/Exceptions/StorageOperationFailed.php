@@ -29,6 +29,14 @@ final class StorageOperationFailed extends RuntimeException
         ));
     }
 
+    public static function unsafePrefix(string $prefix): self
+    {
+        return new self(sprintf(
+            'Refusing to list [%s]: a listing prefix may not contain traversal or control characters.',
+            $prefix,
+        ));
+    }
+
     public static function unreadableSource(string $path): self
     {
         return new self(sprintf('Source file [%s] could not be opened for reading.', $path));

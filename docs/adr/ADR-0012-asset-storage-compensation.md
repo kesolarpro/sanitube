@@ -47,6 +47,26 @@ Four properties carry the whole design:
 4. **Verification reads storage.** `VERIFIED` is written only after the object
    has been read back and hashed. No other code path may set it.
 
+### Deleting from staging
+
+The sweep that reclaims abandoned uploads is the one scheduled task whose bug
+would read "deleted a master", so it removes an object only when five
+conditions hold at once: the provider returned it inside the exact staging
+scope; the key parses as one this platform could have written
+(`staging/{uuid}/original[.ext]`, exactly); no asset claims that path; it is
+older than the threshold; and this is not a dry run.
+
+The age threshold has a floor of one hour that no configuration can lower —
+`SANITUBE_STAGING_TTL_HOURS=0` is a typo, and without a clamp it means "delete
+every upload currently in flight". Only an explicit, warned CLI option goes
+below it, and the scheduler passes no options at all.
+
+A physically separate store for staging would be a stronger boundary and is
+deliberately not required: it would have to be configured correctly on every
+provider, on shared hosting and in the installer, and a boundary that is easy
+to misconfigure on five surfaces is not obviously safer than one the code
+enforces on all of them.
+
 ### The resulting failure table
 
 | Failure | State | Resolution |
@@ -87,6 +107,48 @@ would not undo what read the status in between.
 - *An outbox table.* Correct, and more machinery than the problem needs while
   the only writer is the application itself. Reconsider when uploads arrive
   directly from clients.
+
+## Architecture amendment — assets.sha256, byte_size and mime_type become nullable
+
+Recorded here because it changes a decision ARCH-002 had already made, and a
+ticket may discover that an accepted model is insufficient but may not treat
+its own correction as approved.
+
+**Original decision.** ARCH-002 declared `sha256`, `byte_size` and `mime_type`
+`NOT NULL` on `assets`. That was right for the only state it modelled: a row
+describing bytes that exist.
+
+**Problem discovered.** The upload workflow adds the state before that one. An
+asset is registered, and only then do the bytes arrive; in between, all three
+are genuinely unknown. `NOT NULL` leaves two options, and one of them is a lie
+— a placeholder checksum on every pending row. A column whose value is
+sometimes a hash and sometimes a placeholder cannot be checked at all, and a
+fabricated `sha256` is precisely the value that makes a later verification
+quarantine an innocent master.
+
+**Proposed change.** Make the three columns nullable, and add invariant **I10**
+requiring all three from `STORED` onwards, enforced in `AssetObserver` where
+every write path meets it. The guarantee moves from the column definition to
+the invariant and gets stronger on the way: `NOT NULL` never prevented a row
+reaching `VERIFIED` with a meaningless checksum, and I10 does.
+
+**Compatibility and data migration impact.** Additive and non-destructive.
+`ALTER TABLE` on three columns, no data rewritten, no rows touched, no index
+changed. Existing rows already satisfy I10 because they were written under
+`NOT NULL`. Verified `migrate → suite → migrate:rollback → migrate` on SQLite,
+MySQL 8.0, MariaDB 10.6 and MariaDB 11.4.
+
+**Rollback impact.** `down()` restores `NOT NULL` and therefore succeeds only
+while no asset is still unmeasured. That is deliberate, and stated in the
+migration: restoring the constraint with a `PENDING` asset present would mean
+inventing a checksum for bytes nobody has hashed. An installation that needs to
+roll back must first resolve or remove its pending uploads — a decision an
+operator should make, not a migration.
+
+**Tests.** An asset cannot reach `STORED` without all three (I10); an asset
+cannot be forced to `VERIFIED` with no bytes anywhere; a registered asset has
+a null checksum until bytes arrive; the full `PENDING → STORED → VERIFIED`
+path; and the migration's reversibility, exercised on all four engines by CI.
 
 ## Physical deduplication is out of scope
 

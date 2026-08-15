@@ -10,6 +10,7 @@ use Illuminate\Support\Str;
 use SaniTube\Storage\Contracts\StorageProvider;
 use SaniTube\Storage\Exceptions\StorageOperationFailed;
 use SaniTube\Storage\Exceptions\TemporaryUrlsUnsupported;
+use SaniTube\Storage\ObjectPrefix;
 use SaniTube\Storage\StorageHealth;
 use SaniTube\Storage\StoredObject;
 use Throwable;
@@ -129,7 +130,18 @@ class FilesystemStorageProvider implements StorageProvider
 
     public function files(string $prefix = ''): array
     {
-        return array_values(array_map(strval(...), $this->disk->allFiles($prefix)));
+        $scope = ObjectPrefix::normalise($prefix);
+
+        $keys = array_map(strval(...), $this->disk->allFiles(rtrim($scope, '/')));
+
+        // Filtered against the scope the caller asked for, not merely handed
+        // to the adapter and trusted. Adapters differ in how they treat a
+        // prefix that is also a directory name, and the caller must never be
+        // the first layer that checks.
+        return array_values(array_filter(
+            $keys,
+            static fn (string $key): bool => ObjectPrefix::contains($scope, $key),
+        ));
     }
 
     public function checksum(string $key, string $algorithm = 'sha256'): string
