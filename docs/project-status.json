@@ -223,10 +223,11 @@
       "branch": "claude/ui-003d-assets",
       "pr": 20,
       "pr_url": "https://github.com/kesolarpro/sanitube/pull/20",
-      "ci": "10/10 green — run 31906991871",
+      "ci": "awaiting run after conflict resolution",
       "report": "docs/reports/UI-003d.md",
       "review_required_because": "Introduces the capability to hand out time-limited access to stored objects including masters.",
-      "note": "Assets index + detail + signed preview. No URL in the detail GET; minted only by POST; TTL clamped 300-900s; VERIFIED required for masters; masters and stems also require canWriteCatalogue (the one un-arbitrated judgement call, flagged for the reviewer); Preview unavailable when the provider cannot sign; never persisted; never logged in full."
+      "note": "Assets index + detail + signed preview. C1 was a real defect: both the policy and the minting service resolved StorageManager::defaultName() instead of the provider the asset records, which signs the wrong backend, breaks when two backends share a path, and silently moves every historical asset when storage.default changes. Both call sites now resolve provider($asset->disk); unknown or unreachable means preview unavailable with no fallback. C2 adds a 60/minute per-user budget for minting only. C3 makes success and refusal alike no-store.",
+      "corrections": "C1 storage provenance, C2 mint throttle, C3 uncacheable credential — applied"
     }
   },
   "architecture_amendments": [
@@ -300,7 +301,7 @@
       "ticket": "UI-003d",
       "base": "main",
       "url": "https://github.com/kesolarpro/sanitube/pull/20",
-      "ci": "10/10 green — run 31906991871",
+      "ci": "awaiting run after conflict resolution",
       "why_open": "REVIEW_REQUIRED — new capability granting time-limited access to masters."
     }
   ],
@@ -326,13 +327,13 @@
     "note": "Nine tickets (ING/MED/CAT/AI/GEN/REL/DIST/SEC-001 and PR #12) were merged under an earlier autonomous-chaining instruction that bypassed review. A retroactive audit is under way; they stay in main and any correction becomes a follow-up ticket, not a revert."
   },
   "main_sha": "8b0dc10b9b6e9641b93ff7c01242112d3d681bfd",
-  "current_ticket": null,
+  "current_ticket": "UI-003d",
   "tests": {
-    "php": 692,
-    "php_assertions": 2675,
+    "php": 718,
+    "php_assertions": 2928,
     "php_skipped": 1,
     "component": 16,
-    "note": "On main. UI-003d adds 16 more (708 / 2774) once merged."
+    "note": "On the UI-003d branch. Main is at 692 / 2675 until this merges."
   },
   "phpstan": {
     "level": 6,
