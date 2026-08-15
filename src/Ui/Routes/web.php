@@ -20,6 +20,11 @@ use SaniTube\Ui\Http\Controllers\Ingestion\BatchDetailController;
 use SaniTube\Ui\Http\Controllers\Ingestion\BatchIndexController;
 use SaniTube\Ui\Http\Controllers\Ingestion\CandidateDetailController;
 use SaniTube\Ui\Http\Controllers\Ingestion\CandidateIndexController;
+use SaniTube\Ui\Http\Controllers\Studio\GenerationDetailController;
+use SaniTube\Ui\Http\Controllers\Studio\GenerationIndexController;
+use SaniTube\Ui\Http\Controllers\Studio\OverviewController;
+use SaniTube\Ui\Http\Controllers\Studio\ProjectDetailController;
+use SaniTube\Ui\Http\Controllers\Studio\ProjectIndexController;
 use SaniTube\Ui\Http\Middleware\HandleInertiaRequests;
 
 /*
@@ -63,6 +68,14 @@ Route::middleware(['web', HandleInertiaRequests::class, 'auth', 'active'])->grou
     Route::get('ingestion/batches/{batch}', BatchDetailController::class)->name('ingestion.batches.show');
     Route::get('ingestion/candidates', CandidateIndexController::class)->name('ingestion.candidates');
     Route::get('ingestion/candidates/{candidate}', CandidateDetailController::class)->name('ingestion.candidates.show');
+
+    // Studio. Read-only for now: starting a generation calls a supplier and
+    // costs money, and the surface that does it needs its own ticket.
+    Route::get('studio', OverviewController::class)->name('studio');
+    Route::get('studio/projects', ProjectIndexController::class)->name('studio.projects');
+    Route::get('studio/projects/{project}', ProjectDetailController::class)->name('studio.projects.show');
+    Route::get('studio/generations', GenerationIndexController::class)->name('studio.generations');
+    Route::get('studio/generations/{generation}', GenerationDetailController::class)->name('studio.generations.show');
 
     Route::get('design-system', DesignSystemController::class)->name('design-system');
 });
