@@ -16,11 +16,32 @@ final readonly class AiCompletion
         public ?int $inputTokens = null,
         public ?int $outputTokens = null,
         public bool $refused = false,
+        public ?string $failureMessage = null,
     ) {}
 
+    /**
+     * No usable credentials on this installation. Not a failure of the
+     * request, and deliberately distinct from one: a missing key is the state
+     * of every fresh install and is fixed in the environment, not the code.
+     */
     public static function unavailable(string $provider): self
     {
-        return new self(provider: $provider, text: '', refused: true);
+        return new self(
+            provider: $provider,
+            text: '',
+            refused: true,
+            failureMessage: 'No AI provider is configured on this installation.',
+        );
+    }
+
+    /**
+     * The provider was called and did not produce usable text — an outage, a
+     * rate limit, a rejected request, a response shape the adapter could not
+     * read. Distinct from unavailable, because this one is worth retrying.
+     */
+    public static function failed(string $provider, string $message): self
+    {
+        return new self(provider: $provider, text: '', refused: true, failureMessage: $message);
     }
 
     /**
