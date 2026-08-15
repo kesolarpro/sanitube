@@ -38,17 +38,19 @@
       "merge_commit": "8ff35e4"
     },
     "MED-001": {
-      "status": "pr_open",
+      "status": "merged",
       "branch": "claude/med-001-audio-analysis",
-      "pr": null,
-      "ci": null,
-      "report": "docs/reports/MED-001.md"
+      "pr": 6,
+      "ci": "green",
+      "report": "docs/reports/MED-001.md",
+      "merge_commit": "4c1f6c6"
     },
     "CAT-001": {
-      "status": "not_started",
-      "branch": null,
-      "pr": null,
-      "ci": null
+      "status": "pr_open",
+      "branch": "claude/cat-001-candidate-promotion",
+      "pr": 7,
+      "ci": "rebased onto main, awaiting run",
+      "report": "docs/reports/CAT-001.md"
     },
     "AI-001": {
       "status": "not_started",
@@ -85,7 +87,7 @@
     {
       "ticket": "MED-001",
       "change": "TrackCandidate is created PENDING instead of READY; SettleCandidateAfterAnalysis moves it to READY, NEEDS_REVIEW or WAITING_CAPABILITY",
-      "status": "declared, awaiting review",
+      "status": "validated by review; merged",
       "note": "Pre-announced in ING-001's report. No schema change: both statuses were declared in TrackCandidateStatus by ING-001 for this purpose.",
       "recorded_in": "docs/reports/MED-001.md"
     }
@@ -100,6 +102,18 @@
   ],
   "notes": {
     "portability": "$table->json() is forbidden platform-wide. MariaDB's json is an alias for longtext/utf8mb4_bin while MySQL 8's is a native binary type, so one migration yields two types with two comparison semantics. Use ->longText() with an Eloquent array cast. Enforced by PortabilityTest::no_engine_specific_construct_is_used_in_any_migration.",
-    "capabilities": "FFmpeg is a capability, never a dependency. SANITUBE_MEDIA_ANALYSIS_REQUIRED defaults to false so a cPanel host without ffprobe still produces promotable candidates."
-  }
+    "capabilities": "FFmpeg is a capability, never a dependency. SANITUBE_MEDIA_ANALYSIS_REQUIRED defaults to false so a cPanel host without ffprobe still produces promotable candidates.",
+    "catalogue_writes": "Promotion is the only v1 write that creates a Track. It always creates it DRAFT, mints no ISRC, and is refusable for six reasons each carrying a machine-readable code. One-master-one-track is enforced in PromoteTrackCandidate rather than by a unique index, because tracks is ARCH-002's validated schema.",
+    "ci_triggers": "The workflow only built pull requests whose base was main, so a PR stacked on another claude/** branch showed zero checks — indistinguishable from a repo with no CI. The pull_request branch filter now includes 'claude/**'. Fixed on the CAT-001 branch; it reaches main when that branch merges.",
+    "migration_rollback": "MySQL and MariaDB drop the index they generate for a foreign key once a user-created index can serve it. A migration that adds a unique index on an FK column must therefore drop the foreign key before dropping that index in down(), then restore it. SQLite enforces none of this, so a local rollback check on SQLite proves nothing about the server engines. Enforced by PortabilityTest::an_index_added_over_a_foreign_key_column_is_undone_in_the_right_order."
+  },
+  "open_pull_requests": [
+    {
+      "pr": 7,
+      "ticket": "CAT-001",
+      "base": "main",
+      "ci": "awaiting run after rebase",
+      "why_open": "Validated by review; merge once CI is green on the rebased head."
+    }
+  ]
 }

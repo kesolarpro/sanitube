@@ -36,6 +36,9 @@ use SaniTube\Ingestion\Enums\TrackCandidateStatus;
  * @property IngestionFailureCode|null $failure_code
  * @property string|null $failure_message
  * @property int|null $promoted_track_id
+ * @property Carbon|null $reviewed_at
+ * @property int|null $reviewed_by
+ * @property string|null $review_note
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
@@ -57,6 +60,7 @@ final class TrackCandidate extends Model
             'status' => TrackCandidateStatus::class,
             'failure_code' => IngestionFailureCode::class,
             'metadata' => 'array',
+            'reviewed_at' => 'datetime',
         ];
     }
 

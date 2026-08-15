@@ -99,6 +99,26 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
 
         Route::get('ingestion/candidates', [TrackCandidateController::class, 'index'])->name('ingestion.candidates.index');
         Route::get('ingestion/candidates/{candidate}', [TrackCandidateController::class, 'show'])->name('ingestion.candidates.show');
+
+        /*
+         * Review — the point at which a proposal becomes catalogue data, or
+         * stops being a proposal at all.
+         *
+         * `promote` is the first and only route in v1 that creates a Track,
+         * and it is a POST to a named action rather than a PATCH of `status`.
+         * Promotion runs invariants, writes to the catalogue and is refusable
+         * for several distinct reasons; a settable status field would present
+         * all of that as an assignment.
+         *
+         * The read-only boundary above still holds for the catalogue itself:
+         * nothing here edits an existing Track.
+         */
+        Route::patch('ingestion/candidates/{candidate}', [TrackCandidateController::class, 'update'])
+            ->name('ingestion.candidates.update');
+        Route::post('ingestion/candidates/{candidate}/promote', [TrackCandidateController::class, 'promote'])
+            ->name('ingestion.candidates.promote');
+        Route::post('ingestion/candidates/{candidate}/reject', [TrackCandidateController::class, 'reject'])
+            ->name('ingestion.candidates.reject');
     });
 
 });

@@ -212,6 +212,76 @@ final class PortabilityTest extends TestCase
         }
     }
 
+    #[Test]
+    public function an_index_added_over_a_foreign_key_column_is_undone_in_the_right_order(): void
+    {
+        // Found the hard way, and only by the server engines. MySQL and
+        // MariaDB drop the index they generated for a foreign key as soon as a
+        // user-created index can serve it — so a migration that adds a unique
+        // index on an FK column leaves that index as the *only* thing holding
+        // the constraint up. Dropping it in down() is error 1553, "needed in a
+        // foreign key constraint".
+        //
+        // SQLite enforces none of this and rolls back happily, which is why a
+        // local check said the migration was fine and three CI jobs said it was
+        // not. The constraint has to be lifted first, then the index dropped,
+        // then the constraint restored.
+        $foreignKeyColumns = $this->foreignKeyColumns();
+        $offenders = [];
+
+        foreach ($this->migrationFiles() as $migration) {
+            $contents = (string) file_get_contents($migration);
+
+            // Only `Schema::table` migrations matter: an index created inside
+            // the same `Schema::create` as its column disappears with the
+            // table, and there is no separate drop to get wrong.
+            if (! str_contains($contents, 'Schema::table(')) {
+                continue;
+            }
+
+            if (preg_match_all("/->(?:unique|index)\('([a-z0-9_]+)'/i", $contents, $matches) < 1) {
+                continue;
+            }
+
+            $overForeignKeys = array_intersect($matches[1], $foreignKeyColumns);
+
+            if ($overForeignKeys === [] || str_contains($contents, 'dropForeign')) {
+                continue;
+            }
+
+            $offenders[] = sprintf(
+                '%s indexes the foreign key column(s) [%s] but never calls dropForeign(), so its '
+                    .'down() will fail on MySQL and MariaDB with error 1553',
+                basename($migration),
+                implode(', ', $overForeignKeys),
+            );
+        }
+
+        $this->assertSame([], $offenders, implode('; ', $offenders));
+    }
+
+    /**
+     * Every column the schema declares as a foreign key.
+     *
+     * @return list<string>
+     */
+    private function foreignKeyColumns(): array
+    {
+        $columns = [];
+
+        foreach ($this->migrationFiles() as $migration) {
+            $contents = (string) file_get_contents($migration);
+
+            if (preg_match_all("/->(?:foreignId|foreign)\('([a-z0-9_]+)'/i", $contents, $matches) > 0) {
+                foreach ($matches[1] as $column) {
+                    $columns[] = $column;
+                }
+            }
+        }
+
+        return array_values(array_unique($columns));
+    }
+
     /**
      * @return list<string>
      */
