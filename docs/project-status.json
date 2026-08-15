@@ -1,8 +1,8 @@
 {
   "$comment": "Machine-readable project state. Any new session reads this first, then verifies it against GitHub before trusting it. Written at the end of each ticket, so a stale entry means a session ended mid-ticket — check the branch and CI rather than the status field.",
   "updated_at": "2026-08-15",
-  "current_phase": "REL-001",
-  "last_completed_ticket": "GEN-001",
+  "current_phase": "DIST-001",
+  "last_completed_ticket": "REL-001",
   "default_branch": "main",
   "tickets": {
     "ARCH-001": {
@@ -62,11 +62,12 @@
       "merge_commit": "6e5928b"
     },
     "GEN-001": {
-      "status": "pr_open",
+      "status": "merged",
       "branch": "claude/gen-001-music-generation",
       "pr": 9,
-      "ci": "green 10/10 (run 31875921495)",
-      "report": "docs/reports/GEN-001.md"
+      "ci": "green 10/10 (run 31876315279)",
+      "report": "docs/reports/GEN-001.md",
+      "merge_commit": "aca7d2b"
     },
     "UI-001": {
       "status": "not_started",
@@ -84,7 +85,7 @@
       "status": "pr_open",
       "branch": "claude/rel-001-release-workflow",
       "pr": 10,
-      "ci": "awaiting run",
+      "ci": "awaiting run after rebase",
       "report": "docs/reports/REL-001.md"
     },
     "DIST-001": {
@@ -143,22 +144,17 @@
     "migration_rollback": "MySQL and MariaDB drop the index they generate for a foreign key once a user-created index can serve it. A migration that adds a unique index on an FK column must therefore drop the foreign key before dropping that index in down(), then restore it. SQLite enforces none of this, so a local rollback check on SQLite proves nothing about the server engines. Enforced by PortabilityTest::an_index_added_over_a_foreign_key_column_is_undone_in_the_right_order.",
     "ai_disabled_provider": "The disabled AI provider is named 'none', never 'null'. Laravel's Env::get() turns the literal string null in a .env file into PHP null, so SANITUBE_AI_PROVIDER=null yields an empty provider name and the env() default never applies. Empty/absent/null configuration normalises to 'none' at AiManager::normaliseProviderName(); an unknown non-empty name is an error.",
     "no_hosts_in_php": "PortabilityTest rejects any absolute http(s) host in PHP, config included. Vendor endpoints come from the environment with no PHP default; .env.example ships the public URLs.",
-    "generation": "Generation never creates a Track: a selected result becomes a VERIFIED asset and a TrackCandidate with source GENERATED, which CAT-001 reviews. commercial_rights_status defaults UNKNOWN and is never inferred from a successful generation. Polling is bounded twice — the job re-dispatches only while pollable, and the service fails the generation at max_polls."
+    "generation": "Generation never creates a Track: a selected result becomes a VERIFIED asset and a TrackCandidate with source GENERATED, which CAT-001 reviews. commercial_rights_status defaults UNKNOWN and is never inferred from a successful generation. Polling is bounded twice — the job re-dispatches only while pollable, and the service fails the generation at max_polls.",
+    "release_mutation": "ReleaseMutationPolicy is the single place that says which edits a status permits. DRAFT allows everything; READY allows nothing structural but can be reopened to DRAFT; SUBMITTED/DELIVERED/LIVE/TAKEN_DOWN allow nothing and cannot be reopened. I4 is called, never reimplemented or relaxed.",
+    "track_numbering": "release_tracks carries UNIQUE(release_id, disc_number, track_number). Renumbering must be two-phase — park every row above the occupied range, then write final numbers — because a row-by-row update collides the moment a track moves into a slot another has not yet left."
   },
   "open_pull_requests": [
-    {
-      "pr": 9,
-      "ticket": "GEN-001",
-      "base": "main",
-      "ci": "green 10/10",
-      "why_open": "Rebased onto main; merging."
-    },
     {
       "pr": 10,
       "ticket": "REL-001",
       "base": "main",
-      "ci": "awaiting run",
-      "why_open": "Needs rebase after GEN-001 merges."
+      "ci": "awaiting run after rebase",
+      "why_open": "Rebased onto main with GEN-001; merge once green."
     }
   ]
 }
