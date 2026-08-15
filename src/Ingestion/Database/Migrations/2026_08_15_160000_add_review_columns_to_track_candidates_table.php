@@ -41,10 +41,39 @@ return new class extends Migration
         });
     }
 
+    /**
+     * The foreign key has to be lifted before the unique index can go.
+     *
+     * Found by CI, and only by the server engines: MySQL and MariaDB drop the
+     * index they generated for a foreign key once a user-created index can
+     * serve it, so after `up()` the unique index above is the *only* thing
+     * supporting ING-001's `promoted_track_id` constraint. Dropping it directly
+     * is error 1553, "needed in a foreign key constraint". SQLite enforces none
+     * of this and rolled back happily, which is exactly the class of divergence
+     * the four-engine matrix exists to catch.
+     *
+     * So: lift the constraint, drop the index, put the constraint back — the
+     * engine generates its own index again — and only then drop the columns.
+     * Each step is its own `Schema::table` call because SQLite implements a
+     * foreign-key change by rebuilding the table, and batching a rebuild with
+     * an index drop in one blueprint is asking the grammar to do two
+     * incompatible things at once.
+     */
     public function down(): void
     {
         Schema::table('track_candidates', function (Blueprint $table): void {
+            $table->dropForeign(['promoted_track_id']);
+        });
+
+        Schema::table('track_candidates', function (Blueprint $table): void {
             $table->dropUnique('track_candidates_promoted_track_unique');
+        });
+
+        Schema::table('track_candidates', function (Blueprint $table): void {
+            $table->foreign('promoted_track_id')->references('id')->on('tracks')->nullOnDelete();
+        });
+
+        Schema::table('track_candidates', function (Blueprint $table): void {
             $table->dropColumn(['reviewed_at', 'reviewed_by', 'review_note']);
         });
     }
