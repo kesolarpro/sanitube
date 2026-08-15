@@ -147,6 +147,7 @@ until a royalty report failed to reconcile months later.
 | I7 | Credited shares per role ≤ 100% | `CompositionContributorObserver` |
 | I8 | `is_instrumental` ⇔ `language_code = zxx` | `TrackObserver` |
 | I9 | Track numbers contiguous from 1 per disc at READY | `Release::markReady()` |
+| I10 | A `STORED`/`VERIFIED` asset has a `sha256`, a `byte_size` and a `mime_type` | `AssetObserver` |
 
 The asset and track rules live in **observers**, not in services. An integrity
 rule that only one code path respects is not an integrity rule: a seeder, a
@@ -159,8 +160,9 @@ publishers each account to 100% of their own side.
 
 `ArtistCreated`, `CompositionCreated`, `TrackCreated`, `TrackMarkedReady`,
 `TrackArchived`, `ReleaseCreated`, `ReleaseTrackAdded`, `ReleaseMarkedReady`,
-`AssetStored`, `AssetVerified`, `AssetQuarantined`, `AssetDuplicateDetected`,
-`ExternalIdentifierAssigned`, `ExternalIdentifierRevoked`.
+`AssetStored`, `AssetVerified`, `AssetQuarantined`, `AssetMissing`,
+`AssetDuplicateDetected`, `ExternalIdentifierAssigned`,
+`ExternalIdentifierRevoked`.
 
 No listeners yet, deliberately. The events name the moments other modules will
 need; wiring cross-module reactions before those modules exist would be
