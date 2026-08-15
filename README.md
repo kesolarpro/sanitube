@@ -77,6 +77,24 @@ and its credentials in `.env` and add the adapter:
 composer require league/flysystem-aws-s3-v3
 ```
 
+On shared hosting, put the storage root **outside** the web root — masters must
+not be reachable over HTTP:
+
+```
+SANITUBE_LOCAL_STORAGE_ROOT=/home/youruser/sanitube-storage
+```
+
+Then check that the configuration actually works, rather than merely parses:
+
+```bash
+php artisan sanitube:storage:check     # real write, read-back and delete
+php artisan sanitube:assets:verify     # confirm stored assets against their checksums
+```
+
+Local storage cannot sign expiring URLs, so audio is streamed through the
+application instead. Everything else behaves identically. See
+[`docs/storage.md`](docs/storage.md).
+
 ## Development
 
 ```bash
@@ -93,6 +111,8 @@ composer check     # all of the above
   portability rules, provider contracts, known limitations.
 - [`docs/domain-model.md`](docs/domain-model.md) — the catalogue core: entities,
   identity, invariants, the identifier lifecycle, the read-only API.
+- [`docs/storage.md`](docs/storage.md) — providers, the upload workflow, object
+  keys, duplicates, security, and cPanel/VPS deployment.
 - [`docs/adr/`](docs/adr/README.md) — architecture decision records, including
   the decisions deliberately deferred to a later ticket and what unblocks them.
 
