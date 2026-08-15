@@ -72,10 +72,12 @@
     "UI-001": {
       "status": "pr_open_awaiting_review",
       "branch": "claude/ui-001-design-system",
-      "pr": null,
-      "ci": "awaiting run",
+      "pr": 14,
+      "ci": "10/10 green — run 31883493171",
       "report": "docs/reports/UI-001.md",
-      "note": "Design system + shell + ONE showcase screen. No business screens by design — they wait for this to be reviewed."
+      "note": "Design system + shell + ONE showcase screen. No business screens by design — they wait for this to be reviewed. First CI run was red on 7/10 jobs (missing Vite manifest: the PHP jobs never run `npm run build`, and public/build is gitignored). Fixed in a12c63f by making the PHP suite independent of a frontend build, buying the lost coverage back in the frontend job and in ViteEntrypointTest — no test weakened.",
+      "pr_url": "https://github.com/kesolarpro/sanitube/pull/14",
+      "ci_url": "https://github.com/kesolarpro/sanitube/actions/runs/31883493171"
     },
     "INS-001": {
       "status": "not_started",
@@ -247,11 +249,12 @@
   },
   "open_pull_requests": [
     {
-      "pr": null,
+      "pr": 14,
       "ticket": "UI-001",
       "base": "main",
-      "ci": "awaiting run",
-      "why_open": "Review rule restored — awaiting architectural verdict before merge."
+      "ci": "10/10 green — run 31883493171",
+      "why_open": "Review rule restored — awaiting architectural verdict before merge.",
+      "url": "https://github.com/kesolarpro/sanitube/pull/14"
     }
   ],
   "next_session": {
