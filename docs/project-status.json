@@ -1,8 +1,8 @@
 {
   "$comment": "Machine-readable project state. Any new session reads this first, then verifies it against GitHub before trusting it. Written at the end of each ticket, so a stale entry means a session ended mid-ticket — check the branch and CI rather than the status field.",
   "updated_at": "2026-08-15",
-  "current_phase": "UI-002",
-  "last_completed_ticket": "UI-001",
+  "current_phase": "UI-005",
+  "last_completed_ticket": "UI-005",
   "default_branch": "main",
   "tickets": {
     "ARCH-001": {
@@ -136,16 +136,24 @@
       "ci": null
     },
     "UI-004": {
-      "status": "not_started",
-      "branch": null,
-      "pr": null,
-      "ci": null
+      "status": "merged",
+      "branch": "claude/ui-004-ingestion",
+      "pr": 25,
+      "pr_url": "https://github.com/kesolarpro/sanitube/pull/25",
+      "ci": "10/10 green — run 31912476942",
+      "report": "docs/reports/UI-004.md",
+      "merge_commit": "8c1d64d",
+      "note": "Four read-only ingestion screens. The candidate detail keeps four kinds of evidence apart: measured, claimed, noticed, decided. No object key, no disk, no bucket, and neither the storage driver's nor the analyser's failure message. Counts for a page come from one grouped query, asserted by a query count. Six regressions injected, every one turned a test red."
     },
     "UI-005": {
-      "status": "not_started",
-      "branch": null,
-      "pr": null,
-      "ci": null
+      "status": "merged",
+      "branch": "claude/ui-005-studio",
+      "pr": 26,
+      "pr_url": "https://github.com/kesolarpro/sanitube/pull/26",
+      "ci": "10/10 green — run 31912942178",
+      "report": "docs/reports/UI-005.md",
+      "merge_commit": "1b98ade",
+      "note": "Five read-only studio screens. Three provider states kept distinct — not configured is not a problem. Commercial rights UNKNOWN counted on the front page because nothing ever infers it away. No provider job id and no audio reference reach the browser; has_audio replaces the reference. Five regressions injected, every one turned a test red."
     },
     "UI-006": {
       "status": "not_started",
@@ -239,6 +247,37 @@
       "report": "docs/reports/BULK-001a.md",
       "note": "Batch progress derived from the items, never stored beside them. One grouped count per batch, asserted. No percentage and no ETA — both would be invented.",
       "merge_commit": "74b7299"
+    },
+    "BULK-001b": {
+      "status": "merged",
+      "branch": "claude/bulk-001b-manifest",
+      "pr": 24,
+      "pr_url": "https://github.com/kesolarpro/sanitube/pull/24",
+      "ci": "10/10 green — run 31911354233",
+      "report": "docs/reports/BULK-001b.md",
+      "merge_commit": "c05c5b4",
+      "note": "CSV manifest import + sanitube:import. A manifest is evidence, never authority: after importing 900 files naming 900 ISRCs, tracks and external_identifiers are both still empty. A bad row is refused with its line number; a bad file is fatal. An ISRC already active on another track holds the candidate NEEDS_REVIEW. Eight regressions injected, every one turned a test red."
+    },
+    "UI-004b": {
+      "status": "not_started",
+      "branch": null,
+      "pr": null,
+      "ci": null,
+      "note": "Candidate review actions: promote, reject, revise. The domain services exist (CAT-001); each is a catalogue write needing a confirmation surface and an override-reason flow."
+    },
+    "UI-005b": {
+      "status": "not_started",
+      "branch": null,
+      "pr": null,
+      "ci": null,
+      "note": "Studio write actions: start a generation, cancel one, select a result. Each calls a supplier or moves audio into the catalogue."
+    },
+    "BULK-001c": {
+      "status": "not_started",
+      "branch": null,
+      "pr": null,
+      "ci": null,
+      "note": "Re-import storage amplification — see known_limitations.bulk_reimport_storage_cost. Needs a measurement and a deliberate choice, not a guess."
     }
   },
   "architecture_amendments": [
@@ -308,31 +347,37 @@
   },
   "open_pull_requests": [],
   "next_session": {
-    "start_with": "UI-001 — design system + real dashboard. Branch from main.",
+    "start_with": "UI-004b — candidate review actions. Branch from main.",
     "then": [
+      "UI-005b studio write actions",
+      "REL-UI-001 release builder",
       "INS-001 CLI installer",
-      "DEP-001 universal deployment"
+      "SYS-001 jobs and operational health screens"
     ],
-    "suite_size": "570 tests / 1856 assertions at DIST-001",
+    "suite_size": "798 tests / 3364 assertions at UI-005",
     "conventions_to_honour": [
       "Disabled providers are named 'none', never 'null' (AI, generation, distribution managers all share the rule).",
       "$table->json() is forbidden; use longText + array cast.",
       "No absolute http(s) host anywhere in PHP, config included.",
       "A migration adding a unique index on an FK column must drop the FK first in down().",
-      "Every new UI string needs en/fr/es/it/pt/de; no hardcoded UI text."
+      "Every new UI string needs en/fr/es/it/pt/de; no hardcoded UI text.",
+      "A read model never returns an object key, a disk, a bucket, a provider job id or a provider's download reference. Prefer a boolean that answers the question (has_audio, has_manifest_row) over the value itself.",
+      "A failure *code* is translated and shown; a failure *message* from a storage driver or an analyser is withheld, because it quotes a path. A provider's own message about its own service is kept.",
+      "Counts for a page come from one grouped query, never one per row, and every enum state is present including the zeroes.",
+      "Every list validates that a cursor describes its own ordering via CursorShape, including lists that take no filters."
     ]
   },
   "review_policy": {
     "active": true,
     "rule": "Implement, get CI green, open the PR, write the report — then STOP. Do not merge. The owner sends the report to architectural review and reports the verdict; only then merge.",
     "since": "UI-001",
-    "note": "Nine tickets (ING/MED/CAT/AI/GEN/REL/DIST/SEC-001 and PR #12) were merged under an earlier autonomous-chaining instruction that bypassed review. A retroactive audit is under way; they stay in main and any correction becomes a follow-up ticket, not a revert."
+    "note": "Nine tickets (ING/MED/CAT/AI/GEN/REL/DIST/SEC-001 and PR #12) were merged under an earlier autonomous-chaining instruction that bypassed review. A retroactive audit is under way; they stay in main and any correction becomes a follow-up ticket, not a revert. BULK-001b, UI-004 and UI-005 were merged under the session's explicit merge policy for read-only UI, ingestion tooling and documentation: none changes authentication, authorization, rights, money, identifier lifecycle, destructive storage behaviour or any external action."
   },
-  "main_sha": "74b7299759ee27f35f19c0d9678045e7429063ab",
+  "main_sha": "1b98adea23610bb919ba40cb0061c16044d2244c",
   "current_ticket": null,
   "tests": {
-    "php": 724,
-    "php_assertions": 2961,
+    "php": 798,
+    "php_assertions": 3364,
     "php_skipped": 1,
     "component": 16
   },
@@ -350,36 +395,36 @@
     "note": "PHP suite stubs Vite when no manifest exists; the frontend CI job renders against a real one."
   },
   "next_action": {
-    "ticket": "BULK-001b",
-    "name": "Manifest import + batch start entry point",
+    "ticket": "UI-004b",
+    "name": "Candidate review actions — promote, reject, revise",
     "state": "not started",
     "blocked_by": null,
-    "note": "Branch from main. Read findings.bulk_001_scope FIRST — it prevents rebuilding what ING-001 already provides. Manifest rows are suggestions; a conflict with the file or with an existing catalogue record goes to review rather than being applied. Never regenerate an existing ISRC or UPC."
+    "note": "Branch from main. The domain services are merged and unchanged since CAT-001: PromoteTrackCandidate (creates a DRAFT Track, mints no ISRC, refusable for six coded reasons), RejectTrackCandidate, ReviseTrackCandidate. The UI work is the confirmation surface and the override-reason flow, not new domain logic. Promotion of a NEEDS_REVIEW or DUPLICATE candidate requires an explicit override with a recorded note — that is existing domain behaviour and must not be weakened to make a form simpler."
   },
   "session_boundary": {
-    "reason": "Context capacity reached at a clean ticket boundary.",
+    "reason": "Context capacity approaching its limit at a clean ticket boundary. Three tickets merged, main green, no open PR.",
     "repository_state": "green",
-    "main_sha": "74b7299759ee27f35f19c0d9678045e7429063ab",
-    "note": "UI-003 complete and merged in full (tracks, artists, contributors, compositions, assets with the signed preview). BULK-001a merged. No open PR. Resume from next_action, after reading findings.bulk_001_scope."
+    "main_sha": "1b98adea23610bb919ba40cb0061c16044d2244c",
+    "note": "BULK-001b, UI-004 and UI-005 merged in this session, each 10/10 green before merge and verified after. BULK-001 is complete: manifest import, an entry point that does not need a browser, and the screens that render it. Resume from next_action."
   },
   "v1_progress_percent": {
-    "value": 40,
+    "value": 46,
     "method": "weighted by block, production-ready not implemented-only",
     "breakdown": {
       "core_domain": {
         "weight": 20,
-        "implemented": 85,
-        "production_ready": 60
+        "implemented": 88,
+        "production_ready": 62
       },
       "asset_catalogue": {
         "weight": 15,
-        "implemented": 95,
-        "production_ready": 70
+        "implemented": 100,
+        "production_ready": 78
       },
       "ai_generation": {
         "weight": 10,
-        "implemented": 40,
-        "production_ready": 10
+        "implemented": 55,
+        "production_ready": 15
       },
       "release_distribution": {
         "weight": 15,
@@ -393,8 +438,8 @@
       },
       "ui_ux": {
         "weight": 15,
-        "implemented": 65,
-        "production_ready": 50
+        "implemented": 78,
+        "production_ready": 60
       },
       "api": {
         "weight": 5,
@@ -403,11 +448,11 @@
       },
       "ops_deployment": {
         "weight": 10,
-        "implemented": 20,
-        "production_ready": 5
+        "implemented": 25,
+        "production_ready": 8
       }
     },
-    "note": "38 -> 40. The catalogue block is now essentially complete including the asset preview boundary. Rights, royalties and ops/deployment remain at or near zero, which is what holds the overall figure down and will keep holding it until they are built."
+    "note": "40 -> 46. The catalogue block reaches 100% implemented: ingestion now has a manifest, an entry point that survives a closed browser, and screens that render it. AI/generation rises on a usable studio surface, though every write there is still missing and no real provider exists. Rights, royalties and ops/deployment remain at or near zero, and that is what holds the overall figure down — it will keep holding it down until they are built, no matter how many screens land."
   },
   "decisions": {
     "asset_preview_url": {
@@ -449,6 +494,23 @@
       "what": "Orderings are (natural key, uuid) with no composite index over the pair.",
       "why_not_fixed": "Not measurable at target catalogue sizes; a migration belongs in a CAT ticket with a measurement behind it.",
       "severity": "none observed"
+    },
+    {
+      "id": "bulk_reimport_storage_cost",
+      "where": "ProcessIngestionItem / AssetStorageService",
+      "what": "Re-importing the same reference writes a second asset row and a second stored object, which the checksum then resolves to the first. Nothing reaches the catalogue — no Track, no identifier, and the candidate is DUPLICATE — but re-running a 900-file manifest stores 900 objects twice.",
+      "why_not_fixed": "The current behaviour is defensible: ING-001 re-reads the source rather than assuming a reference imported yesterday still holds the same bytes today, and an object genuinely can be replaced under its key. Skipping on the ingestion key alone would silently miss that replacement — a data-loss trade in the opposite direction.",
+      "severity": "cost, not correctness",
+      "ticket": "BULK-001c",
+      "pinned_by": "two tests in ManifestImportTest pin the current behaviour, so whichever way it is later decided the change is visible"
+    },
+    {
+      "id": "no-write-actions-on-new-screens",
+      "where": "UI-004 and UI-005",
+      "what": "The ingestion and studio screens are read-only. Promote/reject/revise a candidate, and start/cancel/select a generation, all exist in the domain and none is reachable from the interface.",
+      "why_not_fixed": "Each is a catalogue write or a call to a paid supplier and needs a confirmation surface rather than a button.",
+      "severity": "functional gap, deliberate",
+      "ticket": "UI-004b, UI-005b"
     }
   ],
   "findings": {
@@ -457,9 +519,9 @@
       "finding": "BULK-001 is much smaller than its ticket assumes. ING-001 already provides batches, per-item state, idempotent retry via UNIQUE(ingestion_key, active_marker), attempt_count, per-item failure codes, CompletedWithErrors as a first-class outcome, the processing and finalising jobs, StartIngestionBatch::handle() taking a prefix or explicit references, and CloudImportReader.",
       "instruction": "DO NOT create a BulkImportBatch table or any parallel import path. Two mechanisms both claiming to prevent duplicate imports is worse than one — the second is the one nobody tests against a real retry.",
       "remaining": [
-        "CSV manifest import, treated as import evidence and never as canonical data where it conflicts; existing ISRC/UPC preserved, provenance LEGACY_IMPORT",
-        "an interface entry point to start a batch from a prefix",
-        "UI-004, which renders this progress read model"
+        "DONE — CSV manifest import (BULK-001b)",
+        "DONE — an interface entry point to start a batch from a prefix or a manifest (BULK-001b, sanitube:import)",
+        "DONE — UI-004, which renders this progress read model"
       ]
     }
   }
