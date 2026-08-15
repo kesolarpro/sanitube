@@ -270,25 +270,7 @@ final readonly class TrackIndexQuery
      */
     public static function describesThisOrdering(string $cursor): bool
     {
-        $decoded = base64_decode($cursor, true);
-
-        if ($decoded === false) {
-            return false;
-        }
-
-        $parameters = json_decode($decoded, true);
-
-        if (! is_array($parameters)) {
-            return false;
-        }
-
-        foreach (['title', 'uuid', '_pointsToNextItems'] as $required) {
-            if (! array_key_exists($required, $parameters)) {
-                return false;
-            }
-        }
-
-        return true;
+        return CursorShape::carries($cursor, ['title', 'uuid']);
     }
 
     /**
