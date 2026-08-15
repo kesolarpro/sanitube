@@ -200,6 +200,14 @@
       "ci_url": "https://github.com/kesolarpro/sanitube/actions/runs/31902837883",
       "merge_commit": "0554d28",
       "review": "CORRECTIONS REQUIRED (C1-C4) -> applied -> authorised to merge"
+    },
+    "UI-003b": {
+      "status": "pr_open_awaiting_review",
+      "branch": "claude/ui-003b-catalogue",
+      "pr": null,
+      "ci": "awaiting run",
+      "report": "docs/reports/UI-003b.md",
+      "note": "Artists index + detail. Inherits the UI-003a guarantees: active identifiers at the read-model boundary, filters refused with 422, cursor ordered by (name, uuid) and shape-checked, no internal key in any payload. Counts aggregated with withCount. Detail track list capped at 50 and the cap is exposed. Contributors, compositions and assets remain: UI-003c."
     }
   },
   "architecture_amendments": [
@@ -267,7 +275,15 @@
     "design_system": "Semantic tokens only (--color-surface, never --color-zinc-900). Status colour is decided in StatusBadge alone; labels always come from translations. Navigation is built server-side and unbuilt sections show as disabled — 'available' is presentation, never authorisation. MetricCard takes number|null and renders null as an em dash, never 0.",
     "frontend_toolchain": "@vitejs/plugin-vue@5 peers Vite ^5||^6; the project is on Vite 7. Resolved with plugin-vue@6 (which supports Vite 7), NOT --force or --legacy-peer-deps: a peer conflict is compatibility information, and overriding it keeps the incompatibility. Same for vue-tsc@3. npm run types runs in CI."
   },
-  "open_pull_requests": [],
+  "open_pull_requests": [
+    {
+      "pr": null,
+      "ticket": "UI-003b",
+      "base": "main",
+      "ci": "awaiting run",
+      "why_open": "Catalogue read models — awaiting verdict before merge."
+    }
+  ],
   "next_session": {
     "start_with": "UI-001 — design system + real dashboard. Branch from main.",
     "then": [
@@ -292,8 +308,8 @@
   "main_sha": "0554d28a7eefd2b0d9be37b394973dd2e69fb77a",
   "current_ticket": "UI-003b",
   "tests": {
-    "php": 645,
-    "php_assertions": 2423,
+    "php": 660,
+    "php_assertions": 2497,
     "php_skipped": 1,
     "component": 16
   },
@@ -311,17 +327,17 @@
     "note": "PHP suite stubs Vite when no manifest exists; the frontend CI job renders against a real one."
   },
   "next_action": {
-    "ticket": "UI-003b",
-    "name": "Catalogue: artists, contributors, compositions, assets",
+    "ticket": "UI-003c",
+    "name": "Catalogue: contributors, compositions, assets",
     "state": "not started",
-    "blocked_by": null,
-    "note": "Branch from main (0554d28). Follow TrackIndexQuery/TrackDetailQuery: active identifiers only at the read-model boundary, filters validated to 422, cursor ordered by (natural key, uuid) and shape-checked, no storage location or internal key in any payload. Asset preview follows decisions.asset_preview_url in this file — already arbitrated, do not re-open it. Known follow-up carried over: the 422 currently surfaces as JSON rather than inline errors on the filter form."
+    "blocked_by": "UI-003b architectural review",
+    "note": "Branch from main. Contributors and compositions are the same shape as artists and should be cheap. Assets last and separately: the asset detail carries the preview-URL boundary, which is already arbitrated in decisions.asset_preview_url — implement it exactly as written, do not re-open it. Carried-over follow-up: the 422 surfaces as JSON rather than inline errors on the filter form."
   },
   "session_boundary": {
     "reason": "Context capacity reached at a clean ticket boundary.",
     "repository_state": "green",
-    "main_sha": "0554d28a7eefd2b0d9be37b394973dd2e69fb77a",
-    "note": "UI-001, UI-002 and UI-003a merged. No open PR. Resume from next_action."
+    "main_sha": "f707a84 (docs) on top of 0554d28",
+    "note": "UI-001, UI-002, UI-003a merged. UI-003b complete, PR open. Resume from next_action."
   },
   "v1_progress_percent": {
     "value": 42,
@@ -347,5 +363,9 @@
         "if the provider cannot issue temporary URLs: show Preview unavailable, never make the object public"
       ]
     }
+  },
+  "process": {
+    "no_direct_push_to_main": true,
+    "rule": "Every change, including docs/project-status.json, goes through the ticket branch or a small docs/status-* branch with a PR. f707a84 was an accepted one-off exception (documentary only)."
   }
 }

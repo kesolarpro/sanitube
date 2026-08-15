@@ -118,3 +118,61 @@ export interface TrackDetail {
         is_focus_track: boolean;
     }[];
 }
+
+export interface ArtistRow {
+    uuid: string;
+    name: string;
+    sort_name: string | null;
+    type: string;
+    status: string;
+    country: string | null;
+    is_owner_controlled: boolean;
+    track_count: number;
+    release_count: number;
+    updated_at: string | null;
+}
+
+export interface ArtistPage {
+    rows: ArtistRow[];
+    next_cursor: string | null;
+    previous_cursor: string | null;
+    per_page: number;
+}
+
+export interface ArtistFilters {
+    search: string | null;
+    status: string | null;
+    type: string | null;
+    country: string | null;
+    owner_controlled: string | null;
+}
+
+export interface ArtistDetail {
+    uuid: string;
+    name: string;
+    sort_name: string | null;
+    slug: string;
+    type: string;
+    status: string;
+    country: string | null;
+    primary_locale: string;
+    biography: string | null;
+    is_owner_controlled: boolean;
+    track_count: number;
+    release_count: number;
+    created_at: string | null;
+    updated_at: string | null;
+    identifiers: {
+        uuid: string;
+        type: string;
+        namespace: string;
+        value: string;
+        is_authoritative: boolean;
+        source: string;
+        assigned_at: string | null;
+    }[];
+    tracks: { uuid: string; title: string; status: string; role: string }[];
+    /** True when the server capped the list; stated so a short list is not read as a complete one. */
+    tracks_truncated: boolean;
+    tracks_shown: number;
+}
