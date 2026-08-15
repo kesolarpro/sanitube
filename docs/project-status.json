@@ -232,12 +232,13 @@
       "review": "CORRECTIONS REQUIRED (C1-C3) -> applied -> merged"
     },
     "BULK-001a": {
-      "status": "pr_open",
+      "status": "merged",
       "branch": "claude/bulk-001-import",
-      "pr": null,
-      "ci": "awaiting run",
+      "pr": 22,
+      "ci": "10/10 green — run 31909186089",
       "report": "docs/reports/BULK-001a.md",
-      "note": "Batch progress derived from the items, never stored beside them. One grouped count per batch, asserted. No percentage and no ETA — both would be invented."
+      "note": "Batch progress derived from the items, never stored beside them. One grouped count per batch, asserted. No percentage and no ETA — both would be invented.",
+      "merge_commit": "74b7299"
     }
   },
   "architecture_amendments": [
@@ -305,15 +306,7 @@
     "design_system": "Semantic tokens only (--color-surface, never --color-zinc-900). Status colour is decided in StatusBadge alone; labels always come from translations. Navigation is built server-side and unbuilt sections show as disabled — 'available' is presentation, never authorisation. MetricCard takes number|null and renders null as an em dash, never 0.",
     "frontend_toolchain": "@vitejs/plugin-vue@5 peers Vite ^5||^6; the project is on Vite 7. Resolved with plugin-vue@6 (which supports Vite 7), NOT --force or --legacy-peer-deps: a peer conflict is compatibility information, and overriding it keeps the incompatibility. Same for vue-tsc@3. npm run types runs in CI."
   },
-  "open_pull_requests": [
-    {
-      "pr": null,
-      "ticket": "BULK-001a",
-      "base": "main",
-      "ci": "awaiting run",
-      "why_open": "Read-only projection; mergeable on green CI under the wave policy."
-    }
-  ],
+  "open_pull_requests": [],
   "next_session": {
     "start_with": "UI-001 — design system + real dashboard. Branch from main.",
     "then": [
@@ -335,8 +328,8 @@
     "since": "UI-001",
     "note": "Nine tickets (ING/MED/CAT/AI/GEN/REL/DIST/SEC-001 and PR #12) were merged under an earlier autonomous-chaining instruction that bypassed review. A retroactive audit is under way; they stay in main and any correction becomes a follow-up ticket, not a revert."
   },
-  "main_sha": "1ae9bb052d8864474f4291ce49073736b14c1e4e",
-  "current_ticket": "BULK-001a",
+  "main_sha": "74b7299759ee27f35f19c0d9678045e7429063ab",
+  "current_ticket": null,
   "tests": {
     "php": 724,
     "php_assertions": 2961,
@@ -366,11 +359,11 @@
   "session_boundary": {
     "reason": "Context capacity reached at a clean ticket boundary.",
     "repository_state": "green",
-    "main_sha": "8b0dc10b9b6e9641b93ff7c01242112d3d681bfd",
-    "note": "UI-003 is functionally complete: tracks, artists, contributors and compositions merged; assets awaiting review in PR #20. BULK-001 is next and does not depend on that review."
+    "main_sha": "74b7299759ee27f35f19c0d9678045e7429063ab",
+    "note": "UI-003 complete and merged in full (tracks, artists, contributors, compositions, assets with the signed preview). BULK-001a merged. No open PR. Resume from next_action, after reading findings.bulk_001_scope."
   },
   "v1_progress_percent": {
-    "value": 38,
+    "value": 40,
     "method": "weighted by block, production-ready not implemented-only",
     "breakdown": {
       "core_domain": {
@@ -380,8 +373,8 @@
       },
       "asset_catalogue": {
         "weight": 15,
-        "implemented": 85,
-        "production_ready": 55
+        "implemented": 95,
+        "production_ready": 70
       },
       "ai_generation": {
         "weight": 10,
@@ -400,8 +393,8 @@
       },
       "ui_ux": {
         "weight": 15,
-        "implemented": 60,
-        "production_ready": 45
+        "implemented": 65,
+        "production_ready": 50
       },
       "api": {
         "weight": 5,
@@ -414,7 +407,7 @@
         "production_ready": 5
       }
     },
-    "note": "Up from 34 because the catalogue block moved substantially: five resources browsable with their guarantees tested. Rights, royalties and ops/deployment are unchanged at or near zero, which is what keeps the overall figure where it is."
+    "note": "38 -> 40. The catalogue block is now essentially complete including the asset preview boundary. Rights, royalties and ops/deployment remain at or near zero, which is what holds the overall figure down and will keep holding it until they are built."
   },
   "decisions": {
     "asset_preview_url": {
