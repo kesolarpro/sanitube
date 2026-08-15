@@ -54,12 +54,29 @@ final class StorageManager
      */
     public function names(): array
     {
-        return array_keys($this->providers);
+        return array_values(array_unique(array_merge(
+            array_keys($this->providers),
+            array_keys($this->resolved),
+        )));
     }
 
     public function has(string $name): bool
     {
-        return isset($this->providers[$name]);
+        return isset($this->providers[$name]) || isset($this->resolved[$name]);
+    }
+
+    /**
+     * Register a provider instance under a name.
+     *
+     * The seam that lets a provider come from somewhere other than
+     * `config/storage.php` — a package, or a test that needs a store it can
+     * make fail on demand. Without it, every test of the upload workflow would
+     * have to go through a real disk, and "the provider failed halfway" would
+     * be untestable.
+     */
+    public function register(string $name, StorageProvider $provider): void
+    {
+        $this->resolved[$name] = $provider;
     }
 
     private function resolve(string $name): StorageProvider
