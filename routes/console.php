@@ -25,6 +25,17 @@ Schedule::call(function (SchedulerHeartbeat $heartbeat): void {
     $heartbeat->record();
 })->everyMinute()->name('sanitube:scheduler-heartbeat')->withoutOverlapping();
 
+// The operational snapshot every screen reads instead of probing.
+//
+// Five minutes is a deliberate floor: each run writes and deletes a storage
+// probe object and makes provider availability calls, so a tighter loop would
+// turn health checking into the busiest thing on a shared account. Staleness is
+// judged at three intervals, so one missed run changes nothing.
+Schedule::command('sanitube:health:refresh')
+    ->everyFiveMinutes()
+    ->name('sanitube:health-refresh')
+    ->withoutOverlapping();
+
 // Uploads that were started and never finished. Left alone they accumulate
 // quietly, and on a shared account they accumulate until the quota stops
 // something that matters. Nightly is often enough: the sweep only removes

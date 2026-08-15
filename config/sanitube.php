@@ -95,6 +95,27 @@ return [
         'header' => 'X-SaniTube-Health-Token',
 
         /*
+         * The operational snapshot.
+         *
+         * Probing storage and the providers costs network time and, for
+         * storage, an object written and deleted. That must never happen in a
+         * page request, so `sanitube:health:refresh` does it on a schedule and
+         * screens read the stored result.
+         *
+         * `stale_after_seconds` is three refresh intervals: one missed run is
+         * ordinary on a shared host, three means the scheduler is not running
+         * and the figures must stop being presented as current. Retention is
+         * far longer, because "last checked three hours ago" and "never
+         * checked" are different facts and an expired cache entry would turn
+         * the first into the second.
+         */
+        'operational' => [
+            'cache_key' => 'sanitube:health:operational',
+            'stale_after_seconds' => (int) env('SANITUBE_HEALTH_STALE_AFTER', 900),
+            'retention_seconds' => (int) env('SANITUBE_HEALTH_RETENTION', 604800),
+        ],
+
+        /*
          * Liveness is throttled like everything else, but it must never touch
          * the database — a probe that queries the database stops answering the
          * moment the database does, which is precisely when a load balancer

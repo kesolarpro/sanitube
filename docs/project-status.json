@@ -70,14 +70,16 @@
       "merge_commit": "aca7d2b"
     },
     "UI-001": {
-      "status": "pr_open_awaiting_review",
+      "status": "merged",
       "branch": "claude/ui-001-design-system",
       "pr": 14,
-      "ci": "10/10 green — run 31883493171",
+      "ci": "10/10 green",
       "report": "docs/reports/UI-001.md",
-      "note": "Design system + shell + ONE showcase screen. No business screens by design — they wait for this to be reviewed. First CI run was red on 7/10 jobs (missing Vite manifest: the PHP jobs never run `npm run build`, and public/build is gitignored). Fixed in a12c63f by making the PHP suite independent of a frontend build, buying the lost coverage back in the frontend job and in ViteEntrypointTest — no test weakened.",
+      "note": "Design system, shell, one showcase screen. Review corrections C1-C4 applied: shared useModalSurface (focus trap, Escape, focus restore, counted scroll lock, inert background) for both AppModal and the mobile drawer; router.on unsubscribe on unmount; Vitest + jsdom component suite wired into the frontend CI job.",
       "pr_url": "https://github.com/kesolarpro/sanitube/pull/14",
-      "ci_url": "https://github.com/kesolarpro/sanitube/actions/runs/31883493171"
+      "ci_url": "https://github.com/kesolarpro/sanitube/actions/runs/31883493171",
+      "merge_commit": "9d2a4ac",
+      "review": "CORRECTIONS REQUIRED (C1-C4) -> applied -> authorised to merge"
     },
     "INS-001": {
       "status": "not_started",
@@ -116,10 +118,14 @@
       "merge_commit": "d9db6af"
     },
     "UI-002": {
-      "status": "not_started",
-      "branch": null,
-      "pr": null,
-      "ci": null
+      "status": "pr_open_awaiting_review",
+      "branch": "claude/ui-002-dashboard",
+      "pr": 15,
+      "ci": "10/10 green — run 31888600654",
+      "report": "docs/reports/UI-002.md",
+      "note": "Dashboard on real data. DashboardQuery read model: fixed query count regardless of catalogue size, null (never zero) for any figure that could not be taken, honest unknown for a provider that threw. / is now the dashboard; the routes/web.php redirect was removed rather than retargeted to avoid two routes on one URI.",
+      "pr_url": "https://github.com/kesolarpro/sanitube/pull/15",
+      "ci_url": "https://github.com/kesolarpro/sanitube/actions/runs/31888600654"
     },
     "UI-003": {
       "status": "not_started",
@@ -249,12 +255,12 @@
   },
   "open_pull_requests": [
     {
-      "pr": 14,
-      "ticket": "UI-001",
+      "pr": 15,
+      "ticket": "UI-002",
       "base": "main",
-      "ci": "10/10 green — run 31883493171",
-      "why_open": "Review rule restored — awaiting architectural verdict before merge.",
-      "url": "https://github.com/kesolarpro/sanitube/pull/14"
+      "ci": "10/10 green — run 31888600654",
+      "why_open": "Review rule active - awaiting architectural verdict before merge.",
+      "url": "https://github.com/kesolarpro/sanitube/pull/15"
     }
   ],
   "next_session": {
@@ -278,11 +284,38 @@
     "since": "UI-001",
     "note": "Nine tickets (ING/MED/CAT/AI/GEN/REL/DIST/SEC-001 and PR #12) were merged under an earlier autonomous-chaining instruction that bypassed review. A retroactive audit is under way; they stay in main and any correction becomes a follow-up ticket, not a revert."
   },
-  "next_ticket": {
-    "id": "UI-002",
-    "name": "Dashboard",
+  "main_sha": "9d2a4ac50088933fadf0e0ea65c470970d589afe",
+  "current_ticket": "UI-002",
+  "tests": {
+    "php": 608,
+    "php_assertions": 2215,
+    "php_skipped": 1,
+    "component": 16
+  },
+  "phpstan": {
+    "level": 6,
+    "baseline": false,
+    "ignore_errors": false,
+    "status": "clean"
+  },
+  "frontend": {
+    "stack": "Vue 3 + TypeScript strict + Inertia 2 + Tailwind 4 + Vite 7",
+    "type_check": "vue-tsc clean",
+    "component_tests": "vitest + jsdom, 16 passing",
+    "build": "clean",
+    "note": "PHP suite stubs Vite when no manifest exists; the frontend CI job renders against a real one."
+  },
+  "next_action": {
+    "ticket": "UI-003",
+    "name": "Catalogue (artists, contributors, compositions, tracks, assets)",
     "state": "not started",
-    "blocked_by": "UI-001 architectural review",
-    "note": "Needs a DashboardQuery read model (no N+1, no browser-side fan-out) and real counts only."
+    "blocked_by": "UI-002 architectural review",
+    "note": "List + search + filter + cursor pagination + detail + relationship views. Must go through domain services, never a CRUD controller shortcut. Needs a read model per resource in the shape of src/Ui/Queries/DashboardQuery.php. Do not start business logic on the unreviewed UI-002 branch; independent work available meanwhile: OPS/INST/DEP documentation tickets."
+  },
+  "session_boundary": {
+    "reason": "Context capacity reached at a clean ticket boundary.",
+    "repository_state": "green",
+    "main_sha": "9d2a4ac50088933fadf0e0ea65c470970d589afe",
+    "note": "UI-002 is complete and awaiting architectural review. Do NOT stack UI-003 on the claude/ui-002-dashboard branch. Resume from next_action in this file."
   }
 }
