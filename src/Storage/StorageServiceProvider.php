@@ -6,6 +6,7 @@ namespace SaniTube\Storage;
 
 use Illuminate\Contracts\Filesystem\Factory as FilesystemFactory;
 use Illuminate\Support\ServiceProvider;
+use SaniTube\Storage\Console\StorageCheckCommand;
 use SaniTube\Storage\Contracts\StorageProvider;
 
 final class StorageServiceProvider extends ServiceProvider
@@ -22,5 +23,12 @@ final class StorageServiceProvider extends ServiceProvider
             StorageProvider::class,
             fn ($app): StorageProvider => $app->make(StorageManager::class)->default(),
         );
+    }
+
+    public function boot(): void
+    {
+        if ($this->app->runningInConsole()) {
+            $this->commands([StorageCheckCommand::class]);
+        }
     }
 }

@@ -26,6 +26,19 @@ final class AssetIntegrityException extends DomainException
         ));
     }
 
+    /**
+     * @param  list<string>  $fields
+     */
+    public static function unmeasured(string $status, array $fields): self
+    {
+        return new self(sprintf(
+            'An asset cannot reach status [%s] without %s. A status the platform treats as proof '
+                .'must not rest on unrecorded bytes.',
+            $status,
+            implode(', ', $fields),
+        ));
+    }
+
     public static function parentForbidden(AssetKind $kind): self
     {
         return new self(sprintf(

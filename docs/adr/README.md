@@ -38,3 +38,4 @@ true at the time remains readable.
 | [0009](ADR-0009-asset-link-semantics.md) | asset_links carries secondary attachments only | Accepted |
 | [0010](ADR-0010-external-identifier-lifecycle.md) | External identifiers are immutable, revocable, never deleted | Accepted |
 | [0011](ADR-0011-read-projections-deferred.md) | Read projections deferred; canonical relations first | Deferred |
+| [0012](ADR-0012-asset-storage-compensation.md) | No distributed transaction between the database and object storage | Accepted |

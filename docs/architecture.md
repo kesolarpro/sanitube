@@ -226,7 +226,11 @@ Three contracts are fixed now because everything downstream is written against
 them:
 
 - `SaniTube\Storage\Contracts\StorageProvider` — complete. Implementations for
-  local, S3, Cloudflare R2 and Backblaze B2.
+  local, S3, Cloudflare R2 and Backblaze B2, plus an in-memory store used to
+  prove the contract is not a description of Flysystem. Covers streaming
+  writes, read-back checksums, server-side moves, prefix listings, expiring
+  URLs and a real write/read/delete health probe. Detailed in
+  [`storage.md`](storage.md).
 - `SaniTube\MusicGeneration\Contracts\MusicGenerationProvider` — provisional.
   Models generation as asynchronous, with a working fake so the Studio,
   campaigns and ingestion can be built with no external music API.
@@ -256,16 +260,18 @@ catalogue.
 
 ## 9. Known limitations
 
-- **Larastan cannot be installed in the authoring sandbox.** It is declared in
-  `require-dev` and locked in `composer.lock` — the lock was resolved by
-  Composer against Packagist, never hand-edited. What that environment cannot
-  do is *download* it: GitHub archive endpoints return 403 under its egress
-  policy. Static analysis therefore runs in CI, which has ordinary network
-  access, and `composer analyse` works on any normal machine.
+- **~~Larastan cannot be installed in the authoring sandbox.~~** Resolved
+  during AST-001: `composer install` now resolves through the proxy that
+  previously refused GitHub archives, so `composer analyse` runs locally as
+  well as in CI. It is worth recording what the gap cost while it lasted —
+  eight level-6 errors reached CI in ARCH-003 that a local run would have
+  caught in seconds. A check that only runs remotely is a check that runs after
+  the mistake is published.
 - **`league/flysystem-aws-s3-v3` is not a dependency.** S3, R2 and B2 need it;
   installs that never leave the local disk should not carry the AWS SDK. The
   object-storage detector says so explicitly when a cloud provider is selected
   without it.
-- **No domain model yet.** Artists, tracks, compositions, releases, rights and
-  royalties arrive in ARCH-002 and the CAT/REL/RGT tickets.
+- **Rights and royalties are not modelled.** Artists, tracks, compositions,
+  releases and assets landed in ARCH-002 and AST-001; ownership splits,
+  publishing administration and royalty ingestion arrive in the RGT tickets.
 - **No frontend yet.** Vite is configured; the dashboard is its own ticket.

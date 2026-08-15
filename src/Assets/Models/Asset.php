@@ -36,9 +36,9 @@ use SaniTube\Foundation\Concerns\HasPublicUuid;
  * @property string $disk
  * @property string $path
  * @property string $original_filename
- * @property string $mime_type
- * @property int $byte_size
- * @property string $sha256
+ * @property string|null $mime_type
+ * @property int|null $byte_size
+ * @property string|null $sha256
  * @property int|null $duration_ms
  * @property int|null $sample_rate
  * @property int|null $bit_depth
@@ -67,6 +67,14 @@ final class Asset extends Model
      * them would mean the row no longer describes the bytes it claims to.
      */
     public const IMMUTABLE_ONCE_STORED = ['disk', 'path', 'sha256', 'byte_size', 'kind'];
+
+    /**
+     * Fields that must be present before an asset may claim its bytes exist
+     * (I10). They are nullable in the schema so a PENDING asset can be
+     * registered before anything has been hashed, and required from STORED
+     * onwards so that no status the platform trusts is ever built on a NULL.
+     */
+    public const REQUIRED_ONCE_STORED = ['sha256', 'byte_size', 'mime_type'];
 
     /**
      * @return array<string, string>
