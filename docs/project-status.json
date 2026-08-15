@@ -48,7 +48,7 @@
     "CAT-001": {
       "status": "pr_open",
       "branch": "claude/cat-001-candidate-promotion",
-      "pr": null,
+      "pr": 7,
       "ci": null,
       "report": "docs/reports/CAT-001.md",
       "stacked_on": "claude/med-001-audio-analysis"
@@ -104,6 +104,23 @@
   "notes": {
     "portability": "$table->json() is forbidden platform-wide. MariaDB's json is an alias for longtext/utf8mb4_bin while MySQL 8's is a native binary type, so one migration yields two types with two comparison semantics. Use ->longText() with an Eloquent array cast. Enforced by PortabilityTest::no_engine_specific_construct_is_used_in_any_migration.",
     "capabilities": "FFmpeg is a capability, never a dependency. SANITUBE_MEDIA_ANALYSIS_REQUIRED defaults to false so a cPanel host without ffprobe still produces promotable candidates.",
-    "catalogue_writes": "Promotion is the only v1 write that creates a Track. It always creates it DRAFT, mints no ISRC, and is refusable for six reasons each carrying a machine-readable code. One-master-one-track is enforced in PromoteTrackCandidate rather than by a unique index, because tracks is ARCH-002's validated schema."
-  }
+    "catalogue_writes": "Promotion is the only v1 write that creates a Track. It always creates it DRAFT, mints no ISRC, and is refusable for six reasons each carrying a machine-readable code. One-master-one-track is enforced in PromoteTrackCandidate rather than by a unique index, because tracks is ARCH-002's validated schema.",
+    "ci_triggers": "The workflow only built pull requests whose base was main, so a PR stacked on another claude/** branch showed zero checks — indistinguishable from a repo with no CI. The pull_request branch filter now includes 'claude/**'. Fixed on the CAT-001 branch; it reaches main when that branch merges."
+  },
+  "open_pull_requests": [
+    {
+      "pr": 6,
+      "ticket": "MED-001",
+      "base": "main",
+      "ci": "green (run 31873509564)",
+      "why_open": "Carries a declared behaviour change to ING-001 (candidates born PENDING). Recorded under architecture_amendments, so left for review rather than self-merged."
+    },
+    {
+      "pr": 7,
+      "ticket": "CAT-001",
+      "base": "claude/med-001-audio-analysis",
+      "ci": "see run 31874021550",
+      "why_open": "Stacked on PR #6. Retarget to main once #6 merges."
+    }
+  ]
 }
