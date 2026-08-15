@@ -35,6 +35,7 @@ return [
         'confirm' => 'Conferma',
     ],
     'states' => [
+        'unknown' => 'Sconosciuto',
         'loading' => 'Caricamento',
         'disabled' => 'Disattivato',
         'empty_title' => 'Ancora nulla',
@@ -127,6 +128,11 @@ return [
         'option_b' => 'Seconda opzione',
     ],
     'dashboard' => [
+        'health_stale' => 'Questi controlli esterni non sono aggiornati',
+        'health_unknown' => 'Lo stato esterno non è ancora stato controllato',
+        'health_unknown_description' => 'Archiviazione, fornitori e capacità vengono sondati in modo pianificato, non al caricamento di questa pagina. Esegui sanitube:health:refresh o verifica che la voce cron dello scheduler venga eseguita.',
+        'last_checked' => 'Ultimo controllo',
+        'never_checked' => 'Nessun controllo registrato.',
         'title' => 'Cruscotto',
         'subtitle' => 'Contato nel catalogo e verificato presso i fornitori al caricamento di questa pagina.',
         'catalogue' => 'Catalogo',

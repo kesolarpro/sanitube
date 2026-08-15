@@ -35,6 +35,7 @@ return [
         'confirm' => 'Confirmar',
     ],
     'states' => [
+        'unknown' => 'Desconhecido',
         'loading' => 'A carregar',
         'disabled' => 'Desativado',
         'empty_title' => 'Ainda não há nada',
@@ -127,6 +128,11 @@ return [
         'option_b' => 'Segunda opção',
     ],
     'dashboard' => [
+        'health_stale' => 'Estas verificações externas estão desatualizadas',
+        'health_unknown' => 'O estado externo ainda não foi verificado',
+        'health_unknown_description' => 'O armazenamento, os fornecedores e as capacidades são sondados de forma agendada, não no carregamento desta página. Execute sanitube:health:refresh ou confirme que a entrada cron do agendador está a ser executada.',
+        'last_checked' => 'Última verificação',
+        'never_checked' => 'Não há nenhuma verificação registada.',
         'title' => 'Painel',
         'subtitle' => 'Contado no catálogo e consultado junto dos fornecedores no momento em que esta página foi carregada.',
         'catalogue' => 'Catálogo',

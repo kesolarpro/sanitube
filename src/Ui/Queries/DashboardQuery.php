@@ -8,17 +8,13 @@ use Illuminate\Contracts\Database\Query\Builder as BuilderContract;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
-use SaniTube\AI\AiManager;
 use SaniTube\Catalog\Enums\TrackStatus;
-use SaniTube\Distribution\DistributorManager;
 use SaniTube\Distribution\Enums\DistributionDeliveryStatus;
 use SaniTube\Ingestion\Enums\IngestionBatchStatus;
 use SaniTube\Ingestion\Enums\TrackCandidateStatus;
 use SaniTube\MusicGeneration\Enums\MusicGenerationStatus;
-use SaniTube\MusicGeneration\MusicGenerationManager;
-use SaniTube\Observability\Capabilities\CapabilityRegistry;
+use SaniTube\Observability\Health\OperationalHealthStore;
 use SaniTube\Releases\Enums\ReleaseStatus;
-use SaniTube\Storage\StorageManager;
 use Throwable;
 
 /**
@@ -46,11 +42,7 @@ use Throwable;
 final readonly class DashboardQuery
 {
     public function __construct(
-        private CapabilityRegistry $capabilities,
-        private AiManager $ai,
-        private MusicGenerationManager $generation,
-        private DistributorManager $distributors,
-        private StorageManager $storage,
+        private OperationalHealthStore $health,
     ) {}
 
     /**
@@ -64,11 +56,18 @@ final readonly class DashboardQuery
             'releases_by_status' => $this->countByStatus('releases', 'status', ReleaseStatus::cases()),
             'ingestion' => $this->ingestion(),
             'media' => $this->media(),
-            'generation' => $this->generation(),
-            'distribution' => $this->distribution(),
+            'generation' => [
+                'by_status' => $this->countByStatus('music_generations', 'status', MusicGenerationStatus::cases()),
+            ],
+            'distribution' => [
+                'deliveries_by_status' => $this->countByStatus(
+                    'distribution_deliveries',
+                    'status',
+                    DistributionDeliveryStatus::cases(),
+                ),
+            ],
             'jobs' => $this->jobs(),
-            'storage' => $this->storage(),
-            'capabilities' => $this->capabilityReport(),
+            'operational' => $this->operational(),
         ];
     }
 
@@ -121,44 +120,6 @@ final readonly class DashboardQuery
     }
 
     /**
-     * @return array<string, mixed>
-     */
-    private function generation(): array
-    {
-        return [
-            'by_status' => $this->countByStatus('music_generations', 'status', MusicGenerationStatus::cases()),
-            'provider' => $this->providerState(
-                $this->generation->defaultName(),
-                fn (): bool => $this->generation->isAvailable(),
-            ),
-        ];
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function distribution(): array
-    {
-        $distributors = [];
-
-        foreach ($this->distributors->names() as $name) {
-            $distributors[] = $this->providerState(
-                $name,
-                fn (): bool => $this->distributors->distributor($name)->isAvailable(),
-            );
-        }
-
-        return [
-            'deliveries_by_status' => $this->countByStatus(
-                'distribution_deliveries',
-                'status',
-                DistributionDeliveryStatus::cases(),
-            ),
-            'distributors' => $distributors,
-        ];
-    }
-
-    /**
      * Queue depth and failures.
      *
      * Both are null when the queue tables are absent — a perfectly ordinary
@@ -175,71 +136,80 @@ final readonly class DashboardQuery
     }
 
     /**
+     * External state, read from the last scheduled probe — never probed here.
+     *
+     * This is the boundary the whole class exists to hold. `GET /` must not
+     * write a storage probe object, must not call a provider over the network,
+     * and must not shell out to a capability detector: a page load that does
+     * real I/O against five external systems is slow when they are healthy and
+     * unusable when they are not, which is exactly when somebody opens it.
+     *
+     * Three states, and the third is the one that matters:
+     *
+     *   - UNKNOWN — nothing stored. A fresh install, or the scheduler has never
+     *     run. Every value is null.
+     *   - STALE — stored, but older than the configured threshold. **Every
+     *     availability value is forced back to null.** A snapshot from three
+     *     hours ago is not evidence about now, and letting a stale `healthy`
+     *     through is how a dashboard reports green through an outage. The
+     *     timestamp is kept so the reader can see how old it is.
+     *   - FRESH — stored and recent. Values pass through as probed.
+     *
      * @return array<string, mixed>
      */
-    private function storage(): array
+    private function operational(): array
     {
-        $name = $this->storage->defaultName();
+        $health = $this->health->current();
 
-        try {
-            $health = $this->storage->provider($name)->healthCheck();
-
+        if ($health === null) {
             return [
-                'provider' => $health->provider,
-                'healthy' => $health->healthy,
-                'checks' => $health->checks,
-                'temporary_urls' => $health->temporaryUrls,
-                // Already redacted at the StorageHealth constructor, which is
-                // the single place every failing report passes through.
-                'detail' => $health->detail,
-            ];
-        } catch (Throwable) {
-            // A provider that cannot even be probed is unknown, not unhealthy:
-            // the two call for different responses from an operator.
-            return [
-                'provider' => $name,
-                'healthy' => null,
-                'checks' => [],
-                'temporary_urls' => null,
-                'detail' => null,
+                'state' => 'UNKNOWN',
+                'checked_at' => null,
+                'stale_after_seconds' => $this->health->staleAfterSeconds(),
+                'storage' => ['provider' => null, 'healthy' => null, 'checks' => [], 'temporary_urls' => null, 'detail' => null],
+                'ai' => ['name' => null, 'available' => null],
+                'generation_provider' => ['name' => null, 'available' => null],
+                'distributors' => [],
+                'capabilities' => ['healthy' => null, 'items' => []],
             ];
         }
-    }
 
-    /**
-     * @return array<string, mixed>
-     */
-    private function capabilityReport(): array
-    {
-        $report = $this->capabilities->report();
+        $stale = $this->health->isStale($health);
 
         return [
-            'healthy' => $report->isHealthy(),
-            'items' => $report->toArray(),
-            'ai' => $this->providerState(
-                $this->ai->defaultName(),
-                fn (): bool => $this->ai->isAvailable(),
-            ),
+            'state' => $stale ? 'STALE' : 'FRESH',
+            'checked_at' => $health->checkedAt->format(DATE_ATOM),
+            'stale_after_seconds' => $this->health->staleAfterSeconds(),
+            'storage' => $stale ? $this->withoutVerdict($health->storage, ['healthy']) : $health->storage,
+            'ai' => $stale ? $this->withoutVerdict($health->ai, ['available']) : $health->ai,
+            'generation_provider' => $stale ? $this->withoutVerdict($health->generation, ['available']) : $health->generation,
+            'distributors' => $stale
+                ? array_map(fn (array $one): array => $this->withoutVerdict($one, ['available']), $health->distributors)
+                : $health->distributors,
+            'capabilities' => $stale
+                ? ['healthy' => null, 'items' => $health->capabilities['items'] ?? []]
+                : $health->capabilities,
         ];
     }
 
     /**
-     * A provider's name and whether it can currently be used.
+     * The same record with its verdicts blanked to "unknown".
      *
-     * `available` is nullable on purpose. A provider that throws while being
-     * asked is not the same as one that answered "no", and reporting a network
-     * blip as a deliberate refusal sends an operator looking in the wrong place.
+     * Names and probe details are still worth showing when a snapshot is stale
+     * — they say *what* was checked. The verdicts are not, because they are
+     * assertions about the present.
      *
-     * @param  callable(): bool  $probe
+     * @param  array<string, mixed>  $record
+     * @param  list<string>  $verdicts
      * @return array<string, mixed>
      */
-    private function providerState(string $name, callable $probe): array
+    private function withoutVerdict(array $record, array $verdicts): array
     {
-        try {
-            return ['name' => $name, 'available' => $probe()];
-        } catch (Throwable) {
-            return ['name' => $name, 'available' => null];
+        foreach ($verdicts as $key) {
+            $record[$key] = null;
         }
+
+        return $record;
     }
 
     /**

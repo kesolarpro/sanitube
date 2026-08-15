@@ -122,9 +122,11 @@ final class DashboardTest extends TestCase
     #[Test]
     public function a_provider_that_cannot_answer_is_reported_as_unknown(): void
     {
+        // Provider state moved under `operational` when probing left the
+        // request cycle: it is a stored measurement now, not a live reading.
         $snapshot = $this->snapshot();
 
-        foreach ([$snapshot['capabilities']['ai'], $snapshot['generation']['provider']] as $provider) {
+        foreach ([$snapshot['operational']['ai'], $snapshot['operational']['generation_provider']] as $provider) {
             $this->assertArrayHasKey('name', $provider);
             $this->assertArrayHasKey('available', $provider);
             $this->assertTrue(

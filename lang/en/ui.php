@@ -35,6 +35,7 @@ return [
         'confirm' => 'Confirm',
     ],
     'states' => [
+        'unknown' => 'Unknown',
         'loading' => 'Loading',
         'disabled' => 'Disabled',
         'empty_title' => 'Nothing here yet',
@@ -127,6 +128,11 @@ return [
         'option_b' => 'Second option',
     ],
     'dashboard' => [
+        'health_stale' => 'These external checks are out of date',
+        'health_unknown' => 'External state has not been checked yet',
+        'health_unknown_description' => 'Storage, providers and capabilities are probed on a schedule rather than when this page loads. Run sanitube:health:refresh, or check that the scheduler cron entry is firing.',
+        'last_checked' => 'Last checked',
+        'never_checked' => 'No check has been recorded.',
         'title' => 'Dashboard',
         'subtitle' => 'Counted from the catalogue and probed from the providers at the moment this page loaded.',
         'catalogue' => 'Catalogue',

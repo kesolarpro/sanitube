@@ -35,6 +35,7 @@ return [
         'confirm' => 'Bestätigen',
     ],
     'states' => [
+        'unknown' => 'Unbekannt',
         'loading' => 'Wird geladen',
         'disabled' => 'Deaktiviert',
         'empty_title' => 'Noch nichts vorhanden',
@@ -127,6 +128,11 @@ return [
         'option_b' => 'Zweite Option',
     ],
     'dashboard' => [
+        'health_stale' => 'Diese externen Prüfungen sind veraltet',
+        'health_unknown' => 'Der externe Zustand wurde noch nicht geprüft',
+        'health_unknown_description' => 'Speicher, Anbieter und Fähigkeiten werden planmäßig geprüft, nicht beim Laden dieser Seite. Führen Sie sanitube:health:refresh aus oder prüfen Sie, ob der Cron-Eintrag des Schedulers ausgelöst wird.',
+        'last_checked' => 'Zuletzt geprüft',
+        'never_checked' => 'Es wurde keine Prüfung aufgezeichnet.',
         'title' => 'Übersicht',
         'subtitle' => 'Beim Laden dieser Seite aus dem Katalog gezählt und bei den Anbietern abgefragt.',
         'catalogue' => 'Katalog',

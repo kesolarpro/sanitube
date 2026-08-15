@@ -10,7 +10,7 @@
 export type StatusCounts = Record<string, number>;
 
 export interface ProviderState {
-    name: string;
+    name: string | null;
     /** null when the provider threw while being asked — not the same as a refusal. */
     available: boolean | null;
 }
@@ -22,6 +22,33 @@ export interface CapabilityItem {
     detail: string | null;
     remediation: string | null;
     required: boolean;
+}
+
+export type OperationalStateName = 'FRESH' | 'STALE' | 'UNKNOWN';
+
+export interface OperationalState {
+    /**
+     * STALE blanks every verdict back to null: a snapshot from three hours ago
+     * is not evidence about now, and a stale `healthy` is how a dashboard
+     * reports green through an outage.
+     */
+    state: OperationalStateName;
+    checked_at: string | null;
+    stale_after_seconds: number;
+    storage: {
+        provider: string | null;
+        healthy: boolean | null;
+        checks: Record<string, boolean>;
+        temporary_urls: boolean | null;
+        detail: string | null;
+    };
+    ai: ProviderState;
+    generation_provider: ProviderState;
+    distributors: ProviderState[];
+    capabilities: {
+        healthy: boolean | null;
+        items: CapabilityItem[];
+    };
 }
 
 export interface DashboardSnapshot {
@@ -46,27 +73,17 @@ export interface DashboardSnapshot {
     };
     generation: {
         by_status: StatusCounts | null;
-        provider: ProviderState;
     };
     distribution: {
         deliveries_by_status: StatusCounts | null;
-        distributors: ProviderState[];
     };
     jobs: {
         pending: number | null;
         failed: number | null;
     };
-    storage: {
-        provider: string;
-        /** null when the provider could not be probed at all. */
-        healthy: boolean | null;
-        checks: Record<string, boolean>;
-        temporary_urls: boolean | null;
-        detail: string | null;
-    };
-    capabilities: {
-        healthy: boolean;
-        items: CapabilityItem[];
-        ai: ProviderState;
-    };
+    /**
+     * External state, read from the last scheduled probe. Never probed during
+     * the request — see DashboardQuery::operational().
+     */
+    operational: OperationalState;
 }

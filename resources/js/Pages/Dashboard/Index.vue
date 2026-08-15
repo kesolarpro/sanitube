@@ -7,6 +7,9 @@ import MetricCard from '@/Components/Ui/MetricCard.vue';
 import StatusBadge from '@/Components/Ui/StatusBadge.vue';
 import { trans } from '@/Support/i18n';
 import type { DashboardSnapshot, ProviderState, StatusCounts } from '@/Types/dashboard';
+import { dateTime } from '@/Support/format';
+import { usePage } from '@inertiajs/vue3';
+import type { SharedProps } from '@/Types/inertia';
 
 /**
  * The operational overview.
@@ -29,7 +32,9 @@ function occupied(counts: StatusCounts | null): [string, number][] {
     return counts === null ? [] : Object.entries(counts).filter(([, total]) => total > 0);
 }
 
-const capabilities = computed(() => props.snapshot.capabilities.items);
+const page = usePage<SharedProps>();
+const operational = computed(() => props.snapshot.operational);
+const capabilities = computed(() => operational.value.capabilities.items);
 
 /*
  * Only capabilities that are both required and unavailable. A missing optional
@@ -42,13 +47,16 @@ const blocking = computed(() =>
 
 /** Every provider, whatever its subsystem, as one list. */
 const providers = computed<(ProviderState & { subsystem: string })[]>(() => [
-    { subsystem: trans('ui.dashboard.subsystem.ai'), ...props.snapshot.capabilities.ai },
-    { subsystem: trans('ui.dashboard.subsystem.generation'), ...props.snapshot.generation.provider },
-    ...props.snapshot.distribution.distributors.map((distributor) => ({
+    { subsystem: trans('ui.dashboard.subsystem.ai'), ...operational.value.ai },
+    { subsystem: trans('ui.dashboard.subsystem.generation'), ...operational.value.generation_provider },
+    ...operational.value.distributors.map((distributor) => ({
         subsystem: trans('ui.dashboard.subsystem.distribution'),
         ...distributor,
     })),
 ]);
+
+/** When the external state was last actually measured, in the reader's locale. */
+const checkedAt = computed(() => dateTime(operational.value.checked_at, page.props.app.locale));
 
 /**
  * Availability as a status the badge already knows how to colour.
@@ -72,6 +80,21 @@ function availability(available: boolean | null): string {
             <h1 class="text-page-title text-foreground">{{ trans('ui.dashboard.title') }}</h1>
             <p class="mt-1 text-small text-muted">{{ trans('ui.dashboard.subtitle') }}</p>
         </div>
+
+        <!--
+            The provenance of every external figure below. Without it a reader
+            cannot tell a live green from one measured before lunch, and that
+            distinction is the entire point of not probing during the request.
+        -->
+        <AppAlert v-if="operational.state !== 'FRESH'" :tone="operational.state === 'STALE' ? 'warning' : 'info'">
+            <p class="font-medium">
+                {{ operational.state === 'STALE' ? trans('ui.dashboard.health_stale') : trans('ui.dashboard.health_unknown') }}
+            </p>
+            <p class="mt-0.5">
+                <template v-if="operational.checked_at">{{ trans('ui.dashboard.last_checked') }} {{ checkedAt }}</template>
+                <template v-else>{{ trans('ui.dashboard.never_checked') }}</template>
+            </p>
+        </AppAlert>
 
         <!-- First, because it explains the missing figures further down. -->
         <AppAlert v-if="blocking.length > 0" tone="danger">
@@ -193,11 +216,11 @@ function availability(available: boolean | null): string {
                 <ul class="divide-y divide-border">
                     <li
                         v-for="provider in providers"
-                        :key="`${provider.subsystem}-${provider.name}`"
+                        :key="`${provider.subsystem}-${provider.name ?? 'unknown'}`"
                         class="flex items-center justify-between gap-3 py-2 first:pt-0 last:pb-0"
                     >
                         <div class="min-w-0">
-                            <p class="truncate text-body text-foreground">{{ provider.name }}</p>
+                            <p class="truncate text-body text-foreground">{{ provider.name ?? trans('ui.states.unknown') }}</p>
                             <p class="text-caption text-muted">{{ provider.subsystem }}</p>
                         </div>
                         <StatusBadge :status="availability(provider.available)" group="generic" />
@@ -208,12 +231,12 @@ function availability(available: boolean | null): string {
             <AppCard>
                 <template #header>{{ trans('ui.dashboard.storage') }}</template>
                 <div class="flex items-center justify-between gap-3 pb-2">
-                    <p class="text-body text-foreground">{{ snapshot.storage.provider }}</p>
-                    <StatusBadge :status="availability(snapshot.storage.healthy)" group="generic" />
+                    <p class="text-body text-foreground">{{ operational.storage.provider ?? trans('ui.states.unknown') }}</p>
+                    <StatusBadge :status="availability(operational.storage.healthy)" group="generic" />
                 </div>
                 <dl class="divide-y divide-border border-t border-border">
                     <div
-                        v-for="(passed, check) in snapshot.storage.checks"
+                        v-for="(passed, check) in operational.storage.checks"
                         :key="check"
                         class="flex items-center justify-between py-2 last:pb-0"
                     >
@@ -221,8 +244,8 @@ function availability(available: boolean | null): string {
                         <dd><StatusBadge :status="availability(passed)" group="generic" /></dd>
                     </div>
                 </dl>
-                <p v-if="snapshot.storage.detail" class="pt-2 text-caption text-muted">
-                    {{ snapshot.storage.detail }}
+                <p v-if="operational.storage.detail" class="pt-2 text-caption text-muted">
+                    {{ operational.storage.detail }}
                 </p>
             </AppCard>
         </div>

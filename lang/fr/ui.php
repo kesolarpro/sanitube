@@ -35,6 +35,7 @@ return [
         'confirm' => 'Confirmer',
     ],
     'states' => [
+        'unknown' => 'Inconnu',
         'loading' => 'Chargement',
         'disabled' => 'Désactivé',
         'empty_title' => 'Rien pour l\'instant',
@@ -127,6 +128,11 @@ return [
         'option_b' => 'Deuxième option',
     ],
     'dashboard' => [
+        'health_stale' => 'Ces vérifications externes ne sont plus à jour',
+        'health_unknown' => 'L\'état externe n\'a pas encore été vérifié',
+        'health_unknown_description' => 'Le stockage, les fournisseurs et les capacités sont sondés selon une planification, et non au chargement de cette page. Lancez sanitube:health:refresh, ou vérifiez que l\'entrée cron du planificateur se déclenche.',
+        'last_checked' => 'Dernière vérification',
+        'never_checked' => 'Aucune vérification enregistrée.',
         'title' => 'Tableau de bord',
         'subtitle' => 'Compté dans le catalogue et interrogé auprès des fournisseurs au chargement de cette page.',
         'catalogue' => 'Catalogue',
