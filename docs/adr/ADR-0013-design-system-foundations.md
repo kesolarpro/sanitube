@@ -147,6 +147,43 @@ This will recur: the frontend toolchain moves faster than the peer ranges
 declared against it. The rule is to find the version that supports the stack,
 and if none exists, to say so rather than force one.
 
+## The PHP suite does not depend on a frontend build
+
+`@vite` throws when `public/build/manifest.json` is absent, and that file is a
+build artefact: gitignored, absent from a fresh clone, absent from every
+Composer-only CI job. The first CI run of this ticket failed on exactly that —
+seven jobs red, all of them on a missing manifest, while the local suite was
+green only because a built bundle happened to be sitting on the disk. The local
+green proved nothing about the case CI was testing.
+
+Two ways out were available. Installing Node and building the bundle in all
+seven PHP jobs would have made `php artisan test` stop working after a plain
+`composer install` — on a platform whose deployment target is shared cPanel
+hosting, requiring a frontend toolchain to check a database invariant is the
+wrong default. So instead:
+
+- **`Tests\TestCase` uses Vite when a real manifest exists and stubs it when it
+  does not.** Keying on the artefact rather than on a flag is safe because no
+  assertion in the suite depends on what the manifest *contains* — only on the
+  page rendering — so a stale bundle cannot turn a passing test red. It also
+  costs nothing: the `frontend` job has just built the bundle, so it renders the
+  Blade template against the real manifest for free.
+- **The `frontend` job asserts the manifest exists before running.** Without
+  that line, a build that produced nothing would fall back to the stub and leave
+  the step green while proving nothing. Silence must not read as success.
+- **`ViteEntrypointTest` closes what a stub cannot cover.** A stub renders a
+  missing entry point exactly as happily as a present one, so renaming
+  `app.ts` in the Vite config and forgetting the template would give a green
+  suite, a green build and a blank page. The test compares the two lists against
+  each other and against the filesystem, statically, with no build required. It
+  was verified to fail on a deliberately mismatched template before being
+  trusted.
+
+The CI step is scoped by path rather than by `--filter=Ui`: PHPUnit's filter is
+a case-insensitive substring match, so `Ui` also selects `req**ui**res`,
+`b**ui**lder` and `uu**i**d` — sixty-four tests instead of eleven, a
+near-arbitrary subset that reads in the log like a deliberate selection.
+
 ## Consequences
 
 - Twenty screens can now be built without re-deciding any of the above.

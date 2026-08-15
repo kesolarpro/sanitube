@@ -221,3 +221,42 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      # The seven PHP jobs run without Node, so they stub Vite — otherwise
+      # every rendered page would fail on a missing manifest, and requiring a
+      # frontend build to assert a database invariant is the wrong trade for a
+      # platform deployed on shared cPanel hosting.
+      #
+      # A stub, though, renders a missing entry point exactly as happily as a
+      # present one. This job has just produced a real manifest, so it is the
+      # one place where the Blade template can be rendered against it for real.
+      # It is deliberately narrow: the interface tests, once, not the suite.
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: ${{ env.PHP_EXTENSIONS }}
+          coverage: none
+
+      - name: Install PHP dependencies
+        uses: ramsey/composer-install@v3
+
+      - name: Prepare environment
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+
+      # Scoped by path, not by `--filter=Ui`: PHPUnit's filter is a
+      # case-insensitive substring match, so `Ui` also selects `req-ui-res`,
+      # `b-ui-lder` and `uu-i-d` — a near-arbitrary subset that would look like
+      # a deliberate selection in the log.
+      #
+      # The manifest is asserted first. The test case falls back to a stubbed
+      # Vite when the manifest is missing, so without this line a build that
+      # produced nothing would still leave this step green while proving
+      # nothing — the failure mode where silence reads as success.
+      - name: Render the interface against the built manifest
+        run: |
+          test -f public/build/manifest.json \
+            || { echo "No manifest: the build produced nothing to render against."; exit 1; }
+          php artisan test tests/Feature/Ui
