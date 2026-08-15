@@ -49,7 +49,7 @@
       "status": "pr_open",
       "branch": "claude/cat-001-candidate-promotion",
       "pr": 7,
-      "ci": null,
+      "ci": "green (run 31874233971)",
       "report": "docs/reports/CAT-001.md",
       "stacked_on": "claude/med-001-audio-analysis"
     },
@@ -105,7 +105,8 @@
     "portability": "$table->json() is forbidden platform-wide. MariaDB's json is an alias for longtext/utf8mb4_bin while MySQL 8's is a native binary type, so one migration yields two types with two comparison semantics. Use ->longText() with an Eloquent array cast. Enforced by PortabilityTest::no_engine_specific_construct_is_used_in_any_migration.",
     "capabilities": "FFmpeg is a capability, never a dependency. SANITUBE_MEDIA_ANALYSIS_REQUIRED defaults to false so a cPanel host without ffprobe still produces promotable candidates.",
     "catalogue_writes": "Promotion is the only v1 write that creates a Track. It always creates it DRAFT, mints no ISRC, and is refusable for six reasons each carrying a machine-readable code. One-master-one-track is enforced in PromoteTrackCandidate rather than by a unique index, because tracks is ARCH-002's validated schema.",
-    "ci_triggers": "The workflow only built pull requests whose base was main, so a PR stacked on another claude/** branch showed zero checks — indistinguishable from a repo with no CI. The pull_request branch filter now includes 'claude/**'. Fixed on the CAT-001 branch; it reaches main when that branch merges."
+    "ci_triggers": "The workflow only built pull requests whose base was main, so a PR stacked on another claude/** branch showed zero checks — indistinguishable from a repo with no CI. The pull_request branch filter now includes 'claude/**'. Fixed on the CAT-001 branch; it reaches main when that branch merges.",
+    "migration_rollback": "MySQL and MariaDB drop the index they generate for a foreign key once a user-created index can serve it. A migration that adds a unique index on an FK column must therefore drop the foreign key before dropping that index in down(), then restore it. SQLite enforces none of this, so a local rollback check on SQLite proves nothing about the server engines. Enforced by PortabilityTest::an_index_added_over_a_foreign_key_column_is_undone_in_the_right_order."
   },
   "open_pull_requests": [
     {
@@ -119,7 +120,7 @@
       "pr": 7,
       "ticket": "CAT-001",
       "base": "claude/med-001-audio-analysis",
-      "ci": "see run 31874021550",
+      "ci": "green 10/10 (run 31874233971)",
       "why_open": "Stacked on PR #6. Retarget to main once #6 merges."
     }
   ]
