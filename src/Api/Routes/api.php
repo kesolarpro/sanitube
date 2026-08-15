@@ -9,6 +9,7 @@ use SaniTube\Api\Http\Controllers\V1\GenerationProjectController;
 use SaniTube\Api\Http\Controllers\V1\HealthController;
 use SaniTube\Api\Http\Controllers\V1\IngestionBatchController;
 use SaniTube\Api\Http\Controllers\V1\MusicGenerationController;
+use SaniTube\Api\Http\Controllers\V1\ReleaseBuilderController;
 use SaniTube\Api\Http\Controllers\V1\ReleaseController;
 use SaniTube\Api\Http\Controllers\V1\TrackCandidateController;
 use SaniTube\Api\Http\Controllers\V1\TrackController;
@@ -150,6 +151,35 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
             ->name('generations.results');
         Route::post('generation/results/{result}/select', [MusicGenerationController::class, 'select'])
             ->name('generation.results.select');
+        /*
+         * The Release Builder.
+         *
+         * `validate` and `ready` are separate on purpose: a label wants to see
+         * what is missing while it is still assembling, and committing is a
+         * distinct act that can fail. Nothing here sets `status` directly —
+         * readiness is earned by passing validation, not assigned, and a
+         * settable status field would make I4 optional.
+         *
+         * Every mutation goes through ReleaseMutationPolicy, so a release a
+         * distributor already has cannot be edited into disagreeing with what
+         * stores are serving.
+         */
+        Route::post('releases', [ReleaseBuilderController::class, 'store'])->name('releases.store');
+        Route::patch('releases/{release}', [ReleaseBuilderController::class, 'update'])->name('releases.update');
+
+        Route::post('releases/{release}/tracks', [ReleaseBuilderController::class, 'addTrack'])
+            ->name('releases.tracks.store');
+        Route::delete('releases/{release}/tracks/{track}', [ReleaseBuilderController::class, 'removeTrack'])
+            ->name('releases.tracks.destroy');
+        Route::post('releases/{release}/tracks/reorder', [ReleaseBuilderController::class, 'reorder'])
+            ->name('releases.tracks.reorder');
+
+        Route::post('releases/{release}/validate', [ReleaseBuilderController::class, 'validateRelease'])
+            ->name('releases.validate');
+        Route::post('releases/{release}/ready', [ReleaseBuilderController::class, 'ready'])
+            ->name('releases.ready');
+        Route::post('releases/{release}/reopen', [ReleaseBuilderController::class, 'reopen'])
+            ->name('releases.reopen');
     });
 
 });
