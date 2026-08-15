@@ -155,8 +155,13 @@ final class InterfaceShellTest extends TestCase
                 $this->assertTrue($byKey['design_system']['available']);
                 $this->assertSame('/design-system', $byKey['design_system']['href']);
 
+                // Built, and pointing somewhere real. This assertion moves as
+                // screens land — it was `catalog` that was unbuilt until UI-003.
+                $this->assertTrue($byKey['catalog']['available']);
+                $this->assertSame('/catalog/tracks', $byKey['catalog']['href']);
+
                 // Not built yet, and honest about it.
-                $this->assertFalse($byKey['catalog']['available'] ?? true, 'Catalog has no screen yet.');
+                $this->assertFalse($byKey['releases']['available'] ?? true, 'Releases has no screen yet.');
                 $this->assertNull($byKey['releases']['href']);
             });
     }
