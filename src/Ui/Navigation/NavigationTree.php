@@ -34,7 +34,7 @@ final readonly class NavigationTree
         }
 
         return [
-            $this->item('dashboard', '/', 'dashboard', available: false),
+            $this->item('dashboard', '/', 'dashboard', available: true),
             $this->item('studio', null, 'studio', available: false),
 
             $this->group('library', 'library', [

@@ -24,6 +24,7 @@ const TONES: Record<string, Tone> = {
     QUEUED: 'neutral',
     UNKNOWN: 'neutral',
     SKIPPED: 'neutral',
+    OPTIONAL: 'neutral',
 
     // Work is under way, or somebody else owes an answer.
     PROCESSING: 'progress',
@@ -41,6 +42,8 @@ const TONES: Record<string, Tone> = {
     VERIFIED: 'success',
     PROMOTED: 'success',
     LIVE: 'success',
+    RELEASED: 'success',
+    AVAILABLE: 'success',
     ALLOWED: 'success',
 
     // A person needs to look.
@@ -49,6 +52,7 @@ const TONES: Record<string, Tone> = {
     DUPLICATE: 'warning',
     REVIEW_REQUIRED: 'warning',
     RESTRICTED: 'warning',
+    DEGRADED: 'warning',
     COMPLETED_WITH_ERRORS: 'warning',
 
     // It went wrong, or somebody said no.
@@ -57,6 +61,7 @@ const TONES: Record<string, Tone> = {
     CANCELLED: 'danger',
     TAKEN_DOWN: 'danger',
     PROHIBITED: 'danger',
+    UNAVAILABLE: 'danger',
     ARCHIVED: 'neutral',
 };
 
