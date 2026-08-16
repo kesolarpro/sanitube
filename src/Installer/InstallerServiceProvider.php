@@ -7,6 +7,7 @@ namespace SaniTube\Installer;
 use Illuminate\Contracts\Console\Kernel as Artisan;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Support\ServiceProvider;
+use SaniTube\Installer\Console\DeployCommand;
 use SaniTube\Installer\Console\InstallCommand;
 use SaniTube\Installer\Services\EnvironmentFile;
 use SaniTube\Installer\Services\InstallationService;
@@ -34,7 +35,7 @@ final class InstallerServiceProvider extends ServiceProvider
     public function boot(): void
     {
         if ($this->app->runningInConsole()) {
-            $this->commands([InstallCommand::class]);
+            $this->commands([InstallCommand::class, DeployCommand::class]);
         }
     }
 }

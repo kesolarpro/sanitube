@@ -1,7 +1,7 @@
 {
   "$comment": "Machine-readable project state. Any new session reads this first, then verifies it against GitHub before trusting it. Written at the end of each ticket, so a stale entry means a session ended mid-ticket — check the branch and CI rather than the status field.",
   "updated_at": "2026-08-16",
-  "current_phase": "SET-001 merged",
+  "current_phase": "DEP-001",
   "last_completed_ticket": "SET-001",
   "default_branch": "main",
   "tickets": {
@@ -108,10 +108,10 @@
       "merge_commit": "6acfe26"
     },
     "DEP-001": {
-      "status": "not_started",
-      "branch": null,
-      "pr": null,
-      "ci": null
+      "status": "implemented, awaiting PR",
+      "branch": "claude/dep-001-deploy-script",
+      "ci": "local gate green; CI pending",
+      "note": "bin/deploy.sh plus sanitube:deploy. A deploy creates nothing — no .env, no key, no database — and never pulls, seeds or rebuilds the schema. The storage link and queue restart cannot fail a release."
     },
     "SEC-001": {
       "status": "merged",
@@ -468,8 +468,8 @@
     "note": "Nine tickets (ING/MED/CAT/AI/GEN/REL/DIST/SEC-001 and PR #12) were merged under an earlier autonomous-chaining instruction that bypassed review. A retroactive audit is under way; they stay in main and any correction becomes a follow-up ticket, not a revert. BULK-001b, UI-004 and UI-005 were merged under the session's explicit merge policy for read-only UI, ingestion tooling and documentation: none changes authentication, authorization, rights, money, identifier lifecycle, destructive storage behaviour or any external action."
   },
   "main_sha": "347ecb3",
-  "current_ticket": null,
-  "tests": "971 passed, 1 skipped, 4206 assertions",
+  "current_ticket": "DEP-001",
+  "tests": "992 passed, 1 skipped, 4253 assertions",
   "phpstan": {
     "level": 6,
     "baseline": false,
@@ -483,7 +483,7 @@
     "build": "clean",
     "note": "PHP suite stubs Vite when no manifest exists; the frontend CI job renders against a real one."
   },
-  "next_action": "Start DEP-001 from main. Leave PR #35 open for review.",
+  "next_action": "Open the DEP-001 PR, wait for real CI, merge if 10/10 green. Then DEP-002/003 and OPS-001. PR #35 stays open for review.",
   "session_boundary": {
     "reason": "Context capacity approaching its limit at a clean ticket boundary. Five tickets merged, main green, no open PR.",
     "repository_state": "green",
