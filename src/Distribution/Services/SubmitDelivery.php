@@ -242,14 +242,28 @@ final readonly class SubmitDelivery
         return $delivery->refresh();
     }
 
-    private function fail(DistributionDelivery $delivery, string $reason, int $startedAt): DistributionDelivery
-    {
+    /**
+     * Move the delivery to FAILED and say which action failed.
+     *
+     * The action is a parameter rather than always `Submit` because
+     * `reconcile()` also ends here, and an attempt row saying a *submission*
+     * failed when what actually happened is that a reconciliation concluded
+     * the package never arrived is a log that misdescribes the one
+     * irreversible act in the platform. The history is what a person reads
+     * when deciding whether to hand the release over again.
+     */
+    private function fail(
+        DistributionDelivery $delivery,
+        string $reason,
+        int $startedAt,
+        DistributionAction $action = DistributionAction::Submit,
+    ): DistributionDelivery {
         $delivery->forceFill([
             'status' => DistributionDeliveryStatus::Failed,
             'failure_reason' => $reason,
         ])->save();
 
-        $this->record($delivery, DistributionAction::Submit, DistributionAttemptOutcome::Failed, $reason, $startedAt);
+        $this->record($delivery, $action, DistributionAttemptOutcome::Failed, $reason, $startedAt);
 
         return $delivery->refresh();
     }
@@ -375,23 +389,73 @@ final readonly class SubmitDelivery
             return $delivery;
         }
 
-        if (! $found instanceof DistributorSubmission) {
-            $this->record($delivery, DistributionAction::Reconcile, DistributionAttemptOutcome::Succeeded, 'The distributor holds nothing under this key.', $startedAt);
+        // Claimed only now that there is an answer to write. Everything above
+        // this point either left the row alone or recorded that nobody could
+        // say — neither needs the row held.
+        return DB::transaction(function () use ($delivery, $found, $startedAt): DistributionDelivery {
+            $held = $this->claimUnknown($delivery);
 
-            return $this->fail($delivery, 'The distributor confirmed it never received this submission.', $startedAt);
+            if (! $found instanceof DistributorSubmission) {
+                // One row, not two. "The lookup succeeded" and "the delivery
+                // failed" are the same event seen twice, and an append-only
+                // log that says an outcome twice is one somebody reconciles
+                // by hand.
+                return $this->fail(
+                    $held,
+                    'The distributor confirmed it never received this submission.',
+                    $startedAt,
+                    DistributionAction::Reconcile,
+                );
+            }
+
+            $held->forceFill([
+                'status' => DistributionDeliveryStatus::Submitted,
+                'external_release_id' => $found->externalReleaseId,
+                'failure_reason' => null,
+                'submitted_at' => $held->submitted_at ?? Carbon::now(),
+                'last_synced_at' => Carbon::now(),
+            ])->save();
+
+            $this->record($held, DistributionAction::Reconcile, DistributionAttemptOutcome::Succeeded, 'The distributor holds this submission.', $startedAt);
+
+            return $held->refresh();
+        });
+    }
+
+    /**
+     * Hold the row and confirm it is still awaiting an answer.
+     *
+     * `handle()` claims a delivery with a conditional `UPDATE` because reading
+     * the status and then writing it lets two concurrent submitters both get
+     * through. The two ways *out* of `SUBMITTED_UNCONFIRMED` need the same
+     * protection and for the same reason: two operators answering the same
+     * open question — one recording "it arrived, reference ABC", the other
+     * "it never arrived" — would both pass an unguarded status check, both
+     * write a decision, and leave the delivery holding whichever landed last
+     * with two contradicting rows in a log that is supposed to be the record
+     * of what was decided.
+     *
+     * A re-read under `lockForUpdate()` rather than a conditional `UPDATE`,
+     * because the answer being written is not a single fixed status — it is
+     * whichever of three outcomes the caller arrived at, and the row has to be
+     * held while that is worked out. Same shape as
+     * `RevokeExternalIdentifier`. Must be called inside a transaction.
+     *
+     * @throws DistributionException when somebody else answered first
+     */
+    private function claimUnknown(DistributionDelivery $delivery): DistributionDelivery
+    {
+        /** @var DistributionDelivery $fresh */
+        $fresh = DistributionDelivery::query()
+            ->whereKey($delivery->getKey())
+            ->lockForUpdate()
+            ->firstOrFail();
+
+        if (! $fresh->status->isUnknown()) {
+            throw DistributionException::notReconcilable($fresh->status);
         }
 
-        $delivery->forceFill([
-            'status' => DistributionDeliveryStatus::Submitted,
-            'external_release_id' => $found->externalReleaseId,
-            'failure_reason' => null,
-            'submitted_at' => $delivery->submitted_at ?? Carbon::now(),
-            'last_synced_at' => Carbon::now(),
-        ])->save();
-
-        $this->record($delivery, DistributionAction::Reconcile, DistributionAttemptOutcome::Succeeded, 'The distributor holds this submission.', $startedAt);
-
-        return $delivery->refresh();
+        return $fresh;
     }
 
     /**
@@ -433,23 +497,31 @@ final readonly class SubmitDelivery
 
         $startedAt = hrtime(true);
 
-        if ($arrived) {
-            $delivery->forceFill([
-                'status' => DistributionDeliveryStatus::Submitted,
-                'external_release_id' => trim((string) $externalReleaseId),
-                'failure_reason' => null,
-                'submitted_at' => $delivery->submitted_at ?? Carbon::now(),
-            ])->save();
-        } else {
-            $delivery->forceFill([
-                'status' => DistributionDeliveryStatus::Failed,
-                'failure_reason' => 'Resolved by a person: the distributor never received this submission.',
-            ])->save();
-        }
+        return DB::transaction(function () use ($delivery, $arrived, $externalReleaseId, $decidedBy, $note, $startedAt): DistributionDelivery {
+            // Two people can be looking at the same stuck delivery, and they
+            // can reach opposite conclusions. Whoever answers first is the
+            // answer; the second is told the question is closed rather than
+            // silently overwriting a recorded decision.
+            $held = $this->claimUnknown($delivery);
 
-        $this->recordDecision($delivery, $decidedBy, $arrived, $note, $startedAt);
+            if ($arrived) {
+                $held->forceFill([
+                    'status' => DistributionDeliveryStatus::Submitted,
+                    'external_release_id' => trim((string) $externalReleaseId),
+                    'failure_reason' => null,
+                    'submitted_at' => $held->submitted_at ?? Carbon::now(),
+                ])->save();
+            } else {
+                $held->forceFill([
+                    'status' => DistributionDeliveryStatus::Failed,
+                    'failure_reason' => 'Resolved by a person: the distributor never received this submission.',
+                ])->save();
+            }
 
-        return $delivery->refresh();
+            $this->recordDecision($held, $decidedBy, $arrived, $note, $startedAt);
+
+            return $held->refresh();
+        });
     }
 
     private function recordDecision(

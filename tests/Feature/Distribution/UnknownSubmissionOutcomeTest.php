@@ -189,6 +189,109 @@ final class UnknownSubmissionOutcomeTest extends TestCase
     }
 
     #[Test]
+    public function a_reconciliation_that_ends_in_failure_is_logged_as_a_reconciliation(): void
+    {
+        $release = $this->readyRelease();
+        $delivery = $this->openUnconfirmed($release);
+
+        $reconciled = $this->submit()->reconcile($delivery);
+
+        // The history is what a person reads when deciding whether to hand the
+        // release over again, and "the submission failed" is a different
+        // account of the world from "we asked, and they never got it". The
+        // first invites a retry; the second is the evidence that makes one
+        // safe. A log that says the wrong one misdescribes the only
+        // irreversible act in the platform.
+        $attempt = $reconciled->attempts()->orderByDesc('id')->firstOrFail();
+
+        $this->assertSame(DistributionAction::Reconcile, $attempt->action);
+        $this->assertSame(DistributionAttemptOutcome::Failed, $attempt->outcome);
+
+        // One row for one event. "The lookup succeeded" and "the delivery
+        // failed" are the same moment seen twice.
+        $this->assertSame(1, $reconciled->attempts()
+            ->where('action', DistributionAction::Reconcile->value)
+            ->count());
+    }
+
+    #[Test]
+    public function a_second_answer_to_the_same_open_question_is_refused(): void
+    {
+        $release = $this->readyRelease();
+        $delivery = $this->openUnconfirmed($release);
+
+        $this->submit()->resolveManually(
+            $delivery,
+            arrived: true,
+            externalReleaseId: 'TL-99321',
+            decidedBy: 42,
+            note: 'Found it in the distributor dashboard, awaiting review.',
+        );
+
+        // `$delivery` still says SUBMITTED_UNCONFIRMED — it is the instance a
+        // second operator's request would be holding, loaded before the first
+        // one answered. Checking the in-memory status and then writing is
+        // exactly what `handle()` refuses to do, and for the same reason: two
+        // people can reach opposite conclusions about the same stuck delivery,
+        // and the loser must not silently overwrite a recorded decision.
+        $this->assertTrue($delivery->status->isUnknown());
+
+        try {
+            $this->submit()->resolveManually(
+                $delivery,
+                arrived: false,
+                externalReleaseId: null,
+                decidedBy: 43,
+                note: 'Nothing in the dashboard as far as I can see.',
+            );
+            $this->fail('A closed question was answered twice.');
+        } catch (DistributionException $exception) {
+            $this->assertSame('NOT_RECONCILABLE', $exception->reason);
+        }
+
+        $fresh = $delivery->fresh();
+
+        // The first answer stands, and the second left no trace pretending it
+        // was a decision.
+        $this->assertNotNull($fresh);
+        $this->assertSame(DistributionDeliveryStatus::Submitted, $fresh->status);
+        $this->assertSame('TL-99321', $fresh->external_release_id);
+        $this->assertSame(1, $fresh->attempts()->whereNotNull('decided_by')->count());
+    }
+
+    #[Test]
+    public function a_reconciliation_cannot_overwrite_an_answer_a_person_already_gave(): void
+    {
+        $release = $this->readyRelease();
+        $delivery = $this->openUnconfirmed($release);
+
+        $this->submit()->resolveManually(
+            $delivery,
+            arrived: true,
+            externalReleaseId: 'TL-99321',
+            decidedBy: 42,
+            note: 'Found it in the distributor dashboard, awaiting review.',
+        );
+
+        // The other direction: a reconcile request already in flight when the
+        // person answered. The fake holds nothing, so an unguarded reconcile
+        // would drag a delivery that a person confirmed *did* arrive back to
+        // FAILED — and FAILED is retryable, which is a second delivery.
+        try {
+            $this->submit()->reconcile($delivery);
+            $this->fail('A reconciliation overwrote a recorded decision.');
+        } catch (DistributionException $exception) {
+            $this->assertSame('NOT_RECONCILABLE', $exception->reason);
+        }
+
+        $fresh = $delivery->fresh();
+
+        $this->assertNotNull($fresh);
+        $this->assertSame(DistributionDeliveryStatus::Submitted, $fresh->status);
+        $this->assertSame('TL-99321', $fresh->external_release_id);
+    }
+
+    #[Test]
     public function a_distributor_that_cannot_be_asked_leaves_the_delivery_unknown(): void
     {
         $release = $this->readyRelease();

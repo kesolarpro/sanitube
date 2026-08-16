@@ -206,3 +206,101 @@ consequences:
 | Production build | built |
 | Localisation gate | 33 passed — six locales complete |
 | Mutation pass | 17 injected, 17 killed |
+
+---
+
+# Audit — a later session, before review
+
+This branch was re-read from scratch against the four points above, and the
+rest of the module with it. The four decisions stand as written. Two defects
+turned up that were not among them, both fixed here.
+
+## 1. A reconciliation that failed was logged as a submission that failed
+
+`fail()` hardcoded `DistributionAction::Submit`. `reconcile()` ends there on
+the "the distributor holds nothing" path, so the attempt history recorded a
+**submission failure** for an event that was a *reconciliation concluding the
+package never arrived*.
+
+Those are different accounts of the world, and the difference is the whole
+ticket. "The submission failed" invites a retry. "We asked, and they never got
+it" is the *evidence that makes a retry safe*. A log that says the first when
+the second happened misdescribes the only irreversible act in the platform, in
+the one record a person reads before handing a release over again.
+
+`fail()` now takes the action, defaulting to `Submit`.
+
+The same path also wrote **two** attempt rows — one `Reconcile/Succeeded`
+saying the lookup worked, one `Submit/Failed` saying the delivery failed. One
+event, one row: `Reconcile/Failed`, with the summary that says what was found.
+
+## 2. Neither way out of SUBMITTED_UNCONFIRMED was guarded against a second answer
+
+`handle()` claims a delivery with a conditional `UPDATE`, and the reason is
+written into the file: reading the status and then writing it lets two
+concurrent submitters both get through.
+
+`reconcile()` and `resolveManually()` did exactly that. Both read
+`$delivery->status->isUnknown()` from an in-memory instance and then wrote.
+
+The failure is not hypothetical, and it is worse than a lost update. Two
+operators can look at the same stuck delivery and reach **opposite**
+conclusions — one records "it arrived, reference TL-99321", the other "nothing
+in the dashboard". Both pass the unguarded check, both write a decision, and
+the delivery keeps whichever landed last while the append-only log — the thing
+that exists to make the decision reviewable — holds two contradicting rows.
+
+The reverse ordering is the dangerous one: a reconcile request already in
+flight when a person confirms the package *did* arrive would drag the delivery
+back to `FAILED`, and `FAILED` is submittable. That is a second delivery, which
+is the outcome this module exists to prevent.
+
+`claimUnknown()` re-reads the row under `lockForUpdate()` inside a transaction
+and re-checks that the question is still open. Whoever answers first is the
+answer; the second is told `NOT_RECONCILABLE`.
+
+A re-read rather than a conditional `UPDATE` because the value being written is
+not one fixed status — it is whichever of three outcomes the caller arrived at,
+and the row has to be held while that is worked out. Same shape as
+`RevokeExternalIdentifier`, which had the same problem for the same reason.
+
+### Mutation pass on the fixes
+
+| # | Mutation | Result |
+|---|---|---|
+| M1 | The reconcile failure is logged as a submission again | killed |
+| M2 | The claim stops checking that the question is still open | killed |
+| M3 | The claim re-reads nothing and trusts the caller's instance | killed |
+| M4 | Reconcile logs the outcome twice again | killed |
+
+## What the audit did not find
+
+- **Authorization.** Both new routes sit inside `can.role:distribute`, with
+  the rest of the distribution actions. `decided_by` comes from
+  `$request->user()`, never from the request body — a `decided_by` field posted
+  by a client is ignored, and `ResolveDeliveryRequest` does not accept one.
+- **Storage leakage.** Nothing in the delivery payloads carries a disk, a
+  bucket, an object key or a provider URL.
+- **Identifier invention.** No ISRC, UPC or EAN is minted anywhere on this
+  branch. The hand-typed value is a *distributor's own submission reference*,
+  which is a different kind of thing and is flagged as review point 3 either
+  way.
+- **Portability.** The one migration adds a nullable `decided_by` integer. No
+  `json()`, no enum column, no engine-specific SQL. `lockForUpdate()` compiles
+  to `FOR UPDATE` on MySQL and MariaDB and is a no-op on SQLite, where the
+  write transaction already serialises — the four-engine matrix covers it.
+
+## Merged with main
+
+`OPS-001` and `REL-002` landed underneath this branch. REL-002 is the relevant
+one: it removed `SubmitDelivery::wasUnreachable()`, the substring match on an
+English message, and this branch's version of it went with it. The unreachable
+check is now `$verdict->has('DISTRIBUTOR_UNREACHABLE')`.
+
+## Gate after the audit
+
+1070 passed, 1 skipped, 4705 assertions · PHPStan clean · Pint clean ·
+4 further mutations injected, 4 killed.
+
+**Still REVIEW_REQUIRED. Still not merged.** The four decisions at the top of
+this document are what needs a signature; nothing in this audit changes them.
