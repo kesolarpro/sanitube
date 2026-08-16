@@ -8,6 +8,8 @@
  * having to write the leak down first.
  */
 
+import type { ValidationIssue } from '@/Types/releases';
+
 export interface ArtistRef {
     uuid: string;
     name: string;
@@ -117,6 +119,23 @@ export interface TrackDetail {
         track_number: number | null;
         is_focus_track: boolean;
     }[];
+
+    /**
+     * CAT-002. The same list `markReady()` throws on, as codes the screen
+     * translates — not a second opinion about readiness.
+     */
+    readiness_problems: ValidationIssue[];
+
+    /**
+     * Presentation, never authorisation. `can.role:catalogue` on the route is
+     * what decides; this only lets a button be absent with an explanation
+     * instead of failing on save.
+     */
+    actions: {
+        may_edit: boolean;
+        can_edit_credits: boolean;
+        can_mark_ready: boolean;
+    };
 }
 
 export interface ArtistRow {

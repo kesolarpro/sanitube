@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace SaniTube\Releases;
+namespace SaniTube\Foundation\Validation;
 
 /**
  * One thing wrong with a release, said in a way an interface can translate.
@@ -34,7 +34,7 @@ namespace SaniTube\Releases;
  * an exception and a delivery-attempt record. What changed is that nothing
  * *decides* anything from it.
  */
-final readonly class ReleaseValidationIssue
+final readonly class ValidationIssue
 {
     public const ERROR = 'ERROR';
 

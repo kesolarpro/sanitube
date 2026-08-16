@@ -7,9 +7,9 @@ namespace SaniTube\Distribution\Services;
 use SaniTube\Catalog\Enums\ExternalIdentifierType;
 use SaniTube\Catalog\Models\Track;
 use SaniTube\Distribution\Contracts\Distributor;
+use SaniTube\Foundation\Validation\ValidationIssue;
+use SaniTube\Foundation\Validation\ValidationResult;
 use SaniTube\Releases\Models\Release;
-use SaniTube\Releases\ReleaseValidationIssue;
-use SaniTube\Releases\ReleaseValidationResult;
 use SaniTube\Releases\Services\ValidateRelease;
 use Throwable;
 
@@ -37,7 +37,7 @@ final readonly class ValidateDelivery
 {
     public function __construct(private ValidateRelease $releases) {}
 
-    public function handle(Release $release, Distributor $distributor): ReleaseValidationResult
+    public function handle(Release $release, Distributor $distributor): ValidationResult
     {
         $issues = [...$this->releases->handle($release)->issues, ...$this->identifierErrors($release)];
 
@@ -46,7 +46,7 @@ final readonly class ValidateDelivery
             // verdict and returning "valid" would tell a label its release is
             // ready to deliver on an installation that cannot deliver
             // anything.
-            $issues[] = ReleaseValidationIssue::error(
+            $issues[] = ValidationIssue::error(
                 'DISTRIBUTOR_NOT_CONFIGURED',
                 'distributor',
                 sprintf(
@@ -67,7 +67,7 @@ final readonly class ValidateDelivery
                     // than as the contract. Its objections are its own and
                     // cannot be enumerated in advance; the *code* says where
                     // they came from.
-                    $issues[] = ReleaseValidationIssue::error(
+                    $issues[] = ValidationIssue::error(
                         'DISTRIBUTOR_REFUSED',
                         'distributor.'.$index,
                         $message,
@@ -76,7 +76,7 @@ final readonly class ValidateDelivery
                 }
 
                 foreach ($verdict->warnings as $index => $message) {
-                    $issues[] = ReleaseValidationIssue::warning(
+                    $issues[] = ValidationIssue::warning(
                         'DISTRIBUTOR_WARNED',
                         'distributor.warning.'.$index,
                         $message,
@@ -94,7 +94,7 @@ final readonly class ValidateDelivery
                 // been unreachable by searching this sentence for a substring
                 // — so a reworded message would silently have turned an outage
                 // into a rejection, and a rejection is a verdict.
-                $issues[] = ReleaseValidationIssue::error(
+                $issues[] = ValidationIssue::error(
                     'DISTRIBUTOR_UNREACHABLE',
                     'distributor',
                     sprintf(
@@ -111,7 +111,7 @@ final readonly class ValidateDelivery
             // Not an error — a sandbox delivery is a legitimate rehearsal —
             // but submitting a real release to a sandbox is exactly the kind
             // of mistake that must be visible rather than discovered later.
-            $issues[] = ReleaseValidationIssue::warning(
+            $issues[] = ValidationIssue::warning(
                 'DISTRIBUTOR_SANDBOX',
                 'distributor',
                 sprintf(
@@ -122,11 +122,11 @@ final readonly class ValidateDelivery
             );
         }
 
-        return new ReleaseValidationResult($issues);
+        return new ValidationResult($issues);
     }
 
     /**
-     * @return list<ReleaseValidationIssue>
+     * @return list<ValidationIssue>
      */
     private function identifierErrors(Release $release): array
     {
@@ -134,7 +134,7 @@ final readonly class ValidateDelivery
 
         if (! $this->hasIdentifier($release, ExternalIdentifierType::Upc)
             && ! $this->hasIdentifier($release, ExternalIdentifierType::Ean)) {
-            $errors[] = ReleaseValidationIssue::error(
+            $errors[] = ValidationIssue::error(
                 'NO_PRODUCT_IDENTIFIER',
                 'identifiers',
                 'The release has no UPC or EAN. Stores identify a product by it, and SaniTube does not mint one.',
@@ -147,7 +147,7 @@ final readonly class ValidateDelivery
                 ->where('type', ExternalIdentifierType::Isrc->value)
                 ->whereNotNull('active_marker')
                 ->doesntExist()) {
-                $errors[] = ReleaseValidationIssue::error(
+                $errors[] = ValidationIssue::error(
                     'TRACK_NO_ISRC',
                     'tracks.'.$track->uuid,
                     sprintf(

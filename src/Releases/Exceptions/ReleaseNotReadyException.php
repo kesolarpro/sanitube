@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace SaniTube\Releases\Exceptions;
 
 use DomainException;
+use SaniTube\Foundation\Validation\ValidationIssue;
 use SaniTube\Releases\Models\Release;
-use SaniTube\Releases\ReleaseValidationIssue;
 
 /**
  * A release that was asked to be READY and is not.
@@ -18,11 +18,11 @@ use SaniTube\Releases\ReleaseValidationIssue;
  */
 final class ReleaseNotReadyException extends DomainException
 {
-    /** @var list<ReleaseValidationIssue> */
+    /** @var list<ValidationIssue> */
     public array $problems = [];
 
     /**
-     * @param  list<ReleaseValidationIssue>  $problems
+     * @param  list<ValidationIssue>  $problems
      */
     public static function because(Release $release, array $problems): self
     {
@@ -30,7 +30,7 @@ final class ReleaseNotReadyException extends DomainException
             'Release [%s] cannot be marked READY: %s',
             $release->uuid,
             implode(' ', array_map(
-                static fn (ReleaseValidationIssue $issue): string => $issue->message(),
+                static fn (ValidationIssue $issue): string => $issue->message(),
                 $problems,
             )),
         ));

@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace SaniTube\Distribution;
 
-use SaniTube\Releases\ReleaseValidationResult;
+use SaniTube\Foundation\Validation\ValidationResult;
 
 /**
  * What a distributor said about a package it has not been given yet.
  *
- * Separate from {@see ReleaseValidationResult}, and both are
+ * Separate from {@see ValidationResult}, and both are
  * needed. SaniTube's own validation says whether the release is internally
  * coherent; this says whether *this particular distributor* will take it, and
  * every distributor's rules are stricter and different. A release can be

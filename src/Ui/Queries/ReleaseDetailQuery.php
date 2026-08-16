@@ -7,13 +7,13 @@ namespace SaniTube\Ui\Queries;
 use App\Models\User;
 use SaniTube\Catalog\Enums\ExternalIdentifierType;
 use SaniTube\Catalog\Models\ExternalIdentifier;
+use SaniTube\Foundation\Validation\ValidationIssue;
 use SaniTube\Releases\Enums\ReleaseArtistRole;
 use SaniTube\Releases\Enums\ReleaseStatus;
 use SaniTube\Releases\Models\Release;
 use SaniTube\Releases\Models\ReleaseArtist;
 use SaniTube\Releases\Models\ReleaseTrack;
 use SaniTube\Releases\ReleaseMutationPolicy;
-use SaniTube\Releases\ReleaseValidationIssue;
 use SaniTube\Releases\Services\ValidateRelease;
 
 /**
@@ -79,7 +79,7 @@ final readonly class ReleaseDetailQuery
             // readiness — the one the domain will act on. REL-002: issues with
             // codes, so the screen can say this in somebody's own language.
             'readiness_problems' => array_map(
-                static fn (ReleaseValidationIssue $issue): array => $issue->toArray(),
+                static fn (ValidationIssue $issue): array => $issue->toArray(),
                 $release->readinessProblems(),
             ),
 
