@@ -26,6 +26,7 @@ use SaniTube\Ui\Http\Controllers\Studio\GenerationIndexController;
 use SaniTube\Ui\Http\Controllers\Studio\OverviewController;
 use SaniTube\Ui\Http\Controllers\Studio\ProjectDetailController;
 use SaniTube\Ui\Http\Controllers\Studio\ProjectIndexController;
+use SaniTube\Ui\Http\Controllers\Studio\StudioActionController;
 use SaniTube\Ui\Http\Middleware\HandleInertiaRequests;
 
 /*
@@ -99,6 +100,25 @@ Route::middleware(['web', HandleInertiaRequests::class, 'auth', 'active'])->grou
     Route::get('studio/projects/{project}', ProjectDetailController::class)->name('studio.projects.show');
     Route::get('studio/generations', GenerationIndexController::class)->name('studio.generations');
     Route::get('studio/generations/{generation}', GenerationDetailController::class)->name('studio.generations.show');
+
+    /*
+     * Studio writes.
+     *
+     * Behind `can.role:catalogue`, the same guard candidate review uses.
+     * Starting a generation spends the operator's money at a supplier and
+     * selecting a result puts audio into the review queue; a MEMBER may watch
+     * the studio and cause neither.
+     */
+    Route::middleware('can.role:catalogue')->group(function (): void {
+        Route::post('studio/projects', [StudioActionController::class, 'createProject'])
+            ->name('studio.projects.store');
+        Route::post('studio/generations', [StudioActionController::class, 'startGeneration'])
+            ->name('studio.generations.store');
+        Route::post('studio/generations/{generation}/cancel', [StudioActionController::class, 'cancelGeneration'])
+            ->name('studio.generations.cancel');
+        Route::post('studio/results/{result}/select', [StudioActionController::class, 'selectResult'])
+            ->name('studio.results.select');
+    });
 
     Route::get('design-system', DesignSystemController::class)->name('design-system');
 });

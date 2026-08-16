@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace SaniTube\Ui\Http\Controllers\Studio;
 
+use App\Models\User;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 use SaniTube\Ui\Queries\StudioOverviewQuery;
@@ -18,8 +20,11 @@ use SaniTube\Ui\Queries\StudioOverviewQuery;
  */
 final class OverviewController
 {
-    public function __invoke(StudioOverviewQuery $overview): Response
+    public function __invoke(Request $request, StudioOverviewQuery $overview): Response
     {
-        return Inertia::render('Studio/Index', ['studio' => $overview->get()]);
+        /** @var User $viewer */
+        $viewer = $request->user();
+
+        return Inertia::render('Studio/Index', ['studio' => $overview->get($viewer)]);
     }
 }

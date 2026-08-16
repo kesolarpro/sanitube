@@ -1,7 +1,10 @@
 <script setup lang="ts">
-import { Link, usePage } from '@inertiajs/vue3';
+import { computed, ref } from 'vue';
+import { Link, useForm, usePage } from '@inertiajs/vue3';
 import AppAlert from '@/Components/Ui/AppAlert.vue';
+import AppButton from '@/Components/Ui/AppButton.vue';
 import AppCard from '@/Components/Ui/AppCard.vue';
+import ConfirmDialog from '@/Components/Ui/ConfirmDialog.vue';
 import DataTable from '@/Components/Data/DataTable.vue';
 import TableCell from '@/Components/Data/TableCell.vue';
 import TableHeaderCell from '@/Components/Data/TableHeaderCell.vue';
@@ -23,9 +26,45 @@ import type { GenerationDetail } from '@/Types/studio';
  * "the audio arrived" and "the audio may be sold" are different questions and
  * only one of them has been answered.
  */
-defineProps<{ generation: GenerationDetail }>();
+const props = defineProps<{ generation: GenerationDetail }>();
 
-const locale = usePage<SharedProps>().props.app.locale;
+const page = usePage<SharedProps>();
+const locale = page.props.app.locale;
+
+const cancelling = ref(false);
+const selecting = ref<string | null>(null);
+
+const cancelForm = useForm({});
+const selectForm = useForm({});
+
+/** A refusal from the domain, as its machine-readable reason code. */
+const actionError = computed(() => {
+    const errors = page.props.errors as Record<string, string> | undefined;
+
+    return errors?.generation ?? null;
+});
+
+function submitCancel(): void {
+    cancelForm.post(`/studio/generations/${props.generation.uuid}/cancel`, {
+        preserveScroll: true,
+        onSuccess: () => {
+            cancelling.value = false;
+        },
+    });
+}
+
+function submitSelect(): void {
+    if (selecting.value === null) {
+        return;
+    }
+
+    selectForm.post(`/studio/results/${selecting.value}/select`, {
+        preserveScroll: true,
+        onSuccess: () => {
+            selecting.value = null;
+        },
+    });
+}
 </script>
 
 <template>
@@ -43,8 +82,22 @@ const locale = usePage<SharedProps>().props.app.locale;
                     <template v-if="generation.model !== null"> · {{ generation.model }}</template>
                 </p>
             </div>
-            <StatusBadge :status="generation.status" group="generic" />
+            <div class="flex items-center gap-2">
+                <StatusBadge :status="generation.status" group="generic" />
+                <AppButton
+                    v-if="generation.actions.can_cancel"
+                    variant="danger"
+                    size="sm"
+                    @click="cancelling = true"
+                >
+                    {{ trans('ui.studio.cancel_generation') }}
+                </AppButton>
+            </div>
         </div>
+
+        <AppAlert v-if="actionError !== null" tone="danger" :title="trans('ui.ingestion.refused')">
+            {{ trans(`ui.studio.generation_failure.${actionError}`) }}
+        </AppAlert>
 
         <AppAlert
             v-if="generation.commercial_rights_status === 'UNKNOWN'"
@@ -174,10 +227,43 @@ const locale = usePage<SharedProps>().props.app.locale;
                         >
                             {{ trans('ui.catalog.assets') }}
                         </Link>
+                        <AppButton
+                            v-else-if="generation.actions.can_select && result.has_audio"
+                            variant="secondary"
+                            size="sm"
+                            @click="selecting = result.uuid"
+                        >
+                            {{ trans('ui.studio.select_result') }}
+                        </AppButton>
                         <span v-else class="text-muted">{{ trans('ui.studio.not_imported') }}</span>
                     </TableCell>
                 </tr>
             </DataTable>
         </AppCard>
+
+        <!-- Stopping costs nothing to ask for and cannot be undone if the
+             provider has already finished or already charged. -->
+        <ConfirmDialog
+            :open="cancelling"
+            :title="trans('ui.studio.cancel_generation')"
+            :description="trans('ui.studio.cancel_generation_description')"
+            :confirm-label="trans('ui.studio.cancel_generation_confirm')"
+            destructive
+            :busy="cancelForm.processing"
+            @cancel="cancelling = false"
+            @confirm="submitCancel"
+        />
+
+        <!-- Taking a result fetches audio from the provider and stores it. It
+             produces a proposal, never a track. -->
+        <ConfirmDialog
+            :open="selecting !== null"
+            :title="trans('ui.studio.select_result')"
+            :description="trans('ui.studio.select_result_description')"
+            :confirm-label="trans('ui.studio.select_result_confirm')"
+            :busy="selectForm.processing"
+            @cancel="selecting = null"
+            @confirm="submitSelect"
+        />
     </div>
 </template>

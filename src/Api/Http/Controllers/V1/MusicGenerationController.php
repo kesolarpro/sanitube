@@ -17,7 +17,7 @@ use SaniTube\MusicGeneration\Jobs\SubmitMusicGenerationJob;
 use SaniTube\MusicGeneration\Models\GenerationProject;
 use SaniTube\MusicGeneration\Models\MusicGeneration;
 use SaniTube\MusicGeneration\Models\MusicGenerationResult;
-use SaniTube\MusicGeneration\MusicGenerationManager;
+use SaniTube\MusicGeneration\Services\CancelMusicGeneration;
 use SaniTube\MusicGeneration\Services\StartMusicGeneration;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -76,28 +76,18 @@ final class MusicGenerationController
         );
     }
 
-    public function cancel(MusicGeneration $generation, MusicGenerationManager $providers): JsonResponse|MusicGenerationResource
+    public function cancel(MusicGeneration $generation, CancelMusicGeneration $canceller): JsonResponse|MusicGenerationResource
     {
-        if (! $generation->status->isCancellable()) {
-            return $this->refused(
-                sprintf('A generation in [%s] has already finished.', $generation->status->value),
-                'NOT_CANCELLABLE',
-            );
+        try {
+            // Telling the provider and then writing CANCELLED is one operation
+            // with one home. It used to live here; a second surface needing it
+            // would have meant a second copy.
+            $cancelled = $canceller->handle($generation);
+        } catch (GenerationException $exception) {
+            return $this->refused($exception->getMessage(), $exception->reason);
         }
 
-        if ($generation->provider_job_id !== null) {
-            // Best effort. A provider that refuses, or does not support
-            // cancellation, does not stop SaniTube recording the intent —
-            // otherwise a stuck job could never be closed locally.
-            $providers->provider($generation->provider)->cancelGeneration($generation->provider_job_id);
-        }
-
-        $generation->forceFill([
-            'status' => MusicGenerationStatus::Cancelled,
-            'completed_at' => now(),
-        ])->save();
-
-        return new MusicGenerationResource($generation->refresh());
+        return new MusicGenerationResource($cancelled);
     }
 
     public function select(MusicGenerationResult $result): JsonResponse|MusicGenerationResultResource

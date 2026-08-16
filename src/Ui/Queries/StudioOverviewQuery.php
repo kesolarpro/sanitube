@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SaniTube\Ui\Queries;
 
+use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use SaniTube\MusicGeneration\Enums\CommercialRightsStatus;
 use SaniTube\MusicGeneration\Enums\MusicGenerationStatus;
@@ -38,10 +39,19 @@ final readonly class StudioOverviewQuery
     /**
      * @return array<string, mixed>
      */
-    public function get(): array
+    public function get(?User $viewer = null): array
     {
+        $provider = $this->provider();
+
         return [
-            'provider' => $this->provider(),
+            'provider' => $provider,
+
+            // Both halves have to be true, and they fail for different
+            // reasons: a MEMBER is not allowed to spend money at a supplier,
+            // and nobody can when there is no supplier configured. The screen
+            // says which.
+            'may_generate' => ($viewer?->role->canWriteCatalogue() ?? false)
+                && ($provider['available'] ?? false) === true,
             'generations' => $this->generationCounts(),
             'rights' => $this->rightsCounts(),
             'projects' => (int) DB::table('generation_projects')->count(),
