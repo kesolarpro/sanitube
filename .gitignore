@@ -2,6 +2,10 @@
 .DS_Store
 .env
 .env.backup
+# The installer writes a timestamped copy before it modifies anything. It holds
+# every credential the original does, so the bare `.env.backup` pattern above
+# is not enough — it does not match `.env.backup-20260816-011028`.
+.env.backup-*
 .env.production
 .phpactor.json
 .phpunit.result.cache
