@@ -25,6 +25,7 @@ use SaniTube\Ui\Http\Controllers\Ingestion\BatchIndexController;
 use SaniTube\Ui\Http\Controllers\Ingestion\CandidateDetailController;
 use SaniTube\Ui\Http\Controllers\Ingestion\CandidateIndexController;
 use SaniTube\Ui\Http\Controllers\Ingestion\CandidateReviewController;
+use SaniTube\Ui\Http\Controllers\Ingestion\ImportActionController;
 use SaniTube\Ui\Http\Controllers\Releases\ReleaseActionController;
 use SaniTube\Ui\Http\Controllers\Releases\ReleaseBuilderController;
 use SaniTube\Ui\Http\Controllers\Releases\ReleaseIndexController;
@@ -97,6 +98,14 @@ Route::middleware(['web', HandleInertiaRequests::class, 'auth', 'active'])->grou
      * `PATCH {status: PROMOTED}` would present all of that as an assignment.
      */
     Route::middleware('can.role:catalogue')->group(function (): void {
+        // ING-002. Starting an import is a write, and until now the only way
+        // to perform one was a terminal — which meant a label that dropped
+        // twenty new masters in a folder needed SSH to bring them in. Nothing
+        // is imported inside the request: the batch is created and the work is
+        // queued.
+        Route::post('ingestion/batches', [ImportActionController::class, 'start'])
+            ->name('ingestion.batches.store');
+
         Route::post('ingestion/candidates/{candidate}/promote', [CandidateReviewController::class, 'promote'])
             ->name('ingestion.candidates.promote');
         Route::post('ingestion/candidates/{candidate}/reject', [CandidateReviewController::class, 'reject'])
