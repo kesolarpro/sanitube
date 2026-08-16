@@ -8,8 +8,8 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use SaniTube\Api\Http\Requests\V1\StoreGenerationProjectRequest;
 use SaniTube\Api\Http\Resources\V1\GenerationProjectResource;
-use SaniTube\MusicGeneration\Enums\GenerationProjectStatus;
 use SaniTube\MusicGeneration\Models\GenerationProject;
+use SaniTube\MusicGeneration\Services\CreateGenerationProject;
 use Symfony\Component\HttpFoundation\Response;
 
 final class GenerationProjectController
@@ -26,18 +26,17 @@ final class GenerationProjectController
         return new GenerationProjectResource($project);
     }
 
-    public function store(StoreGenerationProjectRequest $request): JsonResponse
+    public function store(StoreGenerationProjectRequest $request, CreateGenerationProject $creator): JsonResponse
     {
-        $project = GenerationProject::query()->create([
-            'name' => (string) $request->input('name'),
-            'target_track_count' => $request->input('target_track_count'),
-            'default_language' => $request->input('default_language'),
-            'default_genre' => $request->input('default_genre'),
-            'default_style_prompt' => $request->input('default_style_prompt'),
-            // A campaign starts as a draft. Nothing has been generated, and
-            // ACTIVE would claim otherwise.
-            'status' => GenerationProjectStatus::Draft,
-        ]);
+        // The rule that a campaign starts as a draft lives in the service, so
+        // this surface and the interface cannot disagree about it.
+        $project = $creator->handle(
+            name: (string) $request->input('name'),
+            targetTrackCount: $request->integer('target_track_count') ?: null,
+            defaultLanguage: $request->input('default_language'),
+            defaultGenre: $request->input('default_genre'),
+            defaultStylePrompt: $request->input('default_style_prompt'),
+        );
 
         return GenerationProjectResource::make($project)
             ->response()

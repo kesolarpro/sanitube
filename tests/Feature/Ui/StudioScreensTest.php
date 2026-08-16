@@ -212,7 +212,8 @@ final class StudioScreensTest extends TestCase
             'selected' => false,
         ]);
 
-        $payload = $this->app->make(GenerationDetailQuery::class)->forGeneration($generation->refresh());
+        $payload = $this->app->make(GenerationDetailQuery::class)
+            ->forGeneration($generation->refresh(), $this->user());
 
         $flags = array_column($payload['results'], 'has_audio');
         sort($flags);

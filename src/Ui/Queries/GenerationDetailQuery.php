@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace SaniTube\Ui\Queries;
 
+use App\Models\User;
+use SaniTube\MusicGeneration\Enums\MusicGenerationStatus;
 use SaniTube\MusicGeneration\Models\MusicGeneration;
 use SaniTube\MusicGeneration\Models\MusicGenerationResult;
 
@@ -34,7 +36,7 @@ final readonly class GenerationDetailQuery
     /**
      * @return array<string, mixed>
      */
-    public function forGeneration(MusicGeneration $generation): array
+    public function forGeneration(MusicGeneration $generation, User $viewer): array
     {
         $generation->load(['project', 'results']);
 
@@ -74,6 +76,32 @@ final readonly class GenerationDetailQuery
             'created_at' => $generation->created_at?->toAtomString(),
 
             'results' => $this->results($generation),
+            'actions' => $this->actions($generation, $viewer),
+        ];
+    }
+
+    /**
+     * Which actions this generation is in a state to receive, and whether this
+     * person may take them.
+     *
+     * **Presentation, never authorisation.** `can.role:catalogue` on the route
+     * decides who may act and the services decide what is permissible; this
+     * exists so a button can be disabled with an explanation instead of
+     * failing when pressed. The predicates are the enum's own.
+     *
+     * @return array<string, mixed>
+     */
+    private function actions(MusicGeneration $generation, User $viewer): array
+    {
+        $mayWrite = $viewer->role->canWriteCatalogue();
+
+        return [
+            'may_act' => $mayWrite,
+            'can_cancel' => $mayWrite && $generation->status->isCancellable(),
+            // Results can only be taken into the review queue once the
+            // provider has finished; selecting mid-flight would fetch audio
+            // that is not final.
+            'can_select' => $mayWrite && $generation->status === MusicGenerationStatus::Completed,
         ];
     }
 

@@ -40,6 +40,7 @@ export interface RightsCounts {
 }
 
 export interface StudioOverview {
+    may_generate: boolean;
     provider: ProviderState;
     generations: GenerationCounts;
     rights: RightsCounts;
@@ -112,6 +113,18 @@ export interface GenerationResultRow {
     candidate_uuid: string | null;
 }
 
+/**
+ * Which actions the generation is in a state to receive.
+ *
+ * Presentation, never authorisation: the route middleware decides who may act
+ * and the services decide what is permissible.
+ */
+export interface GenerationActions {
+    may_act: boolean;
+    can_cancel: boolean;
+    can_select: boolean;
+}
+
 export interface GenerationDetail {
     uuid: string;
     status: string;
@@ -131,4 +144,5 @@ export interface GenerationDetail {
     last_polled_at: string | null;
     created_at: string | null;
     results: GenerationResultRow[];
+    actions: GenerationActions;
 }
