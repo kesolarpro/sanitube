@@ -10,6 +10,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use PHPUnit\Framework\Attributes\Test;
+use SaniTube\Deployment\Services\CreateBackup;
 use SaniTube\Identity\Enums\UserRole;
 use SaniTube\Observability\Health\OperationalHealth;
 use SaniTube\Observability\Health\OperationalHealthStore;
@@ -309,6 +310,74 @@ final class SystemScreensTest extends TestCase
         $this->assertSame(1, $summary['reserved']);
         $this->assertSame(0, $summary['failed']);
         $this->assertTrue($summary['readable']);
+    }
+
+    #[Test]
+    public function an_installation_that_has_never_been_backed_up_says_so(): void
+    {
+        config(['backup.destination' => storage_path('framework/testing/backups-never')]);
+
+        $backups = $this->app->make(OperationsQuery::class)->get()['backups'];
+
+        // Never backed up and backed up a long time ago are different
+        // problems. A dash for both is how the first goes unnoticed for
+        // months, which is the classic disaster this panel exists for.
+        $this->assertTrue($backups['readable']);
+        $this->assertNull($backups['taken_at']);
+        $this->assertSame(0, $backups['count']);
+    }
+
+    #[Test]
+    public function a_backup_destination_inside_the_web_root_reports_itself_rather_than_breaking_the_screen(): void
+    {
+        config(['backup.destination' => public_path('backups')]);
+
+        $backups = $this->app->make(OperationsQuery::class)->get()['backups'];
+
+        // This is the page somebody opens when things are already wrong. A
+        // misconfiguration must appear on it, not take it down.
+        $this->assertFalse($backups['readable']);
+        $this->assertNull($backups['count']);
+
+        $this->actingAs($this->user())->get('/system/operations')->assertOk();
+    }
+
+    #[Test]
+    public function loading_operations_never_verifies_a_backup(): void
+    {
+        config(['backup.destination' => storage_path('framework/testing/backups-corrupt')]);
+
+        $result = $this->app->make(CreateBackup::class)->handle();
+        file_put_contents($result['path'].'/database.jsonl', 'tampered', FILE_APPEND);
+
+        try {
+            $backups = $this->app->make(OperationsQuery::class)->get()['backups'];
+
+            // Verifying reads every byte of every backup. That is
+            // `sanitube:restore --verify`, and it has no business running
+            // during a page load — the listing reports what exists, not
+            // whether it is intact.
+            $this->assertSame(1, $backups['count']);
+            $this->assertNotNull($backups['taken_at']);
+        } finally {
+            $this->rmrf(storage_path('framework/testing/backups-corrupt'));
+        }
+    }
+
+    private function rmrf(string $directory): void
+    {
+        if (! is_dir($directory)) {
+            return;
+        }
+
+        /** @var list<string> $entries */
+        $entries = glob($directory.'/*') ?: [];
+
+        foreach ($entries as $entry) {
+            is_dir($entry) && ! is_link($entry) ? $this->rmrf($entry) : unlink($entry);
+        }
+
+        rmdir($directory);
     }
 
     #[Test]

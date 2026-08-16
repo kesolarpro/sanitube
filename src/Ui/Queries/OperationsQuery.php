@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace SaniTube\Ui\Queries;
 
 use DateTimeImmutable;
+use SaniTube\Deployment\Services\BackupRepository;
 use SaniTube\Observability\Health\OperationalHealthStore;
 use SaniTube\Observability\SchedulerHeartbeat;
+use Throwable;
 
 /**
  * The operational picture, assembled entirely from stored state.
@@ -33,6 +35,7 @@ final readonly class OperationsQuery
         private OperationalHealthStore $health,
         private SchedulerHeartbeat $heartbeat,
         private QueueQuery $queue,
+        private BackupRepository $backups,
     ) {}
 
     /**
@@ -44,7 +47,46 @@ final readonly class OperationsQuery
             'health' => $this->operational(),
             'scheduler' => $this->scheduler(),
             'queue' => $this->queue->summary(),
+            'backups' => $this->backups(),
             'runtime' => $this->runtime(),
+        ];
+    }
+
+    /**
+     * When a backup was last taken, and how many there are.
+     *
+     * On the operations screen because a backup job that silently stopped is
+     * the classic disaster: nothing is wrong until the day something is, and
+     * by then the newest backup is three months old. A date an operator walks
+     * past every week is what makes that visible.
+     *
+     * Reading the manifests is a directory listing, not a probe — the same
+     * boundary the rest of this screen keeps. It never verifies checksums:
+     * that is `sanitube:restore --verify`, which is a real read of every byte
+     * and has no business running during a page load.
+     *
+     * `taken_at` of null means **no backup has ever been taken**, and the
+     * screen says so rather than showing a dash. Never backed up and backed up
+     * a long time ago are different problems.
+     *
+     * @return array<string, mixed>
+     */
+    private function backups(): array
+    {
+        try {
+            $complete = $this->backups->complete();
+        } catch (Throwable) {
+            // A misconfigured destination — inside the web root, say — must
+            // report itself rather than take the operations screen down. This
+            // is the page somebody opens when things are already wrong.
+            return ['readable' => false, 'count' => null, 'taken_at' => null, 'destination_configured' => false];
+        }
+
+        return [
+            'readable' => true,
+            'count' => count($complete),
+            'taken_at' => $complete === [] ? null : $complete[0]['manifest']->createdAt,
+            'destination_configured' => true,
         ];
     }
 
