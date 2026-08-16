@@ -21,6 +21,10 @@ use SaniTube\Ui\Http\Controllers\Ingestion\BatchIndexController;
 use SaniTube\Ui\Http\Controllers\Ingestion\CandidateDetailController;
 use SaniTube\Ui\Http\Controllers\Ingestion\CandidateIndexController;
 use SaniTube\Ui\Http\Controllers\Ingestion\CandidateReviewController;
+use SaniTube\Ui\Http\Controllers\Releases\ReleaseActionController;
+use SaniTube\Ui\Http\Controllers\Releases\ReleaseBuilderController;
+use SaniTube\Ui\Http\Controllers\Releases\ReleaseIndexController;
+use SaniTube\Ui\Http\Controllers\Releases\ReleasePickerController;
 use SaniTube\Ui\Http\Controllers\Studio\GenerationDetailController;
 use SaniTube\Ui\Http\Controllers\Studio\GenerationIndexController;
 use SaniTube\Ui\Http\Controllers\Studio\OverviewController;
@@ -138,6 +142,44 @@ Route::middleware(['web', HandleInertiaRequests::class, 'auth', 'active'])->grou
         // pressed by a person who asked for it.
         Route::post('system/operations/refresh', RefreshHealthController::class)
             ->name('system.operations.refresh');
+    });
+
+    /*
+     * Releases.
+     *
+     * Reading is open to anyone signed in; every mutation is behind
+     * `can.role:catalogue` and goes through ReleaseBuilder. Nothing here writes
+     * `status` — readiness is earned by passing validation, and `markReady()`
+     * re-runs the invariants rather than trusting the caller.
+     */
+    Route::get('releases', ReleaseIndexController::class)->name('releases');
+    Route::get('releases/{release}', ReleaseBuilderController::class)->name('releases.show');
+
+    Route::middleware('can.role:catalogue')->group(function (): void {
+        Route::post('releases', [ReleaseActionController::class, 'store'])->name('releases.store');
+        Route::patch('releases/{release}', [ReleaseActionController::class, 'updateDetails'])->name('releases.update');
+        Route::post('releases/{release}/tracks', [ReleaseActionController::class, 'addTrack'])->name('releases.tracks.add');
+        Route::delete('releases/{release}/tracks', [ReleaseActionController::class, 'removeTrack'])->name('releases.tracks.remove');
+        Route::post('releases/{release}/tracks/order', [ReleaseActionController::class, 'reorder'])->name('releases.tracks.order');
+        Route::post('releases/{release}/artists', [ReleaseActionController::class, 'setArtists'])->name('releases.artists');
+        Route::post('releases/{release}/cover', [ReleaseActionController::class, 'setCover'])->name('releases.cover');
+        Route::post('releases/{release}/ready', [ReleaseActionController::class, 'markReady'])->name('releases.ready');
+        Route::post('releases/{release}/reopen', [ReleaseActionController::class, 'reopen'])->name('releases.reopen');
+
+        /*
+         * The builder's pickers. JSON, session-authenticated, read-only, and
+         * behind the write role because they exist to fill in editing forms.
+         *
+         * `releases/options/...` rather than `releases/artists`: a two-segment
+         * path would be matched by `releases/{release}` above and answered with
+         * a 404 from model binding instead of the list.
+         */
+        Route::get('releases/options/artists', [ReleasePickerController::class, 'artists'])
+            ->name('releases.options.artists');
+        Route::get('releases/options/artwork', [ReleasePickerController::class, 'artwork'])
+            ->name('releases.options.artwork');
+        Route::get('releases/{release}/options/tracks', [ReleasePickerController::class, 'tracks'])
+            ->name('releases.options.tracks');
     });
 
     Route::get('design-system', DesignSystemController::class)->name('design-system');
