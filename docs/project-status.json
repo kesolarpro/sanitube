@@ -1,8 +1,8 @@
 {
   "$comment": "Machine-readable project state. Any new session reads this first, then verifies it against GitHub before trusting it. Written at the end of each ticket, so a stale entry means a session ended mid-ticket — check the branch and CI rather than the status field.",
   "updated_at": "2026-08-16",
-  "current_phase": "CAT-002 delivered; the V1 walk is complete through a browser",
-  "last_completed_ticket": "CAT-002",
+  "current_phase": "ING-002 delivered",
+  "last_completed_ticket": "ING-002",
   "default_branch": "main",
   "tickets": {
     "ARCH-001": {
@@ -357,13 +357,20 @@
       "note": "The V1 definition of done as a walk. Found and fixed a restore that could not restore (alphabetical dump order broke foreign keys) and found the catalogue write gap CAT-002 closes."
     },
     "CAT-002": {
-      "status": "implemented, awaiting PR",
+      "status": "merged",
       "branch": "claude/cat-002-track-releasable",
-      "note": "Track credits and a readiness action behind can.role:catalogue. Validation value objects moved to SaniTube\\Foundation\\Validation so Catalog does not have to depend on Releases; the translation table moved from ui.releases.issue.* to ui.issue.*. Also fixed the stale-cache defect: DeploymentTest left the application cached, so the next test run read a snapshot of config/ and routes/."
+      "pr": 44,
+      "ci": "green 10/10",
+      "note": "Track credits and readiness behind can.role:catalogue. Also fixed the stale-cache defect: DeploymentTest left the application cached, which can make a removed authorization guard look enforced."
     },
     "REL-003": {
       "status": "merged into CAT-002",
       "note": "Track::readinessProblems() answers in issues. Folded in because without it the new track screen would render English into six locales."
+    },
+    "ING-002": {
+      "status": "implemented, awaiting PR",
+      "branch": "claude/ing-002-start-import",
+      "note": "Starting an import from the interface. Gave IngestionException a reason distinct from its persisted failure code, refused an ambiguous folder+list selection that used to drop the list silently, and stopped the stylesheet being built from the compiled-view cache."
     }
   },
   "architecture_amendments": [

@@ -358,7 +358,10 @@ final class IngestionPipelineTest extends TestCase
                 $this->start(prefix: $managed);
                 $this->fail(sprintf('An import from [%s] was accepted.', $managed));
             } catch (IngestionException $exception) {
-                $this->assertStringContainsString('SaniTube manages', $exception->getMessage());
+                // The code, not the sentence. Asserting on English goes green
+                // on a reworded message and red on a translated one, which is
+                // the wrong way round for both.
+                $this->assertSame('MANAGED_PREFIX', $exception->reason);
             }
         }
     }
@@ -366,10 +369,18 @@ final class IngestionPipelineTest extends TestCase
     #[Test]
     public function a_cloud_import_needs_somewhere_to_import_from(): void
     {
-        $this->expectException(IngestionException::class);
-        $this->expectExceptionMessage('Importing an entire store');
-
-        $this->start(prefix: '');
+        // Both shapes of "you have not said what to import": a blank prefix,
+        // and nothing supplied at all. They used to answer differently — the
+        // second reported "Nothing to import under [(no references)]", which
+        // describes a path that was never given.
+        foreach ([fn () => $this->start(prefix: ''), fn () => $this->start()] as $attempt) {
+            try {
+                $attempt();
+                $this->fail('An import with nothing selected was accepted.');
+            } catch (IngestionException $exception) {
+                $this->assertSame('NOTHING_SELECTED', $exception->reason);
+            }
+        }
     }
 
     #[Test]

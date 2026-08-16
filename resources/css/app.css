@@ -1,8 +1,24 @@
 @import 'tailwindcss';
 
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
-@source '../../storage/framework/views/*.php';
 @source '../**/*.blade.php';
+
+/*
+ * Module views are Blade too, and they live beside the module rather than in
+ * `resources/` — `src/Identity/Resources/views/login.blade.php` is the sign-in
+ * page, and it is the one screen a person sees before the Vue application
+ * loads at all.
+ *
+ * This replaces `@source '../../storage/framework/views/*.php'`, which read
+ * the *compiled* view cache. That made the stylesheet depend on whether the
+ * application had happened to render anything before `npm run build` ran: a
+ * fresh clone produced 34.7 kB and a warmed machine 50.8 kB, from the same
+ * commit. The extra was compiled vendor Blade the interface never renders, so
+ * the deterministic build is also the smaller one — but the deciding argument
+ * is that an asset pipeline reading a runtime cache is one whose output nobody
+ * can reproduce.
+ */
+@source '../../src/**/*.blade.php';
 @source '../**/*.vue';
 @source '../**/*.ts';
 @source '../**/*.js';

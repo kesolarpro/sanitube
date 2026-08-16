@@ -42,7 +42,7 @@ final readonly class StartIngestionBatch
     ) {}
 
     /**
-     * @param  list<string>  $references  explicit object keys; ignored when a prefix is given
+     * @param  list<string>  $references  explicit object keys; never combined with a prefix
      * @param  Manifest|null  $manifest  a reference list with evidence attached; never combined with the other two
      */
     public function handle(
@@ -63,6 +63,24 @@ final readonly class StartIngestionBatch
         // something nobody asked for.
         if ($manifest instanceof Manifest && ($prefix !== null || $references !== [])) {
             throw IngestionException::manifestWithOtherSelection();
+        }
+
+        // Nothing named at all. Distinguished from "nothing found under the
+        // prefix you gave", which is what this used to report: the messages
+        // read almost the same and the fixes are opposite — one is a typo in a
+        // path, the other is a form submitted empty. ING-002 put this refusal
+        // in front of a person, where "Nothing to import under [(no
+        // references)]" was not a sentence anybody could act on.
+        if (! $manifest instanceof Manifest && $prefix === null && $references === []) {
+            throw IngestionException::emptyPrefix();
+        }
+
+        // A folder and a list together. This used to keep the folder and drop
+        // the list without saying so — the same ambiguity a manifest beside a
+        // prefix is refused for, answered differently only because nobody had
+        // put the two fields on a screen next to each other yet.
+        if ($prefix !== null && $references !== []) {
+            throw IngestionException::ambiguousSelection();
         }
 
         $reader = $this->readers->for($source, $provider);

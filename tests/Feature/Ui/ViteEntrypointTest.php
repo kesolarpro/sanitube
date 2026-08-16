@@ -74,4 +74,56 @@ final class ViteEntrypointTest extends TestCase
 
         return $found;
     }
+
+    #[Test]
+    public function the_stylesheet_is_not_built_from_a_runtime_cache(): void
+    {
+        // `@source '../../storage/framework/views/*.php'` made the production
+        // stylesheet depend on whether the application had happened to render
+        // anything before `npm run build` ran: a fresh clone produced 34.7 kB
+        // and a warmed machine 50.8 kB from the same commit, the difference
+        // being compiled vendor Blade the interface never renders.
+        //
+        // The size was not the problem. An asset pipeline that reads a runtime
+        // cache is one whose output nobody can reproduce — CI builds one
+        // stylesheet, a developer builds another, and neither is wrong.
+        $css = (string) file_get_contents(base_path('resources/css/app.css'));
+
+        // Anchored to the start of a line: the file explains in a comment
+        // which source was removed and why, and a scanner that read prose as
+        // configuration would fail on its own documentation.
+        preg_match_all("/^@source\\s+'([^']+)'/m", $css, $matches);
+
+        $this->assertNotEmpty($matches[1], 'The stylesheet declares no sources at all.');
+
+        foreach ($matches[1] as $source) {
+            $this->assertStringNotContainsString(
+                'storage/',
+                $source,
+                sprintf('[%s] is a runtime directory. The build must read the repository.', $source),
+            );
+            $this->assertStringNotContainsString(
+                'bootstrap/cache',
+                $source,
+                sprintf('[%s] is a runtime directory. The build must read the repository.', $source),
+            );
+        }
+    }
+
+    #[Test]
+    public function every_blade_view_the_application_ships_is_scanned(): void
+    {
+        // Module views live beside their module rather than in `resources/`,
+        // and the sign-in page is one of them — the single screen a person
+        // sees before the Vue application loads at all. A glob rooted at
+        // `resources/` does not reach it, and the classes it uses would be
+        // absent from the stylesheet on any machine with a cold view cache.
+        $css = (string) file_get_contents(base_path('resources/css/app.css'));
+
+        $this->assertStringContainsString(
+            "@source '../../src/**/*.blade.php';",
+            $css,
+            'Module Blade views are not scanned, so the sign-in page can lose its styling silently.',
+        );
+    }
 }
