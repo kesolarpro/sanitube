@@ -211,8 +211,8 @@ function submit(): void {
                         <div v-if="preflight.errors.length > 0">
                             <p class="text-caption text-danger">{{ trans('ui.distribution.preflight_blocking') }}</p>
                             <ul class="mt-1 list-disc space-y-1 pl-5 text-small text-foreground">
-                                <li v-for="(problem, index) in preflight.errors" :key="`e-${index}`">
-                                    {{ problem }}
+                                <li v-for="problem in preflight.errors" :key="problem.code + problem.path">
+                                    {{ trans(`ui.releases.issue.${problem.code}`, problem.context) }}
                                 </li>
                             </ul>
                         </div>
@@ -220,8 +220,8 @@ function submit(): void {
                         <div v-if="preflight.warnings.length > 0">
                             <p class="text-caption text-muted">{{ trans('ui.distribution.preflight_warnings') }}</p>
                             <ul class="mt-1 list-disc space-y-1 pl-5 text-small text-muted">
-                                <li v-for="(warning, index) in preflight.warnings" :key="`w-${index}`">
-                                    {{ warning }}
+                                <li v-for="warning in preflight.warnings" :key="warning.code + warning.path">
+                                    {{ trans(`ui.releases.issue.${warning.code}`, warning.context) }}
                                 </li>
                             </ul>
                         </div>

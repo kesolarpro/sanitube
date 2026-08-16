@@ -1,3 +1,5 @@
+import type { ValidationIssue } from '@/Types/releases';
+
 /**
  * The shapes the distribution read models produce.
  *
@@ -105,6 +107,6 @@ export interface SendPayload {
 export interface Preflight {
     provider: string;
     valid: boolean;
-    errors: string[];
-    warnings: string[];
+    errors: ValidationIssue[];
+    warnings: ValidationIssue[];
 }

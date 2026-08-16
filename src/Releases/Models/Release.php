@@ -25,6 +25,7 @@ use SaniTube\Releases\Enums\ReleaseStatus;
 use SaniTube\Releases\Enums\ReleaseType;
 use SaniTube\Releases\Events\ReleaseMarkedReady;
 use SaniTube\Releases\Exceptions\ReleaseNotReadyException;
+use SaniTube\Releases\ReleaseValidationIssue;
 
 /**
  * What actually gets delivered to stores.
@@ -170,50 +171,70 @@ final class Release extends Model
     }
 
     /**
-     * @return list<string>
+     * Everything that stops this release being marked READY.
+     *
+     * REL-002: issues rather than sentences. The conditions are byte-for-byte
+     * the ones I4 has always enforced — what changed is that the answer is now
+     * data an interface can translate rather than English a screen renders.
+     *
+     * @return list<ReleaseValidationIssue>
      */
     public function readinessProblems(): array
     {
         $problems = [];
 
         if ($this->primaryArtists()->count() < 1) {
-            $problems[] = 'At least one PRIMARY artist is required.';
+            $problems[] = ReleaseValidationIssue::error(
+                'PRIMARY_ARTIST_REQUIRED',
+                'artists',
+                'At least one PRIMARY artist is required.',
+            );
         }
 
         if ($this->release_date === null) {
-            $problems[] = 'A release date is required.';
+            $problems[] = ReleaseValidationIssue::error(
+                'RELEASE_DATE_REQUIRED',
+                'release_date',
+                'A release date is required.',
+            );
         }
 
-        $problems = array_merge($problems, $this->coverProblems(), $this->tracklistProblems());
-
-        return $problems;
+        return array_merge($problems, $this->coverProblems(), $this->tracklistProblems());
     }
 
     /**
-     * @return list<string>
+     * @return list<ReleaseValidationIssue>
      */
     private function coverProblems(): array
     {
         if ($this->cover_asset_id === null) {
-            return ['A cover asset is required.'];
+            return [ReleaseValidationIssue::error('COVER_REQUIRED', 'cover', 'A cover asset is required.')];
         }
 
         $cover = $this->coverAsset()->first();
 
         if (! $cover instanceof Asset) {
-            return ['The referenced cover asset does not exist.'];
+            return [ReleaseValidationIssue::error(
+                'COVER_MISSING',
+                'cover',
+                'The referenced cover asset does not exist.',
+            )];
         }
 
         return $cover->isVerifiedArtwork()
             ? []
-            : ['The cover asset must be ARTWORK with status VERIFIED.'];
+            : [ReleaseValidationIssue::error(
+                'COVER_NOT_VERIFIED_ARTWORK',
+                'cover',
+                'The cover asset must be ARTWORK with status VERIFIED.',
+            )];
     }
 
     /**
      * Track numbering must be contiguous from 1 within each disc (I9). A gap
      * is almost always a track that was meant to be there and is not.
      *
-     * @return list<string>
+     * @return list<ReleaseValidationIssue>
      */
     private function tracklistProblems(): array
     {
@@ -221,7 +242,7 @@ final class Release extends Model
         $entries = $this->trackEntries()->with('track')->get();
 
         if ($entries->isEmpty()) {
-            return ['At least one track is required.'];
+            return [ReleaseValidationIssue::error('TRACKS_REQUIRED', 'tracks', 'At least one track is required.')];
         }
 
         $problems = [];
@@ -230,10 +251,15 @@ final class Release extends Model
             $track = $entry->track;
 
             if ($track === null || ! $track->status->isReleasable()) {
-                $problems[] = sprintf(
-                    'Track #%d (disc %d) must be READY or RELEASED.',
-                    $entry->track_number,
-                    $entry->disc_number,
+                $problems[] = ReleaseValidationIssue::error(
+                    'TRACK_NOT_RELEASABLE',
+                    'tracks.'.$entry->disc_number.'.'.$entry->track_number,
+                    sprintf(
+                        'Track #%d (disc %d) must be READY or RELEASED.',
+                        $entry->track_number,
+                        $entry->disc_number,
+                    ),
+                    ['number' => $entry->track_number, 'disc' => $entry->disc_number],
                 );
             }
         }
@@ -243,10 +269,15 @@ final class Release extends Model
             $expected = range(1, count($numbers));
 
             if ($numbers !== $expected) {
-                $problems[] = sprintf(
-                    'Disc %s must be numbered contiguously from 1; found [%s].',
-                    (string) $disc,
-                    implode(', ', $numbers),
+                $problems[] = ReleaseValidationIssue::error(
+                    'DISC_NUMBERING_NOT_CONTIGUOUS',
+                    'tracks.'.(string) $disc,
+                    sprintf(
+                        'Disc %s must be numbered contiguously from 1; found [%s].',
+                        (string) $disc,
+                        implode(', ', $numbers),
+                    ),
+                    ['disc' => (string) $disc, 'found' => implode(', ', $numbers)],
                 );
             }
         }

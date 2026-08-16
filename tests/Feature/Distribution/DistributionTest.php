@@ -128,7 +128,7 @@ final class DistributionTest extends TestCase
         $verdict = $this->validator()->handle($release, $this->distributor);
 
         $this->assertFalse($verdict->isValid());
-        $this->assertStringContainsString('no active ISRC', implode(' ', $verdict->errors));
+        $this->assertTrue($verdict->has('TRACK_NO_ISRC'));
 
         // And nothing was created to fix it.
         $this->assertSame(
@@ -146,7 +146,7 @@ final class DistributionTest extends TestCase
         $verdict = $this->validator()->handle($release, $this->distributor);
 
         $this->assertFalse($verdict->isValid());
-        $this->assertStringContainsString('no UPC', implode(' ', $verdict->errors));
+        $this->assertTrue($verdict->has('NO_PRODUCT_IDENTIFIER'));
     }
 
     #[Test]
@@ -159,8 +159,8 @@ final class DistributionTest extends TestCase
 
         $verdict = $this->validator()->handle($this->readyRelease(), $sandbox);
 
-        $this->assertTrue($verdict->isValid(), implode('; ', $verdict->errors));
-        $this->assertStringContainsString('sandbox', implode(' ', $verdict->warnings));
+        $this->assertTrue($verdict->isValid(), implode('; ', $verdict->messages()));
+        $this->assertTrue($verdict->has('DISTRIBUTOR_SANDBOX'));
     }
 
     #[Test]
