@@ -7,6 +7,8 @@ namespace SaniTube\Ui\Http\Controllers\Studio;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use SaniTube\Audit\Enums\AuditAction;
+use SaniTube\Audit\Services\RecordAuditEvent;
 use SaniTube\MusicGeneration\Exceptions\GenerationException;
 use SaniTube\MusicGeneration\Exceptions\UnknownGenerationProvider;
 use SaniTube\MusicGeneration\Jobs\SubmitMusicGenerationJob;
@@ -61,8 +63,11 @@ final class StudioActionController
     /**
      * Ask a supplier to make something.
      */
-    public function startGeneration(StartGenerationRequest $request, StartMusicGeneration $starter): RedirectResponse
-    {
+    public function startGeneration(
+        StartGenerationRequest $request,
+        StartMusicGeneration $starter,
+        RecordAuditEvent $audit,
+    ): RedirectResponse {
         $project = $this->project($request->projectUuid());
 
         if ($request->projectUuid() !== null && ! $project instanceof GenerationProject) {
@@ -79,12 +84,22 @@ final class StudioActionController
                 languageCode: $request->languageCode(),
             );
         } catch (GenerationException $exception) {
+            $audit->refused(AuditAction::GenerationStarted, $exception->reason);
+
             return back()->withErrors(['generation' => $exception->reason]);
         } catch (UnknownGenerationProvider) {
             // Named in configuration and unresolvable. The studio overview says
             // so plainly; this is the same fact reaching a form.
+            $audit->refused(AuditAction::GenerationStarted, 'UNKNOWN_PROVIDER');
+
             return back()->withErrors(['generation' => 'UNKNOWN_PROVIDER']);
         }
+
+        // Never the prompt or the lyrics. Starting a generation spends the
+        // operator's money at a supplier, which is what makes it worth
+        // recording; what they asked the supplier for is their work, and an
+        // audit log is not the place it gets copied to.
+        $audit->record(AuditAction::GenerationStarted, subjectUuid: $generation->uuid);
 
         // Queued, not called. The audio takes minutes and the request must not.
         SubmitMusicGenerationJob::dispatch($generation->uuid);
@@ -115,12 +130,21 @@ final class StudioActionController
     public function selectResult(
         MusicGenerationResult $result,
         SelectMusicGenerationResult $selector,
+        RecordAuditEvent $audit,
     ): RedirectResponse {
         try {
             $candidate = $selector->handle($result);
         } catch (GenerationException $exception) {
+            $audit->refused(AuditAction::GenerationResultSelected, $exception->reason, $result->uuid);
+
             return back()->withErrors(['generation' => $exception->reason]);
         }
+
+        $audit->record(
+            AuditAction::GenerationResultSelected,
+            subjectUuid: $result->uuid,
+            context: ['candidate' => $candidate->uuid],
+        );
 
         return redirect()
             ->to('/ingestion/candidates/'.$candidate->uuid)

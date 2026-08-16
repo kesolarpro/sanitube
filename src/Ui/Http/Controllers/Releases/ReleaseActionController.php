@@ -7,6 +7,8 @@ namespace SaniTube\Ui\Http\Controllers\Releases;
 use Illuminate\Http\RedirectResponse;
 use SaniTube\Artists\Models\Artist;
 use SaniTube\Assets\Models\Asset;
+use SaniTube\Audit\Enums\AuditAction;
+use SaniTube\Audit\Services\RecordAuditEvent;
 use SaniTube\Catalog\Models\Track;
 use SaniTube\Releases\Enums\ReleaseArtistRole;
 use SaniTube\Releases\Enums\ReleaseType;
@@ -41,14 +43,19 @@ use SaniTube\Ui\Http\Requests\Releases\ReleaseTrackRequest;
  */
 final class ReleaseActionController
 {
-    public function store(CreateReleaseRequest $request, ReleaseBuilder $builder): RedirectResponse
-    {
+    public function store(
+        CreateReleaseRequest $request,
+        ReleaseBuilder $builder,
+        RecordAuditEvent $audit,
+    ): RedirectResponse {
         $release = $builder->createDraft(
             title: $request->title(),
             type: ReleaseType::from($request->type()),
             languageCode: $request->languageCode(),
             versionTitle: $request->versionTitle(),
         );
+
+        $audit->record(AuditAction::ReleaseCreated, subjectUuid: $release->uuid);
 
         return redirect()
             ->to('/releases/'.$release->uuid)
@@ -184,7 +191,7 @@ final class ReleaseActionController
     /**
      * Mark ready — earned, never assigned.
      */
-    public function markReady(Release $release): RedirectResponse
+    public function markReady(Release $release, RecordAuditEvent $audit): RedirectResponse
     {
         try {
             $release->markReady();
@@ -192,19 +199,27 @@ final class ReleaseActionController
             // The problems are already in the payload the screen renders, from
             // the same `readinessProblems()` this throws on. Repeating them in
             // a flash message would be a second copy that can disagree.
+            $audit->refused(AuditAction::ReleaseMarkedReady, 'RELEASE_NOT_READY', $release->uuid);
+
             return $this->refused('RELEASE_NOT_READY');
         }
+
+        $audit->record(AuditAction::ReleaseMarkedReady, subjectUuid: $release->uuid);
 
         return back()->with('status', 'release.ready');
     }
 
-    public function reopen(Release $release, ReleaseBuilder $builder): RedirectResponse
+    public function reopen(Release $release, ReleaseBuilder $builder, RecordAuditEvent $audit): RedirectResponse
     {
         try {
             $builder->reopen($release);
         } catch (ReleaseBuilderException $exception) {
+            $audit->refused(AuditAction::ReleaseReopened, $exception->reason, $release->uuid);
+
             return $this->refused($exception->reason);
         }
+
+        $audit->record(AuditAction::ReleaseReopened, subjectUuid: $release->uuid);
 
         return back()->with('status', 'release.reopened');
     }

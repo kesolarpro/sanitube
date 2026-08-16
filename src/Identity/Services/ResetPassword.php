@@ -11,6 +11,8 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
+use SaniTube\Audit\Enums\AuditAction;
+use SaniTube\Audit\Services\RecordAuditEvent;
 use SaniTube\Identity\Exceptions\PasswordResetFailed;
 
 /**
@@ -40,6 +42,16 @@ use SaniTube\Identity\Exceptions\PasswordResetFailed;
  * What is added on top is the throttle, the deactivation check, and the two
  * things a reset must do to existing access: change the password *and* cut the
  * sessions that were opened with the old one.
+ *
+ * **Silence towards the browser is not silence towards the log.** Every one of
+ * these paths is recorded — including the ones the response refuses to
+ * distinguish — against the account's uuid where there is one. A run of reset
+ * requests aimed at a deactivated account is exactly the thing an
+ * administrator should be able to see, and the audit log is behind the
+ * administer role, so seeing it discloses nothing to the person asking.
+ *
+ * The submitted address is never stored. Neither is the token, at any point,
+ * in any form.
  */
 final readonly class ResetPassword
 {
@@ -48,6 +60,8 @@ final readonly class ResetPassword
 
     /** How long a lockout lasts. */
     public const DECAY_SECONDS = 900;
+
+    public function __construct(private RecordAuditEvent $audit) {}
 
     /**
      * Send a reset link, or quietly do nothing.
@@ -64,6 +78,8 @@ final readonly class ResetPassword
         if (RateLimiter::tooManyAttempts($key, self::MAX_ATTEMPTS)) {
             // The one thing that *is* said out loud, because it is a fact
             // about the caller rather than about the account.
+            $this->audit->refused(AuditAction::PasswordResetRequested, 'THROTTLED');
+
             throw PasswordResetFailed::throttled(RateLimiter::availableIn($key));
         }
 
@@ -72,12 +88,27 @@ final readonly class ResetPassword
         $user = User::query()->where('email', $email)->first();
 
         if (! $user instanceof User || ! $user->is_active) {
-            // Silently. A deactivated account must not be able to reset its
-            // way back in, and saying so would confirm the address exists.
+            // Silently, as far as the browser is concerned. A deactivated
+            // account must not be able to reset its way back in, and saying so
+            // would confirm the address exists.
+            //
+            // The log does say which of the two it was, because the difference
+            // matters to whoever deactivated that account: a stream of resets
+            // aimed at a person who was removed last week is a person trying
+            // to get back in, and it looks nothing like a stranger guessing
+            // addresses.
+            $this->audit->refused(
+                AuditAction::PasswordResetRequested,
+                $user instanceof User ? 'ACCOUNT_INACTIVE' : 'NO_SUCH_ACCOUNT',
+                $user instanceof User ? $user->uuid : null,
+            );
+
             return;
         }
 
         Password::sendResetLink(['email' => $email]);
+
+        $this->audit->record(AuditAction::PasswordResetRequested, subjectUuid: $user->uuid);
     }
 
     /**
@@ -118,11 +149,37 @@ final readonly class ResetPassword
             // expired, already used, or belonging to an account that has since
             // been deactivated. Telling them apart would say more about the
             // account than the person holding a bad token has earned.
+            //
+            // The broker's own status string is what goes in the log — never
+            // the token, and never any part of it.
+            $this->audit->refused(
+                AuditAction::PasswordResetCompleted,
+                'INVALID_TOKEN',
+                $this->accountFor($email),
+                ['broker_status' => $status],
+            );
+
             throw PasswordResetFailed::invalidToken($status);
         }
 
         Auth::logoutOtherDevices($password);
 
+        $this->audit->record(AuditAction::PasswordResetCompleted, subjectUuid: $reset->uuid);
+
         return $reset;
+    }
+
+    /**
+     * The account an attempt was aimed at, when there is one.
+     *
+     * The uuid, never the submitted address — the same choice sign-in makes,
+     * for the same reason: a run of bad tokens against one person is worth
+     * seeing, and an audit table full of strings a stranger typed is not.
+     */
+    private function accountFor(string $email): ?string
+    {
+        $user = User::query()->where('email', $email)->first();
+
+        return $user instanceof User ? $user->uuid : null;
     }
 }

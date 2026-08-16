@@ -6,8 +6,10 @@ namespace SaniTube\Ui\Assets;
 
 use App\Models\User;
 use DateTimeImmutable;
-use Illuminate\Support\Facades\Log;
 use SaniTube\Assets\Models\Asset;
+use SaniTube\Audit\Enums\AuditAction;
+use SaniTube\Audit\Services\RecordAuditEvent;
+use SaniTube\Audit\Support\Redaction;
 use SaniTube\Storage\StorageManager;
 use Throwable;
 
@@ -29,12 +31,20 @@ use Throwable;
  * **It is never logged in full.** A URL in a log file is a URL in whatever
  * reads log files. What is recorded is that a preview was minted, for which
  * asset, by whom — the audit fact, without the credential.
+ *
+ * That fact used to go to the application log. AUDIT-001 gave it a durable
+ * home, which is where it belonged: minting a credential is the one read in
+ * this platform that an administrator may genuinely need to reconstruct months
+ * later, and a log file rotates. The URL is no more recorded now than it was
+ * then — {@see Redaction} would refuse it even if
+ * this class tried.
  */
 final readonly class MintAssetPreviewUrl
 {
     public function __construct(
         private StorageManager $storage,
         private AssetPreviewPolicy $policy,
+        private RecordAuditEvent $audit,
     ) {}
 
     /**
@@ -70,16 +80,19 @@ final readonly class MintAssetPreviewUrl
         }
 
         // The audit fact, without the credential. Note what is absent: the URL,
-        // the path, the disk.
-        Log::info('Asset preview minted.', [
-            'asset_uuid' => $asset->uuid,
-            'asset_kind' => $asset->kind->value,
-            // The provider *name*, which is configuration rather than location.
-            // Not the path, not the disk's bucket, not the URL.
-            'storage_provider' => $asset->disk,
-            'user_uuid' => $user->uuid,
-            'expires_at' => $expiresAt->format(DATE_ATOM),
-        ]);
+        // the path, the disk's bucket. Who minted it is resolved from the
+        // guard by the recorder rather than passed from here.
+        $this->audit->record(
+            AuditAction::AssetPreviewMinted,
+            subjectUuid: $asset->uuid,
+            context: [
+                'asset_kind' => $asset->kind->value,
+                // The provider *name*, which is configuration rather than
+                // location. Not the path, not the bucket, not the URL.
+                'storage_provider' => $asset->disk,
+                'expires_at' => $expiresAt->format(DATE_ATOM),
+            ],
+        );
 
         return [
             'decision' => AssetPreviewDecision::Allowed,

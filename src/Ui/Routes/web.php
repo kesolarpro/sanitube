@@ -38,6 +38,7 @@ use SaniTube\Ui\Http\Controllers\Studio\OverviewController;
 use SaniTube\Ui\Http\Controllers\Studio\ProjectDetailController;
 use SaniTube\Ui\Http\Controllers\Studio\ProjectIndexController;
 use SaniTube\Ui\Http\Controllers\Studio\StudioActionController;
+use SaniTube\Ui\Http\Controllers\System\AuditController;
 use SaniTube\Ui\Http\Controllers\System\FailedJobController;
 use SaniTube\Ui\Http\Controllers\System\JobsController;
 use SaniTube\Ui\Http\Controllers\System\OperationsController;
@@ -179,6 +180,10 @@ Route::middleware(['web', HandleInertiaRequests::class, 'auth', 'active'])->grou
     Route::middleware('can.role:administer')->group(function (): void {
         Route::get('system/operations', OperationsController::class)->name('system.operations');
         Route::get('system/jobs', JobsController::class)->name('system.jobs');
+
+        // AUDIT-001. Reading the log is not itself an event: a log that
+        // records its own readers grows by being looked at.
+        Route::get('system/audit', AuditController::class)->name('system.audit');
 
         // The one place a probe may run from a request: explicit, POST, and
         // pressed by a person who asked for it.

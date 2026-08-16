@@ -99,3 +99,60 @@ export interface Operations {
         database_driver: string;
     };
 }
+
+/**
+ * One line of the audit log.
+ *
+ * `actor.label` is a **snapshot** taken when the event was written, not a join
+ * against the users table: a line about somebody who has since been renamed
+ * should say who they were when they did it. There is deliberately no email
+ * address — the log outlives the account and is copied into every backup.
+ *
+ * `context` has already been through the server's redaction. No URL, no token,
+ * no credential and nothing long ever reaches this type, which is why it can
+ * be rendered as-is.
+ *
+ * `outcome` of `'REFUSED'` is not an error state to hide. A refusal carries the
+ * machine-readable `reason` the domain produced, and a run of them is the most
+ * useful thing on this screen.
+ */
+export interface AuditActor {
+    kind: 'user' | 'system' | 'guest';
+    label: string | null;
+    role: string | null;
+}
+
+export interface AuditRow {
+    uuid: string;
+    action: string;
+    subject: string;
+    subject_uuid: string | null;
+    outcome: 'SUCCEEDED' | 'REFUSED';
+    reason: string | null;
+    significant: boolean;
+    actor: AuditActor;
+    ip_address: string | null;
+    user_agent: string | null;
+    context: Record<string, unknown> | null;
+    occurred_at: string;
+}
+
+export interface AuditPage {
+    rows: AuditRow[];
+    next_cursor: string | null;
+    previous_cursor: string | null;
+    per_page: number;
+}
+
+export interface AuditFilters {
+    action: string | null;
+    subject: string | null;
+    outcome: string | null;
+    subject_uuid: string | null;
+}
+
+export interface AuditOptions {
+    action: string[];
+    subject: string[];
+    outcome: string[];
+}

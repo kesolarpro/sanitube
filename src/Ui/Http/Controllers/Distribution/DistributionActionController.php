@@ -8,6 +8,8 @@ use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use RuntimeException;
+use SaniTube\Audit\Enums\AuditAction;
+use SaniTube\Audit\Services\RecordAuditEvent;
 use SaniTube\Distribution\DistributorManager;
 use SaniTube\Distribution\Exceptions\DistributionException;
 use SaniTube\Distribution\Models\DistributionDelivery;
@@ -34,6 +36,17 @@ use Throwable;
  *
  * Refusals travel as machine-readable codes through `withErrors`; the
  * interface translates them. `DistributionException` already carries one.
+ *
+ * **Three of the five are audited: submit, takedown and resolve.** They are
+ * the ones that change something outside SaniTube or write a value the
+ * platform never received. `sync` and `reconcile` ask the distributor a
+ * question and record their own attempt rows; auditing them too would fill the
+ * operator's log with polling and bury the three lines that matter.
+ *
+ * On a refusal the subject uuid is null rather than the release's: there is no
+ * delivery, and recording a release uuid in a column that means "the delivery
+ * this is about" would be a small lie that reads as a fact. The release and
+ * the provider go in the context, where they are what they are.
  */
 final class DistributionActionController
 {
@@ -59,15 +72,27 @@ final class DistributionActionController
     /**
      * The one irreversible act in the platform.
      */
-    public function submit(Release $release, string $provider, SubmitDelivery $submitter): RedirectResponse
-    {
+    public function submit(
+        Release $release,
+        string $provider,
+        SubmitDelivery $submitter,
+        RecordAuditEvent $audit,
+    ): RedirectResponse {
+        $about = ['release' => $release->uuid, 'provider' => $provider];
+
         try {
             $delivery = $submitter->handle($release, $provider);
         } catch (DistributionException $exception) {
+            $audit->refused(AuditAction::DeliverySubmitted, $exception->reason, context: $about);
+
             return $this->refused($exception->reason);
         } catch (RuntimeException) {
+            $audit->refused(AuditAction::DeliverySubmitted, 'UNKNOWN_DISTRIBUTOR', context: $about);
+
             return $this->refused('UNKNOWN_DISTRIBUTOR');
         }
+
+        $audit->record(AuditAction::DeliverySubmitted, subjectUuid: $delivery->uuid, context: $about);
 
         // To the delivery, not back to the list. Something now exists in
         // somebody else's system and the record of it is what a person needs
@@ -92,18 +117,27 @@ final class DistributionActionController
         return back()->with('status', 'distribution.synced');
     }
 
-    public function requestTakedown(DistributionDelivery $delivery, SubmitDelivery $submitter): RedirectResponse
-    {
+    public function requestTakedown(
+        DistributionDelivery $delivery,
+        SubmitDelivery $submitter,
+        RecordAuditEvent $audit,
+    ): RedirectResponse {
         try {
             $submitter->requestTakedown($delivery);
         } catch (DistributionException $exception) {
+            $audit->refused(AuditAction::DeliveryTakedownRequested, $exception->reason, $delivery->uuid);
+
             return $this->refused($exception->reason);
         } catch (Throwable) {
             // The distributor could not be reached. The attempt is already
             // recorded by the service; what must not happen is the screen
             // reporting a takedown that was never asked for.
+            $audit->refused(AuditAction::DeliveryTakedownRequested, 'TAKEDOWN_UNREACHABLE', $delivery->uuid);
+
             return $this->refused('TAKEDOWN_UNREACHABLE');
         }
+
+        $audit->record(AuditAction::DeliveryTakedownRequested, subjectUuid: $delivery->uuid);
 
         return back()->with('status', 'distribution.takedown_requested');
     }
@@ -139,6 +173,7 @@ final class DistributionActionController
         ResolveDeliveryRequest $request,
         DistributionDelivery $delivery,
         SubmitDelivery $submitter,
+        RecordAuditEvent $audit,
     ): RedirectResponse {
         /** @var User $decider */
         $decider = $request->user();
@@ -152,8 +187,21 @@ final class DistributionActionController
                 note: $request->note(),
             );
         } catch (DistributionException $exception) {
+            $audit->refused(AuditAction::DeliveryReferenceDecided, $exception->reason, $delivery->uuid);
+
             return $this->refused($exception->reason);
         }
+
+        // `arrived` and nothing else. Not the external reference the operator
+        // typed and not their note: the reference is already on the delivery
+        // with its MANUAL_OPERATOR provenance, and copying free text into a
+        // table nobody scrubs afterwards is how an audit log accumulates
+        // whatever somebody felt like writing.
+        $audit->record(
+            AuditAction::DeliveryReferenceDecided,
+            subjectUuid: $delivery->uuid,
+            context: ['arrived' => $request->arrived()],
+        );
 
         return back()->with('status', 'distribution.resolved');
     }

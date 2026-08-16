@@ -6,6 +6,8 @@ namespace SaniTube\Ui\Http\Controllers\Ingestion;
 
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
+use SaniTube\Audit\Enums\AuditAction;
+use SaniTube\Audit\Services\RecordAuditEvent;
 use SaniTube\Ingestion\Exceptions\CandidateReviewException;
 use SaniTube\Ingestion\Models\TrackCandidate;
 use SaniTube\Ingestion\Services\PromoteTrackCandidate;
@@ -33,6 +35,12 @@ use SaniTube\Ui\Http\Requests\Ingestion\ReviseCandidateRequest;
  * interface translates it. The domain's English sentence is never rendered,
  * for the same reason a storage driver's message is not: it is written for a
  * developer reading a log.
+ *
+ * Promotion and rejection are audited; revision is not. The first two are
+ * decisions with a subject that stops being reviewable — a Track now exists,
+ * or a proposal is closed — and `reviewed_by` on the candidate says who but
+ * not when they were refused. Revision edits a draft nobody has acted on yet,
+ * and every edit of every field would be a changelog rather than an audit log.
  */
 final class CandidateReviewController
 {
@@ -43,6 +51,7 @@ final class CandidateReviewController
         PromoteCandidateRequest $request,
         TrackCandidate $candidate,
         PromoteTrackCandidate $promoter,
+        RecordAuditEvent $audit,
     ): RedirectResponse {
         /** @var User $reviewer */
         $reviewer = $request->user();
@@ -59,8 +68,21 @@ final class CandidateReviewController
                 reviewerId: $reviewer->getKey(),
             );
         } catch (CandidateReviewException $exception) {
+            $audit->refused(AuditAction::CandidatePromoted, $exception->reason, $candidate->uuid);
+
             return $this->refused($exception);
         }
+
+        // `override` is recorded because it is the one place a person can
+        // overrule the machine, and "who promoted a candidate the analysis had
+        // flagged" is a question somebody eventually asks. The note is not
+        // copied: it is already on the candidate, and free text belongs where
+        // it can be edited rather than in a table that refuses to be.
+        $audit->record(
+            AuditAction::CandidatePromoted,
+            subjectUuid: $candidate->uuid,
+            context: ['track' => $track->uuid, 'override' => $request->override()],
+        );
 
         // To the Track, not back to the candidate. The reviewer asked for a
         // recording to exist in the catalogue; showing them the thing they
@@ -75,6 +97,7 @@ final class CandidateReviewController
         RejectCandidateRequest $request,
         TrackCandidate $candidate,
         RejectTrackCandidate $rejecter,
+        RecordAuditEvent $audit,
     ): RedirectResponse {
         /** @var User $reviewer */
         $reviewer = $request->user();
@@ -82,8 +105,12 @@ final class CandidateReviewController
         try {
             $rejecter->handle($candidate, $request->reason(), $reviewer->getKey());
         } catch (CandidateReviewException $exception) {
+            $audit->refused(AuditAction::CandidateRejected, $exception->reason, $candidate->uuid);
+
             return $this->refused($exception);
         }
+
+        $audit->record(AuditAction::CandidateRejected, subjectUuid: $candidate->uuid);
 
         return back()->with('status', 'candidate.rejected');
     }

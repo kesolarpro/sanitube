@@ -7,6 +7,8 @@ namespace SaniTube\Deployment\Services;
 use Illuminate\Contracts\Config\Repository;
 use Illuminate\Database\Connection;
 use Illuminate\Support\Carbon;
+use SaniTube\Audit\Enums\AuditAction;
+use SaniTube\Audit\Services\RecordAuditEvent;
 use SaniTube\Deployment\BackupManifest;
 use SaniTube\Deployment\Exceptions\BackupException;
 
@@ -32,6 +34,7 @@ final readonly class CreateBackup
         private DatabaseDumper $dumper,
         private BackupRepository $repository,
         private Repository $config,
+        private RecordAuditEvent $audit,
     ) {}
 
     /**
@@ -65,6 +68,15 @@ final readonly class CreateBackup
         // Last. Everything above can fail and leave a directory that is
         // visibly not a backup; nothing above can leave one that pretends.
         $this->repository->writeManifest($directory, $manifest);
+
+        // After the manifest, so a line saying a backup was made only exists
+        // once one does. The directory name is a label the operator chose plus
+        // a timestamp — not a path, which would say where this installation
+        // keeps its backups.
+        $this->audit->record(
+            AuditAction::BackupCreated,
+            context: ['name' => basename($directory), 'entries' => count($entries)],
+        );
 
         return ['path' => $directory, 'manifest' => $manifest];
     }

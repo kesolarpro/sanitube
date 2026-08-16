@@ -6,6 +6,8 @@ namespace SaniTube\Ui\Http\Controllers\Catalog;
 
 use Illuminate\Http\RedirectResponse;
 use SaniTube\Artists\Models\Artist;
+use SaniTube\Audit\Enums\AuditAction;
+use SaniTube\Audit\Services\RecordAuditEvent;
 use SaniTube\Catalog\Enums\TrackArtistRole;
 use SaniTube\Catalog\Exceptions\TrackCreditException;
 use SaniTube\Catalog\Exceptions\TrackNotReadyException;
@@ -38,6 +40,7 @@ final class TrackActionController
         TrackCreditsRequest $request,
         Track $track,
         SetTrackCredits $credits,
+        RecordAuditEvent $audit,
     ): RedirectResponse {
         $resolved = [];
 
@@ -54,8 +57,12 @@ final class TrackActionController
         try {
             $credits->handle($track, $resolved);
         } catch (TrackCreditException $exception) {
+            $audit->refused(AuditAction::TrackUpdated, $exception->reason, $track->uuid);
+
             return $this->refused($exception->reason);
         }
+
+        $audit->record(AuditAction::TrackUpdated, subjectUuid: $track->uuid, context: ['changed' => 'credits']);
 
         return back()->with('status', 'track.credits_saved');
     }
