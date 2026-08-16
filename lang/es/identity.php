@@ -3,6 +3,18 @@
 declare(strict_types=1);
 
 return [
+    'reset' => [
+        'request_title' => 'Restablecer tu contraseña',
+        'title' => 'Elige una contraseña nueva',
+        'send' => 'Enviar un enlace',
+        'submit' => 'Cambiar la contraseña',
+        'new_password' => 'Contraseña nueva',
+        'confirm_password' => 'Confirmar la contraseña nueva',
+        'requested' => 'Si esa dirección tiene cuenta aquí, va en camino un enlace. Revisa tu bandeja de entrada.',
+        'done' => 'Tu contraseña ha cambiado. Inicia sesión con la nueva.',
+        'invalid' => 'Ese enlace ya no sirve. Pide uno nuevo.',
+        'throttled' => 'Demasiadas peticiones. Inténtalo en :seconds segundos.',
+    ],
 
     'auth' => [
         'sign_in' => 'Iniciar sesión',

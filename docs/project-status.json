@@ -383,6 +383,11 @@
       "status": "implemented, awaiting PR",
       "branch": "claude/prod-001-doctor",
       "note": "sanitube:doctor — read-only production diagnosis, non-zero exit on internal blockers — and docs/production-readiness.md with a per-control verdict."
+    },
+    "AUTH-002": {
+      "status": "implemented, awaiting PR",
+      "branch": "claude/auth-002-password-reset",
+      "note": "Password reset over Laravel's broker. The request never says whether an address is known, and a deactivated account cannot reset its way back in — including one deactivated after the link was sent."
     }
   },
   "architecture_amendments": [

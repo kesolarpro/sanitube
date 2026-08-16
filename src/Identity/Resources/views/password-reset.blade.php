@@ -14,7 +14,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>{{ __('identity.auth.sign_in') }} — {{ config('app.name') }}</title>
+    <title>{{ __('identity.reset.title') }} — {{ config('app.name') }}</title>
     <style>
         /* Inline and minimal. This page must render correctly before the
            asset pipeline has been built, which is precisely the state a fresh
@@ -64,7 +64,7 @@
 </head>
 <body>
     <main class="card">
-        <h1>{{ __('identity.auth.sign_in') }}</h1>
+        <h1>{{ __('identity.reset.title') }}</h1>
         <p class="sub">{{ config('app.name') }}</p>
 
         @if ($errors->any())
@@ -79,30 +79,24 @@
             </div>
         @endif
 
-        <form method="POST" action="{{ route('login.store') }}">
+        <form method="POST" action="{{ route('password.update') }}">
             @csrf
+            <input type="hidden" name="token" value="{{ $token }}">
 
             <label for="email">{{ __('identity.auth.email') }}</label>
-            <input id="email" name="email" type="email" value="{{ old('email') }}"
-                   required autofocus autocomplete="username">
+            <input id="email" name="email" type="email" value="{{ old('email', $email) }}"
+                   required autocomplete="username">
 
-            <label for="password">{{ __('identity.auth.password') }}</label>
+            <label for="password">{{ __('identity.reset.new_password') }}</label>
             <input id="password" name="password" type="password"
-                   required autocomplete="current-password">
+                   required autofocus autocomplete="new-password">
 
-            <div class="remember">
-                <input id="remember" name="remember" type="checkbox" value="1">
-                <label for="remember">{{ __('identity.auth.remember_me') }}</label>
-            </div>
+            <label for="password_confirmation">{{ __('identity.reset.confirm_password') }}</label>
+            <input id="password_confirmation" name="password_confirmation" type="password"
+                   required autocomplete="new-password">
 
-            <button type="submit">{{ __('identity.auth.sign_in') }}</button>
+            <button type="submit">{{ __('identity.reset.submit') }}</button>
         </form>
-
-        {{-- The only way back in without an administrator. Named plainly:
-             "forgot" is what a person searches the page for. --}}
-        <p class="sub" style="margin-top:1rem">
-            <a href="{{ route('password.request') }}">{{ __('identity.reset.request_title') }}</a>
-        </p>
     </main>
 </body>
 </html>

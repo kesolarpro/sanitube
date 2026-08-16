@@ -3,6 +3,18 @@
 declare(strict_types=1);
 
 return [
+    'reset' => [
+        'request_title' => 'Repor a palavra-passe',
+        'title' => 'Escolha uma nova palavra-passe',
+        'send' => 'Enviar uma ligação',
+        'submit' => 'Mudar a palavra-passe',
+        'new_password' => 'Nova palavra-passe',
+        'confirm_password' => 'Confirmar a nova palavra-passe',
+        'requested' => 'Se esse endereço tiver conta aqui, vai a caminho uma ligação. Veja a sua caixa de entrada.',
+        'done' => 'A palavra-passe foi alterada. Entre com a nova.',
+        'invalid' => 'Essa ligação já não serve. Peça uma nova.',
+        'throttled' => 'Demasiados pedidos. Tente daqui a :seconds segundos.',
+    ],
 
     'auth' => [
         'sign_in' => 'Iniciar sessão',
