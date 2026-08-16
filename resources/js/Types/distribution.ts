@@ -64,6 +64,10 @@ export interface DeliveryActions {
     can_submit: boolean;
     can_sync: boolean;
     can_request_takedown: boolean;
+    /** DIST-001-H1. Asks the distributor what it holds; hands nothing over. */
+    can_reconcile: boolean;
+    /** DIST-001-H1. Records what a person found when they looked. */
+    can_resolve_manually: boolean;
 }
 
 export interface DeliveryDetail {

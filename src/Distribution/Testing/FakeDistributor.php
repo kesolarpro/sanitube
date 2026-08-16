@@ -9,6 +9,8 @@ use SaniTube\Distribution\Contracts\Distributor;
 use SaniTube\Distribution\DeliveryStatus;
 use SaniTube\Distribution\DistributorSubmission;
 use SaniTube\Distribution\DistributorValidation;
+use SaniTube\Distribution\Exceptions\SubmissionLookupUnsupported;
+use SaniTube\Distribution\Exceptions\SubmissionNotSent;
 use SaniTube\Releases\Models\Release;
 
 /**
@@ -41,6 +43,21 @@ final class FakeDistributor implements Distributor
 
     private bool $outage = false;
 
+    /** Whether this fake can be asked what it holds. Real ones often cannot. */
+    private bool $lookupSupported = true;
+
+    /** Raised by submitRelease() to stand in for a read timeout. */
+    private bool $swallowSubmission = false;
+
+    /** Raised by submitRelease() to stand in for a refused connection. */
+    private bool $refuseConnection = false;
+
+    /**
+     * Raised by prepareRelease() alone. Distinct from `down()`, which breaks
+     * validation too and so never reaches preparation.
+     */
+    private bool $breakPreparation = false;
+
     public function __construct(
         private readonly string $name = 'fake',
         private readonly bool $sandbox = true,
@@ -70,6 +87,10 @@ final class FakeDistributor implements Distributor
 
     public function prepareRelease(Release $release, string $idempotencyKey): DistributorSubmission
     {
+        if ($this->breakPreparation) {
+            throw new RuntimeException('The upload was interrupted.');
+        }
+
         $this->refuseIfDown();
 
         return new DistributorSubmission(
@@ -81,8 +102,27 @@ final class FakeDistributor implements Distributor
 
     public function submitRelease(Release $release, string $idempotencyKey): DistributorSubmission
     {
+        if ($this->refuseConnection) {
+            throw SubmissionNotSent::because('Connection refused.');
+        }
+
         $this->refuseIfDown();
         $this->submitCalls++;
+
+        if ($this->swallowSubmission) {
+            // The package is recorded as arrived and the answer never comes
+            // back — exactly the case DIST-001-H1 exists for. Recording it
+            // *before* throwing is what makes a later lookup meaningful.
+            $externalId = 'rel-'.substr($idempotencyKey, 0, 12);
+            $this->states[$externalId] = DeliveryStatus::Submitted;
+            $this->submissions[$idempotencyKey] = new DistributorSubmission(
+                accepted: true,
+                externalReleaseId: $externalId,
+                status: DeliveryStatus::Submitted,
+            );
+
+            throw new RuntimeException('Read timed out waiting for the distributor.');
+        }
 
         // A distributor that honours the key returns the original submission
         // rather than creating a second. The engine is written against this.
@@ -128,7 +168,73 @@ final class FakeDistributor implements Distributor
         );
     }
 
+    public function findSubmission(string $idempotencyKey): ?DistributorSubmission
+    {
+        if (! $this->lookupSupported) {
+            throw SubmissionLookupUnsupported::for($this->name);
+        }
+
+        $this->refuseIfDown();
+
+        return $this->submissions[$idempotencyKey] ?? null;
+    }
+
     // ------------------------------------------------------------- test seams
+
+    /**
+     * Accept the package and never answer — a read timeout after the request
+     * landed. The one failure mode a retry must not be offered for.
+     */
+    public function swallowingSubmissions(): self
+    {
+        $this->swallowSubmission = true;
+
+        return $this;
+    }
+
+    public function answeringSubmissions(): self
+    {
+        $this->swallowSubmission = false;
+
+        return $this;
+    }
+
+    /**
+     * Fail before the request leaves. Distinct from an outage: the adapter
+     * *knows* nothing arrived, and says so.
+     */
+    public function refusingConnections(): self
+    {
+        $this->refuseConnection = true;
+
+        return $this;
+    }
+
+    /**
+     * Fail while uploading, and nowhere else.
+     *
+     * `down()` cannot express this: it breaks `validateRelease()` too, so
+     * submission is refused before preparation is ever reached — which is
+     * exactly how a test meant to cover the prepare path quietly covers the
+     * validation path instead.
+     */
+    public function failingPreparation(): self
+    {
+        $this->breakPreparation = true;
+
+        return $this;
+    }
+
+    /**
+     * A distributor with no way to look a submission up by key — the common
+     * case, and the one that leaves a person to resolve it.
+     */
+    public function withoutSubmissionLookup(): self
+    {
+        $this->lookupSupported = false;
+
+        return $this;
+    }
 
     public function unavailable(): self
     {

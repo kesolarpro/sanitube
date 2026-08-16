@@ -1,7 +1,7 @@
 {
   "$comment": "Machine-readable project state. Any new session reads this first, then verifies it against GitHub before trusting it. Written at the end of each ticket, so a stale entry means a session ended mid-ticket — check the branch and CI rather than the status field.",
   "updated_at": "2026-08-16",
-  "current_phase": "DIST-UI-001",
+  "current_phase": "DIST-001-H1",
   "last_completed_ticket": "DIST-UI-001",
   "default_branch": "main",
   "tickets": {
@@ -326,10 +326,22 @@
       "note": "DIST-UI-001 will hit the same wall for delivery validation."
     },
     "DIST-UI-001": {
-      "status": "implemented, awaiting PR",
+      "status": "merged",
       "branch": "claude/dist-ui-001-distribution-operations",
+      "pr": 34,
+      "ci": "green 10/10"
+    },
+    "DIST-001-H1": {
+      "status": "REVIEW_REQUIRED — PR open, deliberately not merged",
+      "branch": "claude/dist-001-h1-unknown-outcome",
       "ci": "local gate green; CI pending",
-      "note": "Delivery list, delivery detail and a per-release send screen over DIST-001. No screen probes a distributor on render. UNKNOWN, FAILED and REJECTED are drawn as three different things. The preflight is a GET that creates nothing."
+      "note": "Adds SUBMITTED_UNCONFIRMED for a submission whose outcome is genuinely unknown, splits prepare from submit, widens the Distributor contract with findSubmission(), and adds a human resolution recorded against decided_by. Changes external submission semantics and amends a contract DIST-001 closed at five methods.",
+      "review_points": [
+        "The default for an unclassified submission failure is now \"unknown\", which blocks the retry.",
+        "findSubmission() widens the Distributor contract to six methods.",
+        "A hand-typed external reference is written as though received — guarded by a required note and a recorded actor.",
+        "decided_by carries no foreign key."
+      ]
     }
   },
   "architecture_amendments": [
@@ -397,9 +409,15 @@
     "design_system": "Semantic tokens only (--color-surface, never --color-zinc-900). Status colour is decided in StatusBadge alone; labels always come from translations. Navigation is built server-side and unbuilt sections show as disabled — 'available' is presentation, never authorisation. MetricCard takes number|null and renders null as an em dash, never 0.",
     "frontend_toolchain": "@vitejs/plugin-vue@5 peers Vite ^5||^6; the project is on Vite 7. Resolved with plugin-vue@6 (which supports Vite 7), NOT --force or --legacy-peer-deps: a peer conflict is compatibility information, and overriding it keeps the incompatibility. Same for vue-tsc@3. npm run types runs in CI."
   },
-  "open_pull_requests": [],
+  "open_pull_requests": [
+    {
+      "number": "pending",
+      "ticket": "DIST-001-H1",
+      "status": "REVIEW_REQUIRED — do not merge without a human decision"
+    }
+  ],
   "next_session": {
-    "start_with": "DIST-001-H1 — unknown submission outcome. REVIEW_REQUIRED: open the PR, do not merge, continue on independent work.",
+    "start_with": "SET-001 — the settings shell. Branch from main. DIST-001-H1 is open for review and must not be merged autonomously.",
     "then": [
       "SET-001 settings shell (secrets write-only and masked; never returned to the frontend)",
       "DEP-001 deploy script, DEP-002/003 cPanel and VPS documentation",
@@ -444,9 +462,9 @@
     "since": "UI-001",
     "note": "Nine tickets (ING/MED/CAT/AI/GEN/REL/DIST/SEC-001 and PR #12) were merged under an earlier autonomous-chaining instruction that bypassed review. A retroactive audit is under way; they stay in main and any correction becomes a follow-up ticket, not a revert. BULK-001b, UI-004 and UI-005 were merged under the session's explicit merge policy for read-only UI, ingestion tooling and documentation: none changes authentication, authorization, rights, money, identifier lifecycle, destructive storage behaviour or any external action."
   },
-  "main_sha": "7de56d0",
-  "current_ticket": "DIST-UI-001",
-  "tests": "950 passed, 1 skipped, 4130 assertions",
+  "main_sha": "cda3476",
+  "current_ticket": "DIST-001-H1",
+  "tests": "974 passed, 1 skipped, 4225 assertions",
   "phpstan": {
     "level": 6,
     "baseline": false,
@@ -460,7 +478,7 @@
     "build": "clean",
     "note": "PHP suite stubs Vite when no manifest exists; the frontend CI job renders against a real one."
   },
-  "next_action": "Open the DIST-UI-001 PR, wait for real CI, merge if 10/10 green, verify main, then start DIST-001-H1 (REVIEW_REQUIRED — PR only).",
+  "next_action": "Leave the DIST-001-H1 PR open for review. Continue with SET-001 on a fresh branch from main.",
   "session_boundary": {
     "reason": "Context capacity approaching its limit at a clean ticket boundary. Five tickets merged, main green, no open PR.",
     "repository_state": "green",

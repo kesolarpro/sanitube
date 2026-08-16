@@ -96,6 +96,16 @@ final readonly class DeliveryDetailQuery
                 'can_request_takedown' => $mayDistribute
                     && $delivery->status->isTakedownable()
                     && $delivery->external_release_id !== null,
+
+                // DIST-001-H1. Both only exist while SaniTube cannot say what
+                // happened, and neither is a retry: reconciling asks the
+                // distributor what it holds, resolving records what a person
+                // found when they looked.
+                'can_reconcile' => $mayDistribute
+                    && $delivery->status->isUnknown()
+                    && $provider['available'] === true,
+
+                'can_resolve_manually' => $mayDistribute && $delivery->status->isUnknown(),
             ],
         ];
     }

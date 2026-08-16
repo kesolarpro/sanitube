@@ -7,6 +7,7 @@ namespace SaniTube\Distribution\Contracts;
 use SaniTube\Distribution\DeliveryStatus;
 use SaniTube\Distribution\DistributorSubmission;
 use SaniTube\Distribution\DistributorValidation;
+use SaniTube\Distribution\Exceptions\SubmissionLookupUnsupported;
 use SaniTube\Releases\Models\Release;
 
 /**
@@ -99,4 +100,28 @@ interface Distributor
      * Ask for the release to be removed from stores.
      */
     public function requestTakedown(string $externalReleaseId, string $idempotencyKey): DistributorSubmission;
+
+    /**
+     * Whether this distributor already holds a submission under this key.
+     *
+     * The answer to "did our request actually arrive" after a timeout, and the
+     * only way out of `SUBMITTED_UNCONFIRMED` that does not need a person.
+     *
+     * Three answers, and the difference between the second and the third is
+     * the whole point of the method:
+     *
+     *   - a {@see DistributorSubmission} — it arrived. Adopt its reference.
+     *   - `null` — the distributor looked and holds nothing under this key.
+     *     Retrying is safe.
+     *   - {@see SubmissionLookupUnsupported} — it cannot look. *Not* the same
+     *     as holding nothing, and a retry is not safe. A person has to check.
+     *
+     * Adapters for providers with no lookup endpoint throw. Returning `null`
+     * because a method had to return something would turn "I cannot answer"
+     * into "your package is not here", which is how a release gets delivered
+     * twice.
+     *
+     * @throws SubmissionLookupUnsupported
+     */
+    public function findSubmission(string $idempotencyKey): ?DistributorSubmission;
 }

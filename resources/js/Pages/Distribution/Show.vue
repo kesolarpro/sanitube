@@ -1,12 +1,17 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import { Link, router, usePage } from '@inertiajs/vue3';
+import { Link, router, useForm, usePage } from '@inertiajs/vue3';
 import DataTable from '@/Components/Data/DataTable.vue';
 import TableCell from '@/Components/Data/TableCell.vue';
 import TableHeaderCell from '@/Components/Data/TableHeaderCell.vue';
 import AppAlert from '@/Components/Ui/AppAlert.vue';
 import AppButton from '@/Components/Ui/AppButton.vue';
 import AppCard from '@/Components/Ui/AppCard.vue';
+import AppModal from '@/Components/Ui/AppModal.vue';
+import FormField from '@/Components/Ui/FormField.vue';
+import SelectInput from '@/Components/Ui/SelectInput.vue';
+import TextInput from '@/Components/Ui/TextInput.vue';
+import TextareaInput from '@/Components/Ui/TextareaInput.vue';
 import ConfirmDialog from '@/Components/Ui/ConfirmDialog.vue';
 import StatusBadge from '@/Components/Ui/StatusBadge.vue';
 import { dateTime } from '@/Support/format';
@@ -77,6 +82,56 @@ function requestTakedown(): void {
 
 const isFailed = computed(() => props.delivery.status === 'FAILED');
 const isRejected = computed(() => props.delivery.status === 'REJECTED');
+const isUnconfirmed = computed(() => props.delivery.status === 'SUBMITTED_UNCONFIRMED');
+
+const reconciling = ref(false);
+const resolving = ref(false);
+
+const resolveForm = useForm({ arrived: true, external_release_id: '', note: '' });
+
+function reconcile(): void {
+    reconciling.value = true;
+
+    router.post(
+        `/distribution/${props.delivery.uuid}/reconcile`,
+        {},
+        {
+            preserveScroll: true,
+            onFinish: () => {
+                reconciling.value = false;
+            },
+        },
+    );
+}
+
+function openResolve(): void {
+    resolveForm.clearErrors();
+    resolveForm.arrived = true;
+    resolveForm.external_release_id = '';
+    resolveForm.note = '';
+    resolving.value = true;
+}
+
+/**
+ * A select rather than a toggle. "Arrived / never arrived" is a statement about
+ * the world, and a switch labelled with one of the two answers reads as a
+ * setting somebody left on.
+ */
+const arrivedChoice = computed({
+    get: () => (resolveForm.arrived ? 'yes' : 'no'),
+    set: (value: string) => {
+        resolveForm.arrived = value === 'yes';
+    },
+});
+
+function submitResolve(): void {
+    resolveForm.post(`/distribution/${props.delivery.uuid}/resolve`, {
+        preserveScroll: true,
+        onSuccess: () => {
+            resolving.value = false;
+        },
+    });
+}
 </script>
 
 <template>
@@ -129,6 +184,12 @@ const isRejected = computed(() => props.delivery.status === 'REJECTED');
 
         <AppAlert v-else-if="isRejected" tone="danger" :title="trans('ui.status.generic.REJECTED')">
             {{ trans('ui.distribution.rejected_is_a_verdict') }}
+        </AppAlert>
+
+        <!-- DIST-001-H1. Neither a failure nor a success, and the only state
+             with no retry: the distributor may already hold the package. -->
+        <AppAlert v-else-if="isUnconfirmed" tone="warning" :title="trans('ui.distribution.unconfirmed')">
+            {{ trans('ui.distribution.unconfirmed_note') }}
         </AppAlert>
 
         <AppCard>
@@ -205,6 +266,23 @@ const isRejected = computed(() => props.delivery.status === 'REJECTED');
                 </AppButton>
 
                 <AppButton
+                    v-if="delivery.actions.can_reconcile"
+                    variant="primary"
+                    :loading="reconciling"
+                    @click="reconcile"
+                >
+                    {{ trans('ui.distribution.reconcile') }}
+                </AppButton>
+
+                <AppButton
+                    v-if="delivery.actions.can_resolve_manually"
+                    variant="secondary"
+                    @click="openResolve"
+                >
+                    {{ trans('ui.distribution.resolve') }}
+                </AppButton>
+
+                <AppButton
                     v-if="delivery.actions.can_request_takedown"
                     variant="danger"
                     @click="takingDown = true"
@@ -212,6 +290,19 @@ const isRejected = computed(() => props.delivery.status === 'REJECTED');
                     {{ trans('ui.distribution.takedown') }}
                 </AppButton>
             </div>
+
+            <p v-if="delivery.actions.can_reconcile" class="mt-3 text-caption text-muted">
+                {{ trans('ui.distribution.reconcile_description') }}
+            </p>
+
+            <!-- The distributor cannot be asked, so a person has to look. Said
+                 rather than left as a missing button. -->
+            <p
+                v-else-if="delivery.actions.can_resolve_manually"
+                class="mt-3 text-caption text-muted"
+            >
+                {{ trans('ui.distribution.reconcile_unavailable') }}
+            </p>
         </AppCard>
 
         <AppCard :padded="false">
@@ -238,6 +329,49 @@ const isRejected = computed(() => props.delivery.status === 'REJECTED');
                 </tr>
             </DataTable>
         </AppCard>
+
+        <!-- The one place SaniTube writes a reference it never received. -->
+        <AppModal
+            :open="resolving"
+            :title="trans('ui.distribution.resolve')"
+            :description="trans('ui.distribution.resolve_description')"
+            @close="resolving = false"
+        >
+            <div class="space-y-3">
+                <SelectInput
+                    v-model="arrivedChoice"
+                    :options="[
+                        { value: 'yes', label: trans('ui.distribution.resolve_arrived') },
+                        { value: 'no', label: trans('ui.distribution.resolve_not_arrived') },
+                    ]"
+                />
+
+                <FormField
+                    v-if="resolveForm.arrived"
+                    :label="trans('ui.distribution.resolve_reference')"
+                    :hint="trans('ui.distribution.resolve_reference_hint')"
+                    :error="resolveForm.errors.external_release_id"
+                    required
+                >
+                    <TextInput v-model="resolveForm.external_release_id" />
+                </FormField>
+
+                <FormField
+                    :label="trans('ui.distribution.resolve_note')"
+                    :error="resolveForm.errors.note"
+                    required
+                >
+                    <TextareaInput v-model="resolveForm.note" :rows="3" />
+                </FormField>
+            </div>
+
+            <template #footer>
+                <AppButton variant="ghost" @click="resolving = false">{{ trans('ui.actions.cancel') }}</AppButton>
+                <AppButton variant="primary" :loading="resolveForm.processing" @click="submitResolve">
+                    {{ trans('ui.distribution.resolve_confirm') }}
+                </AppButton>
+            </template>
+        </AppModal>
 
         <ConfirmDialog
             :open="takingDown"

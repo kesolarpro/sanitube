@@ -10,10 +10,13 @@ use SaniTube\Distribution\Contracts\Distributor;
 use SaniTube\Distribution\DeliveryStatus;
 use SaniTube\Distribution\DistributionIdempotencyKey;
 use SaniTube\Distribution\DistributorManager;
+use SaniTube\Distribution\DistributorSubmission;
 use SaniTube\Distribution\Enums\DistributionAction;
 use SaniTube\Distribution\Enums\DistributionAttemptOutcome;
 use SaniTube\Distribution\Enums\DistributionDeliveryStatus;
 use SaniTube\Distribution\Exceptions\DistributionException;
+use SaniTube\Distribution\Exceptions\SubmissionLookupUnsupported;
+use SaniTube\Distribution\Exceptions\SubmissionNotSent;
 use SaniTube\Distribution\Models\DistributionAttempt;
 use SaniTube\Distribution\Models\DistributionDelivery;
 use SaniTube\Releases\Enums\ReleaseStatus;
@@ -145,14 +148,35 @@ final readonly class SubmitDelivery
             // Preparing and submitting are separate calls because uploading
             // masters is the slow, resumable part and a retry must not repeat
             // it. Both carry the same key.
+            //
+            // They are also in separate try blocks, and that separation is
+            // DIST-001-H1's central claim: a failure while *preparing* means
+            // nothing was submitted, so a retry is safe. A failure while
+            // *submitting* means the request may have arrived.
             $distributor->prepareRelease($release, $delivery->idempotency_key);
-            $submission = $distributor->submitRelease($release, $delivery->idempotency_key);
         } catch (Throwable $exception) {
-            // An outage leaves the delivery FAILED rather than stuck in
-            // SUBMITTING — a row that is permanently mid-flight is a row
-            // nobody retries and nobody cleans up. FAILED is submittable
-            // again, and the same key makes the retry recognisable.
+            // Nothing was handed over. FAILED, retryable, same key.
             return $this->fail($delivery, $exception->getMessage(), $startedAt);
+        }
+
+        try {
+            $submission = $distributor->submitRelease($release, $delivery->idempotency_key);
+        } catch (SubmissionNotSent $exception) {
+            // The adapter *knows* the request never left: DNS, refused
+            // connection, a rejected handshake. The package demonstrably did
+            // not arrive, so this is an ordinary retryable failure.
+            return $this->fail($delivery, $exception->getMessage(), $startedAt);
+        } catch (Throwable $exception) {
+            // Everything else. A read timeout, a reset connection, a 502 from
+            // a gateway that had already forwarded the request — all of them
+            // are compatible with the distributor holding the package.
+            //
+            // FAILED here would offer a retry, and a retry against a
+            // distributor that does not honour idempotency keys is a *second*
+            // delivery: the exact outcome this module exists to prevent. The
+            // stable key is a mitigation, not a guarantee, because no contract
+            // can make a provider honour it.
+            return $this->unconfirmed($delivery, $exception->getMessage(), $startedAt);
         }
 
         if (! $submission->accepted) {
@@ -191,6 +215,31 @@ final readonly class SubmitDelivery
 
             return $delivery->refresh();
         });
+    }
+
+    /**
+     * Record that SaniTube does not know what happened.
+     *
+     * Deliberately *not* `fail()` with a different word on it: the outcome
+     * column is what later code branches on, and a row that says FAILED is a
+     * row something will eventually retry.
+     */
+    private function unconfirmed(DistributionDelivery $delivery, string $reason, int $startedAt): DistributionDelivery
+    {
+        $delivery->forceFill([
+            'status' => DistributionDeliveryStatus::SubmittedUnconfirmed,
+            'failure_reason' => $reason,
+        ])->save();
+
+        $this->record(
+            $delivery,
+            DistributionAction::Submit,
+            DistributionAttemptOutcome::Unknown,
+            $reason,
+            $startedAt,
+        );
+
+        return $delivery->refresh();
     }
 
     private function fail(DistributionDelivery $delivery, string $reason, int $startedAt): DistributionDelivery
@@ -297,6 +346,146 @@ final readonly class SubmitDelivery
             DeliveryStatus::TakenDown => DistributionDeliveryStatus::TakenDown,
             DeliveryStatus::Failed => DistributionDeliveryStatus::Failed,
         };
+    }
+
+    /**
+     * Ask the distributor whether it actually received the package.
+     *
+     * The way out of `SUBMITTED_UNCONFIRMED` that does not need a person, and
+     * the reason `findSubmission()` exists on the contract. Three answers,
+     * three different outcomes:
+     *
+     *   - **it holds the submission** — it arrived. The reference is adopted
+     *     and the delivery becomes SUBMITTED, which is what it would have been
+     *     had the response come back.
+     *   - **it holds nothing** — the request never landed. FAILED, retryable,
+     *     same key.
+     *   - **it cannot look** — nothing moves. `SUBMITTED_UNCONFIRMED` stays,
+     *     and a person has to check the distributor's own dashboard.
+     *
+     * A transport failure while *asking* is the third case, not the second.
+     * "The lookup timed out" is not evidence of an empty account.
+     */
+    public function reconcile(DistributionDelivery $delivery): DistributionDelivery
+    {
+        if (! $delivery->status->isUnknown()) {
+            throw DistributionException::notReconcilable($delivery->status);
+        }
+
+        $distributor = $this->distributors->distributor($delivery->provider);
+        $startedAt = hrtime(true);
+
+        try {
+            $found = $distributor->findSubmission($delivery->idempotency_key);
+        } catch (SubmissionLookupUnsupported $exception) {
+            $this->record($delivery, DistributionAction::Reconcile, DistributionAttemptOutcome::Unknown, $exception->getMessage(), $startedAt);
+
+            return $delivery;
+        } catch (Throwable $exception) {
+            // The lookup itself failed. Still unknown — and moving the row on
+            // a failed question would be inventing an answer.
+            $this->record($delivery, DistributionAction::Reconcile, DistributionAttemptOutcome::Unknown, $exception->getMessage(), $startedAt);
+
+            return $delivery;
+        }
+
+        if (! $found instanceof DistributorSubmission) {
+            $this->record($delivery, DistributionAction::Reconcile, DistributionAttemptOutcome::Succeeded, 'The distributor holds nothing under this key.', $startedAt);
+
+            return $this->fail($delivery, 'The distributor confirmed it never received this submission.', $startedAt);
+        }
+
+        $delivery->forceFill([
+            'status' => DistributionDeliveryStatus::Submitted,
+            'external_release_id' => $found->externalReleaseId,
+            'failure_reason' => null,
+            'submitted_at' => $delivery->submitted_at ?? Carbon::now(),
+            'last_synced_at' => Carbon::now(),
+        ])->save();
+
+        $this->record($delivery, DistributionAction::Reconcile, DistributionAttemptOutcome::Succeeded, 'The distributor holds this submission.', $startedAt);
+
+        return $delivery->refresh();
+    }
+
+    /**
+     * A person has looked, and says what they found.
+     *
+     * The escape hatch for a distributor that cannot be asked. It exists
+     * because the alternative is a row stuck forever — and being stuck is an
+     * honest description of the world, but it is not a workflow.
+     *
+     * `$decidedBy` is required and recorded. A hand-entered external reference
+     * is the one place in this module where a value the platform never
+     * received from a distributor is written as though it had been, and a
+     * record of who typed it is the least that owes.
+     *
+     * `$arrived === false` returns the delivery to FAILED rather than deleting
+     * anything: the attempt history is what makes the decision reviewable.
+     */
+    public function resolveManually(
+        DistributionDelivery $delivery,
+        bool $arrived,
+        ?string $externalReleaseId,
+        int $decidedBy,
+        string $note,
+    ): DistributionDelivery {
+        if (! $delivery->status->isUnknown()) {
+            throw DistributionException::notReconcilable($delivery->status);
+        }
+
+        if ($arrived && ($externalReleaseId === null || trim($externalReleaseId) === '')) {
+            // "It arrived but I cannot say under what reference" leaves the
+            // delivery unpollable and untakedownable — a SUBMITTED row nobody
+            // can ever ask about again.
+            throw DistributionException::manualResolutionNeedsReference();
+        }
+
+        if (trim($note) === '') {
+            throw DistributionException::manualResolutionNeedsNote();
+        }
+
+        $startedAt = hrtime(true);
+
+        if ($arrived) {
+            $delivery->forceFill([
+                'status' => DistributionDeliveryStatus::Submitted,
+                'external_release_id' => trim((string) $externalReleaseId),
+                'failure_reason' => null,
+                'submitted_at' => $delivery->submitted_at ?? Carbon::now(),
+            ])->save();
+        } else {
+            $delivery->forceFill([
+                'status' => DistributionDeliveryStatus::Failed,
+                'failure_reason' => 'Resolved by a person: the distributor never received this submission.',
+            ])->save();
+        }
+
+        $this->recordDecision($delivery, $decidedBy, $arrived, $note, $startedAt);
+
+        return $delivery->refresh();
+    }
+
+    private function recordDecision(
+        DistributionDelivery $delivery,
+        int $decidedBy,
+        bool $arrived,
+        string $note,
+        int $startedAt,
+    ): void {
+        DistributionAttempt::query()->create([
+            'delivery_id' => $delivery->id,
+            'action' => DistributionAction::Reconcile,
+            'outcome' => DistributionAttemptOutcome::Succeeded,
+            'idempotency_key' => $delivery->idempotency_key,
+            'decided_by' => $decidedBy,
+            'response_summary' => sprintf(
+                'Resolved by a person as %s. %s',
+                $arrived ? 'received' : 'never received',
+                trim($note),
+            ),
+            'duration_ms' => (int) round((hrtime(true) - $startedAt) / 1_000_000),
+        ]);
     }
 
     /**

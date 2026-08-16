@@ -581,6 +581,164 @@ final class DistributionScreensTest extends TestCase
         $this->assertSame(DistributionDeliveryStatus::TakedownRequested, $delivery->refresh()->status);
     }
 
+    // ------------------------------------------- the unconfirmed submission
+
+    #[Test]
+    public function an_unconfirmed_delivery_is_offered_answers_rather_than_a_retry(): void
+    {
+        $delivery = $this->unconfirmed();
+
+        $payload = $this->detail($delivery, $this->owner());
+
+        // The distributor may already hold the package. A submit button here
+        // is a duplicate delivery with a nice label on it.
+        $this->assertFalse($payload['actions']['can_submit']);
+        $this->assertTrue($payload['actions']['can_reconcile']);
+        $this->assertTrue($payload['actions']['can_resolve_manually']);
+    }
+
+    #[Test]
+    public function reconciling_from_the_screen_adopts_what_the_distributor_holds(): void
+    {
+        $release = $this->deliverableRelease();
+
+        // The package lands and the answer never comes back.
+        $this->fake()->swallowingSubmissions();
+
+        $this->actingAs($this->owner())
+            ->post('/releases/'.$release->uuid.'/distribution/fake/submit')
+            ->assertRedirect();
+
+        $delivery = DistributionDelivery::query()->firstOrFail();
+        $this->assertSame(DistributionDeliveryStatus::SubmittedUnconfirmed, $delivery->status);
+
+        $this->actingAs($this->owner())
+            ->post('/distribution/'.$delivery->uuid.'/reconcile')
+            ->assertRedirect();
+
+        $delivery->refresh();
+
+        $this->assertSame(DistributionDeliveryStatus::Submitted, $delivery->status);
+        $this->assertNotNull($delivery->external_release_id);
+
+        // Handed over once, which is the entire point.
+        $this->assertSame(1, $this->fake()->submitCalls);
+    }
+
+    #[Test]
+    public function a_distributor_that_cannot_be_asked_leaves_the_screen_saying_so(): void
+    {
+        $delivery = $this->unconfirmed();
+
+        $this->fake()->withoutSubmissionLookup();
+
+        $this->actingAs($this->owner())
+            ->post('/distribution/'.$delivery->uuid.'/reconcile')
+            ->assertRedirect();
+
+        // Unchanged, and a person is still the only way out.
+        $this->assertSame(
+            DistributionDeliveryStatus::SubmittedUnconfirmed,
+            $delivery->refresh()->status,
+        );
+        $this->assertTrue($this->detail($delivery, $this->owner())['actions']['can_resolve_manually']);
+    }
+
+    #[Test]
+    public function a_person_records_what_they_found_and_is_named_for_it(): void
+    {
+        $delivery = $this->unconfirmed();
+
+        $this->actingAs($this->owner())
+            ->post('/distribution/'.$delivery->uuid.'/resolve', [
+                'arrived' => true,
+                'external_release_id' => 'TL-99321',
+                'note' => 'Found it in their dashboard under 12 March, awaiting review.',
+            ])
+            ->assertRedirect();
+
+        $delivery->refresh();
+
+        $this->assertSame(DistributionDeliveryStatus::Submitted, $delivery->status);
+        $this->assertSame('TL-99321', $delivery->external_release_id);
+
+        // The reviewer comes from the session, never the request: a decision
+        // that says who made it is only worth something if the caller could
+        // not choose.
+        $this->assertSame(
+            $this->owner()->getKey(),
+            $delivery->attempts()->orderByDesc('id')->firstOrFail()->decided_by,
+        );
+    }
+
+    #[Test]
+    public function claiming_it_arrived_without_a_reference_is_refused_from_the_screen(): void
+    {
+        $delivery = $this->unconfirmed();
+
+        $this->actingAs($this->owner())
+            ->post('/distribution/'.$delivery->uuid.'/resolve', [
+                'arrived' => true,
+                'note' => 'It is definitely there somewhere.',
+            ])
+            ->assertSessionHasErrors(['distribution' => 'RESOLUTION_NEEDS_REFERENCE']);
+
+        $this->assertSame(
+            DistributionDeliveryStatus::SubmittedUnconfirmed,
+            $delivery->refresh()->status,
+        );
+    }
+
+    #[Test]
+    public function overruling_the_platform_without_a_reason_is_refused_by_the_form(): void
+    {
+        $delivery = $this->unconfirmed();
+
+        $this->actingAs($this->owner())
+            ->post('/distribution/'.$delivery->uuid.'/resolve', ['arrived' => false, 'note' => '  '])
+            ->assertSessionHasErrors('note');
+
+        $this->assertSame(
+            DistributionDeliveryStatus::SubmittedUnconfirmed,
+            $delivery->refresh()->status,
+        );
+    }
+
+    #[Test]
+    public function a_member_can_neither_reconcile_nor_resolve(): void
+    {
+        $delivery = $this->unconfirmed();
+        $member = $this->user(UserRole::Member, 'member@example.test');
+
+        $this->actingAs($member)->post('/distribution/'.$delivery->uuid.'/reconcile')->assertForbidden();
+        $this->actingAs($member)
+            ->post('/distribution/'.$delivery->uuid.'/resolve', [
+                'arrived' => true,
+                'external_release_id' => 'TL-1',
+                'note' => 'Trust me on this one.',
+            ])
+            ->assertForbidden();
+
+        $this->assertSame(
+            DistributionDeliveryStatus::SubmittedUnconfirmed,
+            $delivery->refresh()->status,
+        );
+    }
+
+    #[Test]
+    public function there_is_nothing_to_reconcile_about_a_delivery_whose_state_is_known(): void
+    {
+        $delivery = $this->delivery();
+
+        $payload = $this->detail($delivery, $this->owner());
+        $this->assertFalse($payload['actions']['can_reconcile']);
+        $this->assertFalse($payload['actions']['can_resolve_manually']);
+
+        $this->actingAs($this->owner())
+            ->post('/distribution/'.$delivery->uuid.'/reconcile')
+            ->assertSessionHasErrors(['distribution' => 'NOT_RECONCILABLE']);
+    }
+
     // ------------------------------------------------------------ navigation
 
     #[Test]
@@ -667,6 +825,14 @@ final class DistributionScreensTest extends TestCase
         }
 
         return $release->refresh();
+    }
+
+    private function unconfirmed(): DistributionDelivery
+    {
+        return $this->delivery([
+            'status' => DistributionDeliveryStatus::SubmittedUnconfirmed,
+            'failure_reason' => 'Read timed out waiting for the distributor.',
+        ]);
     }
 
     /**

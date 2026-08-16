@@ -62,4 +62,14 @@ final readonly class NullDistributor implements Distributor
     {
         return DistributorSubmission::failed(self::REASON);
     }
+
+    /**
+     * `null` rather than unsupported, and the distinction is real here: this
+     * distributor has never sent anything anywhere, so it can say with
+     * certainty that it holds nothing.
+     */
+    public function findSubmission(string $idempotencyKey): ?DistributorSubmission
+    {
+        return null;
+    }
 }
