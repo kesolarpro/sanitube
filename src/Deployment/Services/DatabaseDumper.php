@@ -43,11 +43,26 @@ class DatabaseDumper
     public function __construct(private readonly Connection $connection) {}
 
     /**
-     * Every table this connection has, in a stable order.
+     * Every table this connection has, in an order a restore can replay.
      *
-     * Sorted so two backups of the same database produce byte-identical dumps
-     * — which is what makes a checksum mean anything, and what lets an
+     * Two properties, and the second was learned the hard way.
+     *
+     * **Stable**, so two backups of the same database produce byte-identical
+     * dumps — which is what makes a checksum mean anything, and what lets an
      * operator see at a glance that nothing changed.
+     *
+     * **Dependency-ordered**, so a table is written after everything it points
+     * at. A dump sorted alphabetically restores `distribution_attempts` before
+     * the `distribution_deliveries` they belong to, and every engine that
+     * enforces foreign keys refuses the insert. Turning the constraints off
+     * for the restore is the usual answer and is *also* done — but SQLite
+     * ignores `PRAGMA foreign_keys` inside a transaction, so a restore that
+     * relied on it alone would be one nobody could perform on the platform's
+     * smallest supported database. Writing the file in an order that does not
+     * need the escape hatch is the fix; the escape hatch stays for cycles.
+     *
+     * Alphabetical within each dependency level, so the order is still
+     * deterministic and a checksum still means something.
      *
      * @return list<string>
      */
@@ -60,9 +75,95 @@ class DatabaseDumper
             $tables[] = $table['name'];
         }
 
+        $tables = array_values(array_unique($tables));
         sort($tables);
 
-        return array_values(array_unique($tables));
+        return $this->inDependencyOrder($tables);
+    }
+
+    /**
+     * Kahn's algorithm, alphabetical among the ready set.
+     *
+     * A table whose dependencies cannot be resolved — a cycle, or a schema
+     * this connection will not describe — is appended at the end rather than
+     * dropped. A dump missing a table is a backup that silently loses data,
+     * which is a far worse failure than one whose restore needs the foreign
+     * keys switched off.
+     *
+     * @param  list<string>  $tables
+     * @return list<string>
+     */
+    private function inDependencyOrder(array $tables): array
+    {
+        $known = array_flip($tables);
+        $depends = [];
+
+        foreach ($tables as $table) {
+            $depends[$table] = [];
+
+            foreach ($this->foreignKeysOf($table) as $foreign) {
+                // A self-reference is not a dependency between tables; it is
+                // satisfied row by row and never by ordering.
+                if ($foreign !== $table && array_key_exists($foreign, $known)) {
+                    $depends[$table][$foreign] = true;
+                }
+            }
+        }
+
+        $ordered = [];
+        $placed = [];
+
+        while (count($ordered) < count($tables)) {
+            $ready = [];
+
+            foreach ($tables as $table) {
+                if (array_key_exists($table, $placed)) {
+                    continue;
+                }
+
+                if (array_diff_key($depends[$table], $placed) === []) {
+                    $ready[] = $table;
+                }
+            }
+
+            if ($ready === []) {
+                foreach ($tables as $table) {
+                    if (! array_key_exists($table, $placed)) {
+                        $ordered[] = $table;
+                    }
+                }
+
+                return $ordered;
+            }
+
+            foreach ($ready as $table) {
+                $ordered[] = $table;
+                $placed[$table] = true;
+            }
+        }
+
+        return $ordered;
+    }
+
+    /**
+     * The tables this one points at.
+     *
+     * @return list<string>
+     */
+    private function foreignKeysOf(string $table): array
+    {
+        $foreign = [];
+
+        foreach ($this->connection->getSchemaBuilder()->getForeignKeys($table) as $key) {
+            /** @var array{foreign_table?: string|null} $key */
+            $referenced = $key['foreign_table'] ?? null;
+
+            if (is_string($referenced) && $referenced !== '') {
+                $foreign[] = $referenced;
+            }
+        }
+
+        return array_values(array_unique($foreign));
     }
 
     /**

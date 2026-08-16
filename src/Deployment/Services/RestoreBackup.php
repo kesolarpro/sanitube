@@ -145,52 +145,121 @@ final readonly class RestoreBackup
         // rolls back cleanly on every engine in the matrix, and a restore
         // that dies halfway leaves the database as it was rather than half
         // replaced.
+        //
+        // Order is what makes this work without help from the engine. The dump
+        // is written so a table follows everything it points at, so inserting
+        // in file order never presents a child before its parent — and
+        // emptying in *reverse* file order never removes a parent while a
+        // child still references it. Both passes are ordered here rather than
+        // left to the constraints being off, because SQLite ignores
+        // `PRAGMA foreign_keys` inside a transaction: a restore that leaned on
+        // the escape hatch would be green everywhere except the platform's
+        // smallest supported database, which is also its most common one.
+        //
+        // The escape hatch is still opened, for the cases ordering cannot
+        // cover — a cyclic schema, or a backup written before the dump was
+        // ordered at all.
         try {
-            $this->connection->transaction(function () use ($handle, &$tables, &$rows): void {
-                $table = null;
-                $buffer = [];
+            $this->emptyTables($this->tablesIn($dump));
 
-                while (($line = fgets($handle)) !== false) {
-                    $decoded = json_decode(trim($line), true);
+            $this->connection->getSchemaBuilder()->withoutForeignKeyConstraints(function () use ($handle, &$tables, &$rows): void {
+                $this->connection->transaction(function () use ($handle, &$tables, &$rows): void {
+                    $table = null;
+                    $buffer = [];
 
-                    if (! is_array($decoded)) {
-                        continue;
-                    }
+                    while (($line = fgets($handle)) !== false) {
+                        $decoded = json_decode(trim($line), true);
 
-                    if (array_key_exists('_table', $decoded)) {
-                        $this->flush($table, $buffer);
-                        $table = (string) $decoded['_table'];
-                        $tables++;
-
-                        if ($this->connection->getSchemaBuilder()->hasTable($table)) {
-                            // Emptied, not dropped. The schema belongs to
-                            // migrations; a restore that recreated tables
-                            // would be a second, worse migrator.
-                            $this->connection->table($table)->delete();
+                        if (! is_array($decoded)) {
+                            continue;
                         }
 
-                        continue;
-                    }
-
-                    if ($table !== null && array_key_exists('_row', $decoded) && is_array($decoded['_row'])) {
-                        /** @var array<string, mixed> $row */
-                        $row = $decoded['_row'];
-                        $buffer[] = $row;
-                        $rows++;
-
-                        if (count($buffer) >= 200) {
+                        if (array_key_exists('_table', $decoded)) {
                             $this->flush($table, $buffer);
+                            $table = (string) $decoded['_table'];
+                            $tables++;
+
+                            continue;
+                        }
+
+                        if ($table !== null && array_key_exists('_row', $decoded) && is_array($decoded['_row'])) {
+                            /** @var array<string, mixed> $row */
+                            $row = $decoded['_row'];
+                            $buffer[] = $row;
+                            $rows++;
+
+                            if (count($buffer) >= 200) {
+                                $this->flush($table, $buffer);
+                            }
                         }
                     }
-                }
 
-                $this->flush($table, $buffer);
+                    $this->flush($table, $buffer);
+                });
             });
         } finally {
             fclose($handle);
         }
 
         return ['tables' => $tables, 'rows' => $rows];
+    }
+
+    /**
+     * The tables the dump names, in the order it names them.
+     *
+     * A header-only pass. Every table has to be emptied before the first row
+     * is inserted — a table emptied halfway through the stream would drop rows
+     * a child table already pointed at — and the whole list is not known until
+     * the file has been read once.
+     *
+     * @return list<string>
+     */
+    private function tablesIn(string $dump): array
+    {
+        $handle = fopen($dump, 'rb');
+
+        if ($handle === false) {
+            throw BackupException::incomplete('database.jsonl');
+        }
+
+        $tables = [];
+
+        try {
+            while (($line = fgets($handle)) !== false) {
+                $decoded = json_decode(trim($line), true);
+
+                if (is_array($decoded) && array_key_exists('_table', $decoded)) {
+                    $tables[] = (string) $decoded['_table'];
+                }
+            }
+        } finally {
+            fclose($handle);
+        }
+
+        return $tables;
+    }
+
+    /**
+     * Empty every table the dump names, children first.
+     *
+     * Emptied, not dropped. The schema belongs to migrations; a restore that
+     * recreated tables would be a second, worse migrator.
+     *
+     * @param  list<string>  $tables  in dump order
+     */
+    private function emptyTables(array $tables): void
+    {
+        $schema = $this->connection->getSchemaBuilder();
+
+        $schema->withoutForeignKeyConstraints(function () use ($tables, $schema): void {
+            $this->connection->transaction(function () use ($tables, $schema): void {
+                foreach (array_reverse($tables) as $table) {
+                    if ($schema->hasTable($table)) {
+                        $this->connection->table($table)->delete();
+                    }
+                }
+            });
+        });
     }
 
     /**

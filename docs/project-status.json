@@ -1,8 +1,8 @@
 {
   "$comment": "Machine-readable project state. Any new session reads this first, then verifies it against GitHub before trusting it. Written at the end of each ticket, so a stale entry means a session ended mid-ticket — check the branch and CI rather than the status field.",
   "updated_at": "2026-08-16",
-  "current_phase": "DEP-002/003 merged",
-  "last_completed_ticket": "DEP-002/003",
+  "current_phase": "E2E-001 delivered; CAT-002 is the next blocking ticket",
+  "last_completed_ticket": "E2E-001",
   "default_branch": "main",
   "tickets": {
     "ARCH-001": {
@@ -201,10 +201,10 @@
       "ci": null
     },
     "OPS-001": {
-      "status": "not_started",
-      "branch": null,
-      "pr": null,
-      "ci": null
+      "status": "merged",
+      "branch": "claude/ops-001-backup-restore",
+      "pr": 41,
+      "ci": "green 10/10"
     },
     "UI-003a": {
       "status": "merged",
@@ -320,16 +320,17 @@
       "reason": "Publishing administration. Its purpose is collection and distribution of publishing income, which the scope correction removes from V1. Composition and writer metadata already exists in CAT-002 and stays."
     },
     "REL-002": {
-      "status": "open — backend GAP raised by REL-UI-001",
-      "summary": "Make release validation problems machine-readable (code + context) so they can be translated, while keeping a rendered sentence for logs and delivery-attempt records.",
-      "touches": "ValidateRelease, ReleaseValidationResult, Release::readinessProblems(), ValidateDelivery, SubmitDelivery",
-      "note": "DIST-UI-001 will hit the same wall for delivery validation."
+      "status": "merged",
+      "branch": "claude/rel-002-structured-validation",
+      "pr": 42,
+      "ci": "green 10/10",
+      "note": "Validation answers in ReleaseValidationIssue codes rather than English. Closed the bug where SubmitDelivery decided unreachability by substring-matching a message."
     },
     "DIST-UI-001": {
-      "status": "implemented, awaiting PR",
+      "status": "merged",
       "branch": "claude/dist-ui-001-distribution-operations",
-      "ci": "local gate green; CI pending",
-      "note": "Delivery list, delivery detail and a per-release send screen over DIST-001. No screen probes a distributor on render. UNKNOWN, FAILED and REJECTED are drawn as three different things. The preflight is a GET that creates nothing."
+      "pr": 34,
+      "ci": "green 10/10"
     },
     "SET-001": {
       "status": "merged",
@@ -347,6 +348,25 @@
       "branch": "claude/dep-002-003-host-guides",
       "pr": 39,
       "ci": "green 10/10"
+    },
+    "E2E-001": {
+      "status": "implemented, awaiting PR",
+      "branch": "claude/e2e-001-acceptance-walk",
+      "note": "The V1 definition of done as a walk: import, review, build, validate, deliver, sync, back up, lose everything, restore. Found two real defects on its first run.",
+      "findings": [
+        "Restore could not restore: the dump was alphabetical, so distribution_attempts were inserted before their deliveries. Fixed by dependency-ordering the dump and emptying in reverse. SQLite ignores PRAGMA foreign_keys inside a transaction, so ordering is the fix and the pragma is only the fallback.",
+        "No browser route makes a track releasable — see CAT-002."
+      ]
+    },
+    "CAT-002": {
+      "status": "open — BLOCKING, raised by E2E-001",
+      "summary": "A track becomes releasable from the interface: track credits (primary/featured), and a readiness action refused with structured issues.",
+      "note": "The catalogue surface is entirely read-only today. A label who imports a library can promote a candidate and then has no way to credit the track or mark it READY, so every release built from it fails validation with TRACK_NOT_RELEASABLE and the fix is unreachable from any screen. Behind can.role:catalogue; MEMBER stays read-only."
+    },
+    "REL-003": {
+      "status": "open — raised by E2E-001",
+      "summary": "Track::readinessProblems() still answers in English sentences.",
+      "note": "REL-002 converted Release. Track is the last validation surface that cannot be translated, and CAT-002 is what will put it on a screen."
     }
   },
   "architecture_amendments": [
