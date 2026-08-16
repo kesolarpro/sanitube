@@ -51,12 +51,9 @@ final class DistributionActionController
 
         $verdict = $validator->handle($release, $distributor);
 
-        return response()->json([
-            'provider' => $provider,
-            'valid' => $verdict->isValid(),
-            'errors' => $verdict->errors,
-            'warnings' => $verdict->warnings,
-        ]);
+        // REL-002: issues, not sentences. The screen translates the codes;
+        // the English never leaves the log.
+        return response()->json(array_merge(['provider' => $provider], $verdict->toArray()));
     }
 
     /**

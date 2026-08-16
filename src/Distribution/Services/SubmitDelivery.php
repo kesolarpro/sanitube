@@ -102,18 +102,18 @@ final readonly class SubmitDelivery
 
         $verdict = $this->validator->handle($release, $distributor);
 
-        if ($this->wasUnreachable($verdict->errors, $distributor->name())) {
+        if ($verdict->has('DISTRIBUTOR_UNREACHABLE')) {
             // An outage is not a rejection. The package may be perfectly
             // acceptable; nobody could ask. FAILED is retryable and keeps the
             // same idempotency key, where REJECTED would read as a verdict the
             // distributor never gave.
-            return $this->fail($delivery, implode('; ', $verdict->errors), hrtime(true));
+            return $this->fail($delivery, implode('; ', $verdict->messages()), hrtime(true));
         }
 
         if (! $verdict->isValid()) {
-            $this->record($delivery, DistributionAction::Validate, DistributionAttemptOutcome::Rejected, implode('; ', $verdict->errors));
+            $this->record($delivery, DistributionAction::Validate, DistributionAttemptOutcome::Rejected, implode('; ', $verdict->messages()));
 
-            throw DistributionException::rejectedByDistributor($verdict->errors);
+            throw DistributionException::rejectedByDistributor($verdict->messages());
         }
 
         // The claim. A conditional UPDATE is atomic on every engine in the
@@ -271,20 +271,6 @@ final readonly class SubmitDelivery
             'response_summary' => $summary,
             'duration_ms' => $startedAt === null ? null : (int) round((hrtime(true) - $startedAt) / 1_000_000),
         ]);
-    }
-
-    /**
-     * @param  list<string>  $errors
-     */
-    private function wasUnreachable(array $errors, string $provider): bool
-    {
-        foreach ($errors as $error) {
-            if (str_contains($error, sprintf('The [%s] distributor could not be reached', $provider))) {
-                return true;
-            }
-        }
-
-        return false;
     }
 
     private function distributorFor(?string $provider): Distributor

@@ -29,6 +29,7 @@ use SaniTube\Ui\Http\Controllers\Releases\ReleaseActionController;
 use SaniTube\Ui\Http\Controllers\Releases\ReleaseBuilderController;
 use SaniTube\Ui\Http\Controllers\Releases\ReleaseIndexController;
 use SaniTube\Ui\Http\Controllers\Releases\ReleasePickerController;
+use SaniTube\Ui\Http\Controllers\Settings\SettingsController;
 use SaniTube\Ui\Http\Controllers\Studio\GenerationDetailController;
 use SaniTube\Ui\Http\Controllers\Studio\GenerationIndexController;
 use SaniTube\Ui\Http\Controllers\Studio\OverviewController;
@@ -226,6 +227,17 @@ Route::middleware(['web', HandleInertiaRequests::class, 'auth', 'active'])->grou
             ->name('distribution.reconcile');
         Route::post('distribution/{delivery}/resolve', [DistributionActionController::class, 'resolve'])
             ->name('distribution.resolve');
+    });
+
+    /*
+     * Settings.
+     *
+     * Administrator-only, and read-only. It publishes no credential value —
+     * only whether one is present — but the list of which are missing is
+     * itself a map of where the soft spots are.
+     */
+    Route::middleware('can.role:administer')->group(function (): void {
+        Route::get('settings', SettingsController::class)->name('settings');
     });
 
     Route::get('design-system', DesignSystemController::class)->name('design-system');

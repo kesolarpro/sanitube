@@ -71,7 +71,7 @@ final readonly class NavigationTree
             // screen — those wait for the design system to be reviewed.
             $this->item('design_system', '/design-system', 'system', available: true),
 
-            $this->item('settings', null, 'settings', available: $user->role->canAdminister()),
+            $this->item('settings', '/settings', 'settings', available: $user->role->canAdminister()),
         ];
     }
 

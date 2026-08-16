@@ -8,6 +8,7 @@ use SaniTube\Catalog\Enums\ExternalIdentifierType;
 use SaniTube\Catalog\Models\Track;
 use SaniTube\Distribution\Contracts\Distributor;
 use SaniTube\Releases\Models\Release;
+use SaniTube\Releases\ReleaseValidationIssue;
 use SaniTube\Releases\ReleaseValidationResult;
 use SaniTube\Releases\Services\ValidateRelease;
 use Throwable;
@@ -38,38 +39,70 @@ final readonly class ValidateDelivery
 
     public function handle(Release $release, Distributor $distributor): ReleaseValidationResult
     {
-        $internal = $this->releases->handle($release);
-
-        $errors = array_merge($internal->errors, $this->identifierErrors($release));
-        $warnings = $internal->warnings;
+        $issues = [...$this->releases->handle($release)->issues, ...$this->identifierErrors($release)];
 
         if (! $distributor->isAvailable()) {
             // Not configured is not approval. Skipping the distributor's
             // verdict and returning "valid" would tell a label its release is
             // ready to deliver on an installation that cannot deliver
             // anything.
-            $errors[] = sprintf(
-                'The [%s] distributor is not configured on this installation, so no delivery '
-                    .'verdict is available.',
-                $distributor->name(),
+            $issues[] = ReleaseValidationIssue::error(
+                'DISTRIBUTOR_NOT_CONFIGURED',
+                'distributor',
+                sprintf(
+                    'The [%s] distributor is not configured on this installation, so no delivery '
+                        .'verdict is available.',
+                    $distributor->name(),
+                ),
+                ['distributor' => $distributor->name()],
             );
         }
 
         if ($distributor->isAvailable()) {
             try {
                 $verdict = $distributor->validateRelease($release);
-                $errors = array_merge($errors, $verdict->errors);
-                $warnings = array_merge($warnings, $verdict->warnings);
+
+                foreach ($verdict->errors as $index => $message) {
+                    // The distributor's own words, carried as context rather
+                    // than as the contract. Its objections are its own and
+                    // cannot be enumerated in advance; the *code* says where
+                    // they came from.
+                    $issues[] = ReleaseValidationIssue::error(
+                        'DISTRIBUTOR_REFUSED',
+                        'distributor.'.$index,
+                        $message,
+                        ['distributor' => $distributor->name(), 'detail' => $message],
+                    );
+                }
+
+                foreach ($verdict->warnings as $index => $message) {
+                    $issues[] = ReleaseValidationIssue::warning(
+                        'DISTRIBUTOR_WARNED',
+                        'distributor.warning.'.$index,
+                        $message,
+                        ['distributor' => $distributor->name(), 'detail' => $message],
+                    );
+                }
             } catch (Throwable $exception) {
                 // Unreachable is an *error*, not a pass. "We could not ask"
                 // and "it said yes" are opposite answers, and treating an
                 // outage as approval is how a package goes out unchecked.
                 // It never escapes as an exception either: a distributor being
                 // down must not break the screen a label is looking at.
-                $errors[] = sprintf(
-                    'The [%s] distributor could not be reached, so its verdict is unknown: %s',
-                    $distributor->name(),
-                    $exception->getMessage(),
+                // A code, and this is the one that mattered most. Before
+                // REL-002, SubmitDelivery decided whether a distributor had
+                // been unreachable by searching this sentence for a substring
+                // — so a reworded message would silently have turned an outage
+                // into a rejection, and a rejection is a verdict.
+                $issues[] = ReleaseValidationIssue::error(
+                    'DISTRIBUTOR_UNREACHABLE',
+                    'distributor',
+                    sprintf(
+                        'The [%s] distributor could not be reached, so its verdict is unknown: %s',
+                        $distributor->name(),
+                        $exception->getMessage(),
+                    ),
+                    ['distributor' => $distributor->name()],
                 );
             }
         }
@@ -78,20 +111,22 @@ final readonly class ValidateDelivery
             // Not an error — a sandbox delivery is a legitimate rehearsal —
             // but submitting a real release to a sandbox is exactly the kind
             // of mistake that must be visible rather than discovered later.
-            $warnings[] = sprintf(
-                'The [%s] distributor is in sandbox mode. Nothing submitted will reach stores.',
-                $distributor->name(),
+            $issues[] = ReleaseValidationIssue::warning(
+                'DISTRIBUTOR_SANDBOX',
+                'distributor',
+                sprintf(
+                    'The [%s] distributor is in sandbox mode. Nothing submitted will reach stores.',
+                    $distributor->name(),
+                ),
+                ['distributor' => $distributor->name()],
             );
         }
 
-        return new ReleaseValidationResult(
-            errors: array_values(array_unique($errors)),
-            warnings: array_values(array_unique($warnings)),
-        );
+        return new ReleaseValidationResult($issues);
     }
 
     /**
-     * @return list<string>
+     * @return list<ReleaseValidationIssue>
      */
     private function identifierErrors(Release $release): array
     {
@@ -99,8 +134,11 @@ final readonly class ValidateDelivery
 
         if (! $this->hasIdentifier($release, ExternalIdentifierType::Upc)
             && ! $this->hasIdentifier($release, ExternalIdentifierType::Ean)) {
-            $errors[] = 'The release has no UPC or EAN. Stores identify a product by it, and '
-                .'SaniTube does not mint one.';
+            $errors[] = ReleaseValidationIssue::error(
+                'NO_PRODUCT_IDENTIFIER',
+                'identifiers',
+                'The release has no UPC or EAN. Stores identify a product by it, and SaniTube does not mint one.',
+            );
         }
 
         foreach ($release->tracks()->get() as $track) {
@@ -109,11 +147,16 @@ final readonly class ValidateDelivery
                 ->where('type', ExternalIdentifierType::Isrc->value)
                 ->whereNotNull('active_marker')
                 ->doesntExist()) {
-                $errors[] = sprintf(
-                    'Track "%s" has no active ISRC. Assign one deliberately — SaniTube never mints '
-                        .'an ISRC, because a recording that was already distributed elsewhere '
-                        .'already has one.',
-                    $track->title,
+                $errors[] = ReleaseValidationIssue::error(
+                    'TRACK_NO_ISRC',
+                    'tracks.'.$track->uuid,
+                    sprintf(
+                        'Track "%s" has no active ISRC. Assign one deliberately — SaniTube never mints '
+                            .'an ISRC, because a recording that was already distributed elsewhere '
+                            .'already has one.',
+                        $track->title,
+                    ),
+                    ['title' => $track->title],
                 );
             }
         }

@@ -9,6 +9,7 @@ use SaniTube\Assets\Enums\AssetStatus;
 use SaniTube\Catalog\Models\Track;
 use SaniTube\Localization\ContentLanguage;
 use SaniTube\Releases\Models\Release;
+use SaniTube\Releases\ReleaseValidationIssue;
 use SaniTube\Releases\ReleaseValidationResult;
 
 /**
@@ -30,29 +31,31 @@ final readonly class ValidateRelease
 {
     public function handle(Release $release): ReleaseValidationResult
     {
-        return new ReleaseValidationResult(
-            errors: $this->errors($release),
-            warnings: $this->warnings($release),
-        );
+        return new ReleaseValidationResult([
+            ...$this->errors($release),
+            ...$this->warnings($release),
+        ]);
     }
 
     /**
-     * @return list<string>
+     * @return list<ReleaseValidationIssue>
      */
     private function errors(Release $release): array
     {
         // I4 first and unmodified. Anything this ticket adds is additional to
         // it, never a substitute — relaxing a validated invariant to make a
         // builder feel smoother is how an invariant stops being one.
-        $errors = $release->readinessProblems();
-
-        $errors = array_merge($errors, $this->tracklistErrors($release), $this->coverErrors($release));
-
-        return array_values(array_unique($errors));
+        // I4 first and unmodified — the result deduplicates on (code, path),
+        // so a problem both this and readinessProblems() find is reported once.
+        return array_merge(
+            $release->readinessProblems(),
+            $this->tracklistErrors($release),
+            $this->coverErrors($release),
+        );
     }
 
     /**
-     * @return list<string>
+     * @return list<ReleaseValidationIssue>
      */
     private function tracklistErrors(Release $release): array
     {
@@ -60,15 +63,21 @@ final readonly class ValidateRelease
         $entries = $release->trackEntries()->get();
 
         if ($entries->isEmpty()) {
-            // Already reported by I4, and deduplicated on the way out.
-            return ['A release needs at least one track.'];
+            // Already reported by I4 under the same code, and deduplicated on
+            // the way out.
+            return [ReleaseValidationIssue::error('TRACKS_REQUIRED', 'tracks', 'A release needs at least one track.')];
         }
 
         foreach ($entries->groupBy('disc_number') as $disc => $onDisc) {
             $numbers = $onDisc->pluck('track_number')->map(intval(...))->sort()->values()->all();
 
             if (count(array_unique($numbers)) !== count($numbers)) {
-                $errors[] = sprintf('Disc %s has two tracks with the same number.', $disc);
+                $errors[] = ReleaseValidationIssue::error(
+                    'DUPLICATE_TRACK_NUMBER',
+                    'tracks.'.(string) $disc,
+                    sprintf('Disc %s has two tracks with the same number.', $disc),
+                    ['disc' => (string) $disc],
+                );
             }
 
             // A tracklist running 1, 2, 4 is rejected on delivery. Checking it
@@ -76,29 +85,29 @@ final readonly class ValidateRelease
             $expected = range(1, count($numbers));
 
             if (array_values(array_unique($numbers)) !== $expected) {
-                $errors[] = sprintf(
-                    'Disc %s is not numbered continuously from 1 — it runs %s.',
-                    $disc,
-                    implode(', ', $numbers),
+                $errors[] = ReleaseValidationIssue::error(
+                    'DISC_NUMBERING_NOT_CONTIGUOUS',
+                    'tracks.'.(string) $disc,
+                    sprintf(
+                        'Disc %s is not numbered continuously from 1 — it runs %s.',
+                        $disc,
+                        implode(', ', $numbers),
+                    ),
+                    ['disc' => (string) $disc, 'found' => implode(', ', $numbers)],
                 );
             }
         }
 
-        foreach ($release->tracks()->get() as $track) {
-            if (! $track->status->isReleasable()) {
-                $errors[] = sprintf(
-                    'Track "%s" is %s and cannot be released.',
-                    $track->title,
-                    $track->status->value,
-                );
-            }
-        }
+        // Releasability is not re-checked here. `readinessProblems()` already
+        // reports it, keyed by the release entry, and a second check keyed by
+        // the track would slip past the deduplicator and tell a label the same
+        // thing twice under two different paths.
 
         return $errors;
     }
 
     /**
-     * @return list<string>
+     * @return list<ReleaseValidationIssue>
      */
     private function coverErrors(Release $release): array
     {
@@ -111,14 +120,24 @@ final readonly class ValidateRelease
         $errors = [];
 
         if ($cover->kind !== AssetKind::Artwork) {
-            $errors[] = sprintf('The cover is a %s asset, not artwork.', $cover->kind->value);
+            $errors[] = ReleaseValidationIssue::error(
+                'COVER_NOT_ARTWORK',
+                'cover',
+                sprintf('The cover is a %s asset, not artwork.', $cover->kind->value),
+                ['kind' => $cover->kind->value],
+            );
         }
 
         if ($cover->status !== AssetStatus::Verified) {
-            $errors[] = sprintf(
-                'The cover has not been verified — it is %s. Delivering artwork nobody has confirmed '
-                    .'is how a store receives a corrupt image.',
-                $cover->status->value,
+            $errors[] = ReleaseValidationIssue::error(
+                'COVER_NOT_VERIFIED',
+                'cover',
+                sprintf(
+                    'The cover has not been verified — it is %s. Delivering artwork nobody has confirmed '
+                        .'is how a store receives a corrupt image.',
+                    $cover->status->value,
+                ),
+                ['status' => $cover->status->value],
             );
         }
 
@@ -126,45 +145,63 @@ final readonly class ValidateRelease
     }
 
     /**
-     * @return list<string>
+     * @return list<ReleaseValidationIssue>
      */
     private function warnings(Release $release): array
     {
         $warnings = [];
 
         if ($release->label_name === null || $release->label_name === '') {
-            $warnings[] = 'No label name. Most stores display one, and an empty field shows as blank.';
+            $warnings[] = ReleaseValidationIssue::warning(
+                'NO_LABEL_NAME',
+                'label_name',
+                'No label name. Most stores display one, and an empty field shows as blank.',
+            );
         }
 
         if ($release->catalogue_number === null || $release->catalogue_number === '') {
-            $warnings[] = 'No catalogue number. Not required, but it is how a label finds this '
-                .'release in a royalty statement.';
+            $warnings[] = ReleaseValidationIssue::warning(
+                'NO_CATALOGUE_NUMBER',
+                'catalogue_number',
+                'No catalogue number. Not required, but it is how a label finds this release in a '
+                    .'distributor\'s own reporting.',
+            );
         }
 
         if ($release->p_line === null || $release->c_line === null) {
-            $warnings[] = 'Missing a ℗ or © line. Several stores fall back to the label name, '
-                .'which is rarely what the rights holder wants printed.';
+            $warnings[] = ReleaseValidationIssue::warning(
+                'MISSING_COPYRIGHT_LINE',
+                'p_line',
+                'Missing a ℗ or © line. Several stores fall back to the label name, which is rarely '
+                    .'what the rights holder wants printed.',
+            );
         }
 
         if ($release->language_code === ContentLanguage::UNKNOWN) {
-            $warnings[] = 'The release language is undetermined. It is honest, but a real code '
-                .'improves how the release is surfaced.';
+            $warnings[] = ReleaseValidationIssue::warning(
+                'LANGUAGE_UNDETERMINED',
+                'language_code',
+                'The release language is undetermined. It is honest, but a real code improves how the '
+                    .'release is surfaced.',
+            );
         }
 
         $trackCount = $release->tracks()->count();
 
         if ($trackCount > 1 && $release->trackEntries()->where('is_focus_track', true)->count() === 0) {
-            $warnings[] = 'No focus track. On a multi-track release this is what stores promote, '
-                .'and without one they choose for you.';
+            $warnings[] = ReleaseValidationIssue::warning(
+                'NO_FOCUS_TRACK',
+                'tracks',
+                'No focus track. On a multi-track release this is what stores promote, and without one '
+                    .'they choose for you.',
+            );
         }
 
-        $warnings = array_merge($warnings, $this->trackWarnings($release));
-
-        return array_values(array_unique($warnings));
+        return array_merge($warnings, $this->trackWarnings($release));
     }
 
     /**
-     * @return list<string>
+     * @return list<ReleaseValidationIssue>
      */
     private function trackWarnings(Release $release): array
     {
@@ -173,15 +210,25 @@ final readonly class ValidateRelease
         foreach ($release->tracks()->get() as $track) {
             /** @var Track $track */
             if ($track->genre_primary === null || $track->genre_primary === '') {
-                $warnings[] = sprintf('Track "%s" has no primary genre.', $track->title);
+                $warnings[] = ReleaseValidationIssue::warning(
+                    'TRACK_NO_GENRE',
+                    'tracks.'.$track->uuid,
+                    sprintf('Track "%s" has no primary genre.', $track->title),
+                    ['title' => $track->title],
+                );
             }
 
             if ($track->duration_ms === null) {
                 // MED-001 measures this. Its absence usually means the host
                 // has no FFmpeg rather than that anything is wrong.
-                $warnings[] = sprintf(
-                    'Track "%s" has no measured duration. Run sanitube:media:analyze if FFmpeg is available.',
-                    $track->title,
+                $warnings[] = ReleaseValidationIssue::warning(
+                    'TRACK_NO_DURATION',
+                    'tracks.'.$track->uuid,
+                    sprintf(
+                        'Track "%s" has no measured duration. Run sanitube:media:analyze if FFmpeg is available.',
+                        $track->title,
+                    ),
+                    ['title' => $track->title],
                 );
             }
         }

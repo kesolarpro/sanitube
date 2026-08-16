@@ -1,17 +1,11 @@
 /**
  * The shapes the release read models produce.
  *
- * Two things are worth reading twice.
- *
- * `validation.errors` and `readiness_problems` are **sentences from the
- * domain**, not codes. Every other refusal on this platform travels as a code
- * the interface translates; these do not, because they are produced by
- * `ValidateRelease` and `Release::readinessProblems()`, whose output is also
- * imploded into delivery-attempt records and matched on by `SubmitDelivery`.
- * Turning them into codes changes delivery semantics, so it is a backend
- * ticket of its own (REL-002) rather than something a UI ticket does quietly.
- * Until then these render in English while everything around them is
- * translated, and that is a recorded limitation, not an oversight.
+ * `validation` and `readiness_problems` carry **issues, not sentences** — REL-002
+ * closed that gap. Every refusal on this platform now travels as a code the
+ * interface translates, including these, and `SubmitDelivery` decides whether a
+ * distributor was unreachable from a code rather than by searching an English
+ * message for a substring.
  *
  * `actions` is presentation, never authorisation. The route middleware decides
  * who may act; `ReleaseMutationPolicy` decides what a status permits. These
@@ -82,10 +76,25 @@ export interface ReleaseIdentifier {
     source: string;
 }
 
+/**
+ * REL-002. One thing wrong with a release, as data rather than as a sentence.
+ *
+ * `code` is the contract and the thing the interface translates. `context`
+ * carries the values a translation needs — a track number, a disc — so every
+ * locale can put them in its own word order. `path` is what lets a message sit
+ * beside the field it is about rather than in a pile at the bottom.
+ */
+export interface ValidationIssue {
+    code: string;
+    severity: 'ERROR' | 'WARNING';
+    path: string;
+    context: Record<string, string | number | boolean | null>;
+}
+
 export interface ReleaseValidation {
     valid: boolean;
-    errors: string[];
-    warnings: string[];
+    errors: ValidationIssue[];
+    warnings: ValidationIssue[];
 }
 
 export interface ReleaseActions {
@@ -118,6 +127,6 @@ export interface ReleaseDetail {
     tracks: ReleaseTrackRow[];
     identifiers: ReleaseIdentifier[];
     validation: ReleaseValidation;
-    readiness_problems: string[];
+    readiness_problems: ValidationIssue[];
     actions: ReleaseActions;
 }

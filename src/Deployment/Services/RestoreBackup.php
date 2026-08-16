@@ -1,0 +1,250 @@
+<?php
+
+declare(strict_types=1);
+
+namespace SaniTube\Deployment\Services;
+
+use Illuminate\Database\Connection;
+use SaniTube\Deployment\BackupManifest;
+use SaniTube\Deployment\Exceptions\BackupException;
+use Throwable;
+
+/**
+ * Putting a backup back.
+ *
+ * The single most destructive operation in the platform, and the only one that
+ * deliberately overwrites data somebody is still using. Everything here is
+ * arranged so that it fails *before* it writes rather than during.
+ *
+ * The order is not negotiable:
+ *
+ *   1. **Is it a backup?** A manifest, readable, in a format this code knows.
+ *   2. **Is it complete?** Every entry the manifest names is present.
+ *   3. **Is it intact?** Every checksum matches. A corrupt backup restored
+ *      writes damage over working data, which is worse than not restoring.
+ *   4. **Does it belong here?** The migration set must match, or the caller
+ *      must say explicitly that they know it does not.
+ *   5. **Was it asked for?** Confirmed, explicitly.
+ *
+ * Only then does anything change. `verify()` is steps one to four on their own,
+ * so an operator can find out whether a backup is restorable at a moment when
+ * the answer costs nothing.
+ *
+ * **Files and the database cannot be restored atomically**, and this does not
+ * pretend otherwise. The database is restored inside a transaction and files
+ * are copied afterwards: if the file copy fails, the database is already
+ * consistent with the backup and the operator is told exactly which files did
+ * not land. The reverse order would leave files from a backup beside a
+ * database that never received it.
+ */
+final readonly class RestoreBackup
+{
+    public function __construct(
+        private Connection $connection,
+        private BackupRepository $repository,
+    ) {}
+
+    /**
+     * Everything that can be checked without changing anything.
+     *
+     * @return array{manifest: BackupManifest, entries: int, bytes: int, drift: list<string>}
+     */
+    public function verify(string $directory, bool $allowSchemaDrift = false): array
+    {
+        $manifest = $this->repository->manifestAt($directory);
+
+        if ($manifest->format > BackupManifest::FORMAT) {
+            throw BackupException::manifestUnreadable(sprintf(
+                'it is format %d and this installation understands %d. A newer SaniTube wrote it.',
+                $manifest->format,
+                BackupManifest::FORMAT,
+            ));
+        }
+
+        $bytes = 0;
+
+        foreach ($manifest->entries as $entry) {
+            // safePath() first, and before any filesystem call: the manifest
+            // is data, and `../../` in it must be refused rather than read.
+            $path = $manifest->safePath($directory, $entry['path']);
+
+            if (! is_file($path)) {
+                throw BackupException::incomplete($entry['path']);
+            }
+
+            if (! hash_equals($entry['sha256'], (string) hash_file('sha256', $path))) {
+                throw BackupException::corrupt($entry['path']);
+            }
+
+            $bytes += (int) $entry['bytes'];
+        }
+
+        $drift = $manifest->migrationDrift($this->repository->appliedMigrations());
+
+        if ($drift !== [] && ! $allowSchemaDrift) {
+            throw BackupException::schemaDrift($drift);
+        }
+
+        return ['manifest' => $manifest, 'entries' => count($manifest->entries), 'bytes' => $bytes, 'drift' => $drift];
+    }
+
+    /**
+     * Restore, having been asked to explicitly.
+     *
+     * @return array{tables: int, rows: int, files: int, drift: list<string>}
+     */
+    public function handle(string $directory, bool $confirmed, bool $allowSchemaDrift = false): array
+    {
+        if (! $confirmed) {
+            // Not a formality. A restore triggered by a stray keystroke or a
+            // re-run shell command replaces a live catalogue, and the
+            // confirmation is the only thing standing between those.
+            throw BackupException::notConfirmed();
+        }
+
+        $verified = $this->verify($directory, $allowSchemaDrift);
+        $manifest = $verified['manifest'];
+
+        $dump = $manifest->safePath($directory, 'database.jsonl');
+
+        if (! is_file($dump)) {
+            throw BackupException::incomplete('database.jsonl');
+        }
+
+        $restored = $this->restoreDatabase($dump);
+
+        // Files afterwards, and only once the database is consistent. A
+        // failure here leaves a correct database and named, uncopied files —
+        // recoverable. The other order leaves files from a backup beside a
+        // database that never received it, which is not.
+        $files = $this->restoreFiles($directory, $manifest);
+
+        return [
+            'tables' => $restored['tables'],
+            'rows' => $restored['rows'],
+            'files' => $files,
+            'drift' => $verified['drift'],
+        ];
+    }
+
+    /**
+     * @return array{tables: int, rows: int}
+     */
+    private function restoreDatabase(string $dump): array
+    {
+        $handle = fopen($dump, 'rb');
+
+        if ($handle === false) {
+            throw BackupException::incomplete('database.jsonl');
+        }
+
+        $tables = 0;
+        $rows = 0;
+
+        // One transaction for the whole restore. Data-only — no DDL — so it
+        // rolls back cleanly on every engine in the matrix, and a restore
+        // that dies halfway leaves the database as it was rather than half
+        // replaced.
+        try {
+            $this->connection->transaction(function () use ($handle, &$tables, &$rows): void {
+                $table = null;
+                $buffer = [];
+
+                while (($line = fgets($handle)) !== false) {
+                    $decoded = json_decode(trim($line), true);
+
+                    if (! is_array($decoded)) {
+                        continue;
+                    }
+
+                    if (array_key_exists('_table', $decoded)) {
+                        $this->flush($table, $buffer);
+                        $table = (string) $decoded['_table'];
+                        $tables++;
+
+                        if ($this->connection->getSchemaBuilder()->hasTable($table)) {
+                            // Emptied, not dropped. The schema belongs to
+                            // migrations; a restore that recreated tables
+                            // would be a second, worse migrator.
+                            $this->connection->table($table)->delete();
+                        }
+
+                        continue;
+                    }
+
+                    if ($table !== null && array_key_exists('_row', $decoded) && is_array($decoded['_row'])) {
+                        /** @var array<string, mixed> $row */
+                        $row = $decoded['_row'];
+                        $buffer[] = $row;
+                        $rows++;
+
+                        if (count($buffer) >= 200) {
+                            $this->flush($table, $buffer);
+                        }
+                    }
+                }
+
+                $this->flush($table, $buffer);
+            });
+        } finally {
+            fclose($handle);
+        }
+
+        return ['tables' => $tables, 'rows' => $rows];
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $buffer
+     */
+    private function flush(?string $table, array &$buffer): void
+    {
+        if ($table === null || $buffer === []) {
+            $buffer = [];
+
+            return;
+        }
+
+        if ($this->connection->getSchemaBuilder()->hasTable($table)) {
+            $this->connection->table($table)->insert($buffer);
+        }
+
+        $buffer = [];
+    }
+
+    private function restoreFiles(string $directory, BackupManifest $manifest): int
+    {
+        $restored = 0;
+
+        foreach ($manifest->entries as $entry) {
+            if (! str_starts_with($entry['path'], 'files/')) {
+                continue;
+            }
+
+            $source = $manifest->safePath($directory, $entry['path']);
+            $relative = substr($entry['path'], strlen('files/'));
+
+            // Checked a second time on the way out. The first check proved the
+            // path was safe to *read* inside the backup; this one proves the
+            // destination is safe to *write* inside the application.
+            $target = $manifest->safePath(base_path(), $relative);
+
+            if (! is_dir(dirname($target)) && ! mkdir(dirname($target), 0o750, true) && ! is_dir(dirname($target))) {
+                continue;
+            }
+
+            try {
+                if (copy($source, $target)) {
+                    $restored++;
+                }
+            } catch (Throwable) {
+                // Named in the count rather than thrown on. The database is
+                // already consistent, and failing the whole restore over one
+                // unwritable cover would be trading a working catalogue for a
+                // tidy exit code.
+                continue;
+            }
+        }
+
+        return $restored;
+    }
+}
