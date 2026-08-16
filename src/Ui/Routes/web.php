@@ -20,6 +20,7 @@ use SaniTube\Ui\Http\Controllers\Ingestion\BatchDetailController;
 use SaniTube\Ui\Http\Controllers\Ingestion\BatchIndexController;
 use SaniTube\Ui\Http\Controllers\Ingestion\CandidateDetailController;
 use SaniTube\Ui\Http\Controllers\Ingestion\CandidateIndexController;
+use SaniTube\Ui\Http\Controllers\Ingestion\CandidateReviewController;
 use SaniTube\Ui\Http\Controllers\Studio\GenerationDetailController;
 use SaniTube\Ui\Http\Controllers\Studio\GenerationIndexController;
 use SaniTube\Ui\Http\Controllers\Studio\OverviewController;
@@ -68,6 +69,28 @@ Route::middleware(['web', HandleInertiaRequests::class, 'auth', 'active'])->grou
     Route::get('ingestion/batches/{batch}', BatchDetailController::class)->name('ingestion.batches.show');
     Route::get('ingestion/candidates', CandidateIndexController::class)->name('ingestion.candidates');
     Route::get('ingestion/candidates/{candidate}', CandidateDetailController::class)->name('ingestion.candidates.show');
+
+    /*
+     * Review. The point at which a proposal becomes catalogue data, or stops
+     * being a proposal at all.
+     *
+     * Behind `can.role:catalogue` as well as `auth` and `active`: a MEMBER may
+     * read the review queue and may not decide anything in it. The check lives
+     * on the route rather than in the controller, so a future route cannot
+     * acquire the action without acquiring the guard.
+     *
+     * Named actions, never a settable status. Promotion runs invariants,
+     * writes to the catalogue and is refusable for several distinct reasons;
+     * `PATCH {status: PROMOTED}` would present all of that as an assignment.
+     */
+    Route::middleware('can.role:catalogue')->group(function (): void {
+        Route::post('ingestion/candidates/{candidate}/promote', [CandidateReviewController::class, 'promote'])
+            ->name('ingestion.candidates.promote');
+        Route::post('ingestion/candidates/{candidate}/reject', [CandidateReviewController::class, 'reject'])
+            ->name('ingestion.candidates.reject');
+        Route::patch('ingestion/candidates/{candidate}', [CandidateReviewController::class, 'revise'])
+            ->name('ingestion.candidates.revise');
+    });
 
     // Studio. Read-only for now: starting a generation calls a supplier and
     // costs money, and the surface that does it needs its own ticket.
