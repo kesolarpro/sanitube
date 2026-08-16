@@ -1,8 +1,8 @@
 {
   "$comment": "Machine-readable project state. Any new session reads this first, then verifies it against GitHub before trusting it. Written at the end of each ticket, so a stale entry means a session ended mid-ticket — check the branch and CI rather than the status field.",
-  "updated_at": "2026-08-15",
-  "current_phase": "UI-005",
-  "last_completed_ticket": "UI-005",
+  "updated_at": "2026-08-16",
+  "current_phase": "INS-001",
+  "last_completed_ticket": "INS-001",
   "default_branch": "main",
   "tickets": {
     "ARCH-001": {
@@ -82,10 +82,14 @@
       "review": "CORRECTIONS REQUIRED (C1-C4) -> applied -> authorised to merge"
     },
     "INS-001": {
-      "status": "not_started",
-      "branch": null,
-      "pr": null,
-      "ci": null
+      "status": "merged",
+      "branch": "claude/ins-001-installer",
+      "pr": 31,
+      "pr_url": "https://github.com/kesolarpro/sanitube/pull/31",
+      "ci": "10/10 green — run 31919074646",
+      "report": "docs/reports/INS-001.md",
+      "merge_commit": "e44a1cf",
+      "note": "php artisan sanitube:install — seven idempotent stages in the Installer module slot reserved since ARCH-001. The service is the installer so INS-002 can reuse it. Never overwrites .env, never replaces APP_KEY, always backs up at 0600, never takes a password as an option. Three defects found while building: preflight would have refused every first install on the scheduler capability, --skip-owner always exited non-zero, and .gitignore did not cover .env.backup-*."
     },
     "REL-001": {
       "status": "merged",
@@ -168,16 +172,21 @@
       "ci": null
     },
     "SYS-001": {
-      "status": "not_started",
-      "branch": null,
-      "pr": null,
-      "ci": null
+      "status": "merged",
+      "branch": "claude/sys-001-operations",
+      "pr": 30,
+      "pr_url": "https://github.com/kesolarpro/sanitube/pull/30",
+      "ci": "10/10 green — run 31918605326",
+      "report": "docs/reports/SYS-001.md",
+      "merge_commit": "c56c812",
+      "note": "Operations and jobs screens behind can.role:administer. A GET probes nothing — proved by forgetting the snapshot, loading the page, and asserting it is still absent. No job payload and no stack trace reaches the browser; only the exception's first line, truncated. Unknown is not zero: an installation on Redis has no jobs table and the counts read null."
     },
     "INS-002": {
       "status": "not_started",
       "branch": null,
       "pr": null,
-      "ci": null
+      "ci": null,
+      "note": "Web installer at /install over the same InstallationService. Available only while uninstalled, permanent lock after success, CSRF, and no database password reflected into HTML."
     },
     "DEP-002": {
       "status": "not_started",
@@ -259,18 +268,14 @@
       "note": "CSV manifest import + sanitube:import. A manifest is evidence, never authority: after importing 900 files naming 900 ISRCs, tracks and external_identifiers are both still empty. A bad row is refused with its line number; a bad file is fatal. An ISRC already active on another track holds the candidate NEEDS_REVIEW. Eight regressions injected, every one turned a test red."
     },
     "UI-004b": {
-      "status": "not_started",
-      "branch": null,
-      "pr": null,
-      "ci": null,
-      "note": "Candidate review actions: promote, reject, revise. The domain services exist (CAT-001); each is a catalogue write needing a confirmation surface and an override-reason flow."
-    },
-    "UI-005b": {
-      "status": "not_started",
-      "branch": null,
-      "pr": null,
-      "ci": null,
-      "note": "Studio write actions: start a generation, cancel one, select a result. Each calls a supplier or moves audio into the catalogue."
+      "status": "merged",
+      "branch": "claude/ui-004b-candidate-actions",
+      "pr": 28,
+      "pr_url": "https://github.com/kesolarpro/sanitube/pull/28",
+      "ci": "10/10 green — run 31917687455",
+      "report": "docs/reports/UI-004b.md",
+      "merge_commit": "4b50591",
+      "note": "Promote, decline, correct the title — each calling the CAT-001 service that owns it, none writing a status. can.role:catalogue on the route; a MEMBER may read the queue and decide nothing in it. The actions block in the payload is presentation only, proved by posting past a hidden button. The reviewer is now recorded, where the API's call leaves it null. Six regressions injected, every one turned a test red."
     },
     "BULK-001c": {
       "status": "not_started",
@@ -278,6 +283,23 @@
       "pr": null,
       "ci": null,
       "note": "Re-import storage amplification — see known_limitations.bulk_reimport_storage_cost. Needs a measurement and a deliberate choice, not a guess."
+    },
+    "SYS-001b": {
+      "status": "not_started",
+      "branch": null,
+      "pr": null,
+      "ci": null,
+      "note": "Capability detail page (sixteen detectors with individual findings), and retry/delete for failed jobs — writes to the queue needing their own confirmation surface."
+    },
+    "UI-005b": {
+      "status": "merged",
+      "branch": "claude/ui-005b-studio-actions",
+      "pr": 29,
+      "pr_url": "https://github.com/kesolarpro/sanitube/pull/29",
+      "ci": "10/10 green — run 31918186417",
+      "report": "docs/reports/UI-005b.md",
+      "merge_commit": "ebd558d",
+      "note": "Create a campaign, start a generation, cancel one, select a result. Selecting never creates a Track — proved by mutation. Two behaviours extracted from API controllers into services because a second controller copy is the one that drifts; all 49 pre-existing generation tests passed unmodified after the move."
     }
   },
   "architecture_amendments": [
@@ -347,14 +369,17 @@
   },
   "open_pull_requests": [],
   "next_session": {
-    "start_with": "UI-004b — candidate review actions. Branch from main.",
+    "start_with": "REL-UI-001 — the release builder. Branch from main.",
     "then": [
-      "UI-005b studio write actions",
-      "REL-UI-001 release builder",
-      "INS-001 CLI installer",
-      "SYS-001 jobs and operational health screens"
+      "DIST-UI-001 distribution operations (fake/sandbox only; real provider activation is REVIEW_REQUIRED)",
+      "DIST-001-H1 unknown submission outcome — REVIEW_REQUIRED, leave the PR open",
+      "SET-001 settings shell",
+      "DEP-001 deploy script, DEP-002/003 cPanel and VPS documentation",
+      "OPS-001 backup and restore",
+      "AUDIT-001, NOTIF-001",
+      "SEC-002, RIGHTS-001, ROY-001 — all REVIEW_REQUIRED"
     ],
-    "suite_size": "798 tests / 3364 assertions at UI-005",
+    "suite_size": "880 tests / 3734 assertions at INS-001",
     "conventions_to_honour": [
       "Disabled providers are named 'none', never 'null' (AI, generation, distribution managers all share the rule).",
       "$table->json() is forbidden; use longText + array cast.",
@@ -364,7 +389,12 @@
       "A read model never returns an object key, a disk, a bucket, a provider job id or a provider's download reference. Prefer a boolean that answers the question (has_audio, has_manifest_row) over the value itself.",
       "A failure *code* is translated and shown; a failure *message* from a storage driver or an analyser is withheld, because it quotes a path. A provider's own message about its own service is kept.",
       "Counts for a page come from one grouped query, never one per row, and every enum state is present including the zeroes.",
-      "Every list validates that a cursor describes its own ordering via CursorShape, including lists that take no filters."
+      "Every list validates that a cursor describes its own ordering via CursorShape, including lists that take no filters.",
+      "A controller never writes a status. If the behaviour lives in a controller today, extract it to a service both surfaces call rather than copying it — and prove the extraction by running the existing tests unmodified.",
+      "Authorisation lives on the route (can.role:catalogue / :administer). An `actions` block in a payload is presentation, and a test must prove hiding a button is not what stops a request.",
+      "A refusal travels as its machine-readable code; the interface translates it. The domain's English sentence is written for a developer reading a log.",
+      "A preflight check asks what the machine can do; a health check asks what this installation has done. Do not block the first on the second.",
+      "When two layers guard the same rule, mutate the inner one — a passing service-level test can hide an unguarded method a later surface will call directly."
     ]
   },
   "review_policy": {
@@ -373,11 +403,11 @@
     "since": "UI-001",
     "note": "Nine tickets (ING/MED/CAT/AI/GEN/REL/DIST/SEC-001 and PR #12) were merged under an earlier autonomous-chaining instruction that bypassed review. A retroactive audit is under way; they stay in main and any correction becomes a follow-up ticket, not a revert. BULK-001b, UI-004 and UI-005 were merged under the session's explicit merge policy for read-only UI, ingestion tooling and documentation: none changes authentication, authorization, rights, money, identifier lifecycle, destructive storage behaviour or any external action."
   },
-  "main_sha": "1b98adea23610bb919ba40cb0061c16044d2244c",
+  "main_sha": "e44a1cfd782c5f82abee4b31efeaf9ce4f5cc52e",
   "current_ticket": null,
   "tests": {
-    "php": 798,
-    "php_assertions": 3364,
+    "php": 880,
+    "php_assertions": 3734,
     "php_skipped": 1,
     "component": 16
   },
@@ -395,36 +425,36 @@
     "note": "PHP suite stubs Vite when no manifest exists; the frontend CI job renders against a real one."
   },
   "next_action": {
-    "ticket": "UI-004b",
-    "name": "Candidate review actions — promote, reject, revise",
+    "ticket": "REL-UI-001",
+    "name": "Release builder — metadata, artists, tracks, artwork, identifiers, validation, readiness",
     "state": "not started",
     "blocked_by": null,
-    "note": "Branch from main. The domain services are merged and unchanged since CAT-001: PromoteTrackCandidate (creates a DRAFT Track, mints no ISRC, refusable for six coded reasons), RejectTrackCandidate, ReviseTrackCandidate. The UI work is the confirmation surface and the override-reason flow, not new domain logic. Promotion of a NEEDS_REVIEW or DUPLICATE candidate requires an explicit override with a recorded note — that is existing domain behaviour and must not be weakened to make a form simpler."
+    "note": "Branch from main. REL-001 is merged and unchanged: ReleaseMutationPolicy is the single place that says which edits a status permits, and it is called rather than reimplemented. Nothing in the UI may write `status` — readiness is earned by passing validation, and the API's `validate`/`ready` split exists so a label can see what is missing while still assembling. Renumbering tracks must stay two-phase (park above the occupied range, then write final numbers) because UNIQUE(release_id, disc_number, track_number) collides on a row-by-row update."
   },
   "session_boundary": {
-    "reason": "Context capacity approaching its limit at a clean ticket boundary. Three tickets merged, main green, no open PR.",
+    "reason": "Context capacity approaching its limit at a clean ticket boundary. Five tickets merged, main green, no open PR.",
     "repository_state": "green",
-    "main_sha": "1b98adea23610bb919ba40cb0061c16044d2244c",
-    "note": "BULK-001b, UI-004 and UI-005 merged in this session, each 10/10 green before merge and verified after. BULK-001 is complete: manifest import, an entry point that does not need a browser, and the screens that render it. Resume from next_action."
+    "main_sha": "e44a1cfd782c5f82abee4b31efeaf9ce4f5cc52e",
+    "note": "UI-004b, UI-005b, SYS-001, INS-001 merged this session, each 10/10 green before merge and verified after. Both new screen sets are now operational rather than read-only, the platform reports on itself, and it can be installed from a terminal. Resume from next_action."
   },
   "v1_progress_percent": {
-    "value": 46,
+    "value": 53,
     "method": "weighted by block, production-ready not implemented-only",
     "breakdown": {
       "core_domain": {
         "weight": 20,
-        "implemented": 88,
-        "production_ready": 62
+        "implemented": 90,
+        "production_ready": 66
       },
       "asset_catalogue": {
         "weight": 15,
         "implemented": 100,
-        "production_ready": 78
+        "production_ready": 84
       },
       "ai_generation": {
         "weight": 10,
-        "implemented": 55,
-        "production_ready": 15
+        "implemented": 75,
+        "production_ready": 25
       },
       "release_distribution": {
         "weight": 15,
@@ -438,8 +468,8 @@
       },
       "ui_ux": {
         "weight": 15,
-        "implemented": 78,
-        "production_ready": 60
+        "implemented": 85,
+        "production_ready": 70
       },
       "api": {
         "weight": 5,
@@ -448,11 +478,11 @@
       },
       "ops_deployment": {
         "weight": 10,
-        "implemented": 25,
-        "production_ready": 8
+        "implemented": 45,
+        "production_ready": 20
       }
     },
-    "note": "40 -> 46. The catalogue block reaches 100% implemented: ingestion now has a manifest, an entry point that survives a closed browser, and screens that render it. AI/generation rises on a usable studio surface, though every write there is still missing and no real provider exists. Rights, royalties and ops/deployment remain at or near zero, and that is what holds the overall figure down — it will keep holding it down until they are built, no matter how many screens land."
+    "note": "46 -> 53. The catalogue is now operable end to end: import with a manifest, review, promote. The studio is usable rather than watchable. The platform reports on itself and installs from a terminal. Ops/deployment rises but stays low because the installer has never run on a real shared host, and there is still no deploy script, no backup and no restore. Rights and royalties remain at zero and are now the single largest thing standing between this and a V1."
   },
   "decisions": {
     "asset_preview_url": {
@@ -505,12 +535,12 @@
       "pinned_by": "two tests in ManifestImportTest pin the current behaviour, so whichever way it is later decided the change is visible"
     },
     {
-      "id": "no-write-actions-on-new-screens",
-      "where": "UI-004 and UI-005",
-      "what": "The ingestion and studio screens are read-only. Promote/reject/revise a candidate, and start/cancel/select a generation, all exist in the domain and none is reachable from the interface.",
-      "why_not_fixed": "Each is a catalogue write or a call to a paid supplier and needs a confirmation surface rather than a button.",
-      "severity": "functional gap, deliberate",
-      "ticket": "UI-004b, UI-005b"
+      "id": "install-not-exercised-on-a-real-shared-host",
+      "where": "Installer",
+      "what": "sanitube:install is covered by 21 tests against a temporary .env and was smoke-run in the development container, but has never been run on a real cPanel account against a real MySQL database.",
+      "why_not_fixed": "No such account is available to this project. The stages that would differ are the ones that touch the host: directory permissions, the PHP binary path in the cron line, and the account-prefixed database names.",
+      "severity": "blocks calling installation production-ready, nothing before then",
+      "ticket": "INS-003 (certification on a real host)"
     }
   ],
   "findings": {
@@ -523,6 +553,16 @@
         "DONE — an interface entry point to start a batch from a prefix or a manifest (BULK-001b, sanitube:import)",
         "DONE — UI-004, which renders this progress read model"
       ]
+    },
+    "preflight_vs_history": {
+      "severity": "would have refused every first install",
+      "finding": "The scheduler capability reports unavailable until a cron entry has fired at least once. Preflight blocking on it meant a first install could never pass, because the condition cannot be true before the installation exists.",
+      "instruction": "A preflight check asks whether the machine CAN run SaniTube. A health check asks whether this installation IS running. The same detectors serve both, but a capability describing the installation's history is not a prerequisite. InstallationService::NOT_PREREQUISITES names the two exclusions with their reasons; keep the list short, because a preflight that skips checks stops meaning anything."
+    },
+    "guard_covered_at_only_one_level": {
+      "severity": "a defective test that read as a passing one",
+      "finding": "The mutation removing the overwrite guard from EnvironmentFile::createFromExample() stayed green, because InstallationService checks exists() before ever calling it. The service-level test covered the behaviour; nothing covered the guard.",
+      "instruction": "When two layers both guard the same thing, the mutation must be run against the inner one. INS-002's web installer reaches EnvironmentFile without the service's outer check, so the inner guard is the one that will matter. A direct test now covers it."
     }
   }
 }
