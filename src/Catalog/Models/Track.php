@@ -23,6 +23,7 @@ use SaniTube\Catalog\Events\TrackMarkedReady;
 use SaniTube\Catalog\Exceptions\TrackNotReadyException;
 use SaniTube\Contributors\Models\Contributor;
 use SaniTube\Foundation\Concerns\HasPublicUuid;
+use SaniTube\Foundation\Validation\ValidationIssue;
 use SaniTube\Localization\ContentLanguage;
 use SaniTube\Releases\Models\Release;
 
@@ -206,26 +207,40 @@ final class Track extends Model
     /**
      * Everything standing between this track and READY.
      *
-     * @return list<string>
+     * CAT-002: issues rather than sentences, for the same reason REL-002 did
+     * it to the release — these are now shown to a person on the track screen,
+     * and the platform ships six languages. The conditions are byte-for-byte
+     * the ones I3 has always enforced.
+     *
+     * @return list<ValidationIssue>
      */
     public function readinessProblems(): array
     {
         $problems = [];
 
         if (trim((string) $this->title) === '') {
-            $problems[] = 'A title is required.';
+            $problems[] = ValidationIssue::error('TRACK_TITLE_REQUIRED', 'title', 'A title is required.');
         }
 
         if (ContentLanguage::tryFromCode($this->language_code) === null) {
-            $problems[] = sprintf('Language [%s] is not a valid content language.', (string) $this->language_code);
+            $problems[] = ValidationIssue::error(
+                'TRACK_LANGUAGE_INVALID',
+                'language_code',
+                sprintf('Language [%s] is not a valid content language.', (string) $this->language_code),
+                ['code' => (string) $this->language_code],
+            );
         }
 
         if ($this->primaryArtists()->count() < 1) {
-            $problems[] = 'At least one PRIMARY artist is required.';
+            $problems[] = ValidationIssue::error(
+                'TRACK_PRIMARY_ARTIST_REQUIRED',
+                'artists',
+                'At least one PRIMARY artist is required.',
+            );
         }
 
         if ($this->master_asset_id === null) {
-            $problems[] = 'A master asset is required.';
+            $problems[] = ValidationIssue::error('TRACK_MASTER_REQUIRED', 'master', 'A master asset is required.');
 
             return $problems;
         }
@@ -233,13 +248,21 @@ final class Track extends Model
         $master = $this->masterAsset()->first();
 
         if (! $master instanceof Asset) {
-            $problems[] = 'The referenced master asset does not exist.';
+            $problems[] = ValidationIssue::error(
+                'TRACK_MASTER_MISSING',
+                'master',
+                'The referenced master asset does not exist.',
+            );
 
             return $problems;
         }
 
         if (! $master->isVerifiedMaster()) {
-            $problems[] = 'The master asset must be an AUDIO_MASTER with status VERIFIED.';
+            $problems[] = ValidationIssue::error(
+                'TRACK_MASTER_NOT_VERIFIED',
+                'master',
+                'The master asset must be an AUDIO_MASTER with status VERIFIED.',
+            );
         }
 
         return $problems;

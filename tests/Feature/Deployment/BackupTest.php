@@ -15,7 +15,16 @@ use SaniTube\Deployment\Services\BackupRepository;
 use SaniTube\Deployment\Services\CreateBackup;
 use SaniTube\Deployment\Services\DatabaseDumper;
 use SaniTube\Deployment\Services\RestoreBackup;
+use SaniTube\Distribution\Enums\DistributionAction;
+use SaniTube\Distribution\Enums\DistributionAttemptOutcome;
+use SaniTube\Distribution\Enums\DistributionDeliveryStatus;
+use SaniTube\Distribution\Models\DistributionAttempt;
+use SaniTube\Distribution\Models\DistributionDelivery;
 use SaniTube\Identity\Enums\UserRole;
+use SaniTube\Localization\ContentLanguage;
+use SaniTube\Releases\Enums\ReleaseStatus;
+use SaniTube\Releases\Enums\ReleaseType;
+use SaniTube\Releases\Models\Release;
 use Tests\TestCase;
 
 /**
@@ -345,6 +354,156 @@ final class BackupTest extends TestCase
 
             throw $exception;
         }
+    }
+
+    #[Test]
+    public function the_dump_names_a_table_only_after_everything_it_points_at(): void
+    {
+        // The property a restore depends on, asserted over the real schema
+        // rather than over a fixture, because the schema is what grows. Sorted
+        // alphabetically — which is what this did first — `distribution_attempts`
+        // is written before the `distribution_deliveries` it belongs to, and
+        // restoring it fails on every engine that enforces foreign keys.
+        //
+        // Turning the constraints off is the usual answer and is also done,
+        // but SQLite ignores `PRAGMA foreign_keys` inside a transaction, so a
+        // restore leaning on that alone is green everywhere except the
+        // platform's most common database.
+        $schema = $this->app->make('db.connection')->getSchemaBuilder();
+        $tables = $this->app->make(DatabaseDumper::class)->tables();
+
+        $position = array_flip($tables);
+        $checked = 0;
+
+        foreach ($tables as $table) {
+            foreach ($schema->getForeignKeys($table) as $key) {
+                /** @var array{foreign_table?: string|null} $key */
+                $referenced = $key['foreign_table'] ?? null;
+
+                if (! is_string($referenced) || $referenced === $table || ! array_key_exists($referenced, $position)) {
+                    continue;
+                }
+
+                $checked++;
+
+                $this->assertLessThan(
+                    $position[$table],
+                    $position[$referenced],
+                    sprintf(
+                        '[%s] is dumped before [%s], which it points at. A restore would insert the child first.',
+                        $referenced,
+                        $table,
+                    ),
+                );
+            }
+        }
+
+        // A schema with no foreign keys would pass the loop above without
+        // checking anything, and this schema has plenty.
+        $this->assertGreaterThan(10, $checked, 'The scan found suspiciously few foreign keys.');
+    }
+
+    #[Test]
+    public function the_order_is_still_stable_between_runs(): void
+    {
+        // Dependency order must not cost determinism: a checksum over a dump
+        // whose table order wobbles is a checksum that means nothing, and
+        // "nothing changed since yesterday" stops being answerable.
+        $dumper = $this->app->make(DatabaseDumper::class);
+
+        $this->assertSame($dumper->tables(), $dumper->tables());
+        $this->assertSame($dumper->tables(), $this->app->make(DatabaseDumper::class)->tables());
+    }
+
+    #[Test]
+    public function a_restore_puts_back_a_row_that_points_at_another_row(): void
+    {
+        // The failure the acceptance walk found. Every restore test before
+        // this one used `users`, a table nothing points at, so a dump order
+        // that could not be replayed passed them all.
+        $owner = $this->user('owner@example.test');
+
+        $release = Release::query()->create([
+            'title' => 'Night Bus',
+            'type' => ReleaseType::Single,
+            'language_code' => ContentLanguage::UNKNOWN,
+            'status' => ReleaseStatus::Draft,
+        ]);
+
+        $delivery = DistributionDelivery::query()->create([
+            'release_id' => $release->getKey(),
+            'provider' => 'fake',
+            'status' => DistributionDeliveryStatus::Draft,
+            'idempotency_key' => str_repeat('a', 64),
+        ]);
+
+        DistributionAttempt::query()->create([
+            'delivery_id' => $delivery->getKey(),
+            'action' => DistributionAction::Submit,
+            'outcome' => DistributionAttemptOutcome::Succeeded,
+            'idempotency_key' => $delivery->idempotency_key,
+        ]);
+
+        $backup = $this->create()->handle();
+
+        DistributionAttempt::query()->delete();
+        DistributionDelivery::query()->delete();
+        Release::query()->forceDelete();
+
+        $this->restore()->handle($backup['path'], confirmed: true);
+
+        $this->assertSame(1, Release::query()->count());
+        $this->assertSame(1, DistributionDelivery::query()->count());
+        $this->assertSame(1, DistributionAttempt::query()->count());
+        $this->assertSame($owner->email, (string) User::query()->firstOrFail()->email);
+    }
+
+    #[Test]
+    public function a_restore_over_a_populated_database_empties_children_before_parents(): void
+    {
+        // The other half of the ordering, and the half a restore actually
+        // performs: the live database is *not* empty when an operator restores
+        // over it. Emptying `releases` while `distribution_deliveries` still
+        // point at them is refused by every engine that enforces foreign keys,
+        // and the previous test cannot see it because it clears the rows by
+        // hand first.
+        $this->user('owner@example.test');
+
+        $release = Release::query()->create([
+            'title' => 'Night Bus',
+            'type' => ReleaseType::Single,
+            'language_code' => ContentLanguage::UNKNOWN,
+            'status' => ReleaseStatus::Draft,
+        ]);
+
+        $delivery = DistributionDelivery::query()->create([
+            'release_id' => $release->getKey(),
+            'provider' => 'fake',
+            'status' => DistributionDeliveryStatus::Draft,
+            'idempotency_key' => str_repeat('b', 64),
+        ]);
+
+        DistributionAttempt::query()->create([
+            'delivery_id' => $delivery->getKey(),
+            'action' => DistributionAction::Submit,
+            'outcome' => DistributionAttemptOutcome::Succeeded,
+            'idempotency_key' => $delivery->idempotency_key,
+        ]);
+
+        $backup = $this->create()->handle();
+
+        // Nothing is removed first. The rows the restore is about to replace
+        // are still there, still referencing each other.
+        $this->restore()->handle($backup['path'], confirmed: true);
+
+        // Replaced, not merged, and not duplicated.
+        $this->assertSame(1, Release::query()->count());
+        $this->assertSame(1, DistributionDelivery::query()->count());
+        $this->assertSame(1, DistributionAttempt::query()->count());
+        $this->assertSame(
+            $release->getKey(),
+            DistributionDelivery::query()->firstOrFail()->release_id,
+        );
     }
 
     #[Test]

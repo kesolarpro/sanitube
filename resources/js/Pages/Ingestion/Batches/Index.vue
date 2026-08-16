@@ -5,11 +5,15 @@ import CursorPagination from '@/Components/Data/CursorPagination.vue';
 import DataTable from '@/Components/Data/DataTable.vue';
 import TableCell from '@/Components/Data/TableCell.vue';
 import TableHeaderCell from '@/Components/Data/TableHeaderCell.vue';
+import AppAlert from '@/Components/Ui/AppAlert.vue';
+import AppButton from '@/Components/Ui/AppButton.vue';
 import AppCard from '@/Components/Ui/AppCard.vue';
 import EmptyState from '@/Components/Ui/EmptyState.vue';
 import FormField from '@/Components/Ui/FormField.vue';
 import SelectInput from '@/Components/Ui/SelectInput.vue';
 import StatusBadge from '@/Components/Ui/StatusBadge.vue';
+import TextInput from '@/Components/Ui/TextInput.vue';
+import TextareaInput from '@/Components/Ui/TextareaInput.vue';
 import { dateTime } from '@/Support/format';
 import { trans } from '@/Support/i18n';
 import type { SharedProps } from '@/Types/inertia';
@@ -24,7 +28,12 @@ import type { BatchFilters, BatchPage } from '@/Types/ingestion';
  * different amounts of time, and a progress bar that stalls at 94% teaches
  * people to ignore progress bars.
  */
-const props = defineProps<{ page: BatchPage; filters: BatchFilters; options: Record<string, string[]> }>();
+const props = defineProps<{
+    page: BatchPage;
+    filters: BatchFilters;
+    options: Record<string, string[]>;
+    actions: { may_start: boolean };
+}>();
 
 const locale = usePage<SharedProps>().props.app.locale;
 
@@ -70,6 +79,47 @@ const sourceOptions = computed(() => [
     { value: '', label: trans('ui.ingestion.filter.any_source') },
     ...(props.options.source ?? []).map((value) => ({ value, label: trans(`ui.ingestion.source.${value}`) })),
 ]);
+
+/* ------------------------------------------------------- starting an import */
+
+/**
+ * A prefix, or a list of object keys, one per line.
+ *
+ * Which of the two is allowed — and that an empty selection is refused,
+ * because "importing an entire store blindly is never what someone meant" —
+ * is the domain's rule, and it is not restated here. This form collects and
+ * the server decides.
+ */
+const prefix = ref('');
+const references = ref('');
+const starting = ref(false);
+
+const refusal = computed(() => {
+    const errors = usePage().props.errors as Record<string, string> | undefined;
+
+    return errors?.import ?? null;
+});
+
+function startImport(): void {
+    starting.value = true;
+
+    router.post(
+        '/ingestion/batches',
+        {
+            prefix: prefix.value.trim() === '' ? null : prefix.value.trim(),
+            references: references.value
+                .split('\n')
+                .map((line) => line.trim())
+                .filter((line) => line !== ''),
+        },
+        {
+            preserveScroll: true,
+            onFinish: () => {
+                starting.value = false;
+            },
+        },
+    );
+}
 </script>
 
 <template>
@@ -78,6 +128,33 @@ const sourceOptions = computed(() => [
             <h1 class="text-page-title text-foreground">{{ trans('ui.ingestion.batches') }}</h1>
             <p class="mt-1 text-small text-muted">{{ trans('ui.ingestion.batches_description') }}</p>
         </div>
+
+        <AppAlert v-if="refusal !== null" tone="danger" :title="trans('ui.ingestion.refused')">
+            {{ trans(`ui.ingestion.import_failure.${refusal}`) }}
+        </AppAlert>
+
+        <!-- Starting an import. Nothing is fetched inside the request: the
+             batch is created and the work is queued, so closing the tab does
+             not half-run an import. -->
+        <AppCard v-if="actions.may_start">
+            <template #header>{{ trans('ui.ingestion.start_import') }}</template>
+
+            <p class="mb-3 text-caption text-muted">{{ trans('ui.ingestion.start_import_description') }}</p>
+
+            <form class="grid gap-3" @submit.prevent="startImport">
+                <FormField :label="trans('ui.ingestion.prefix')" :hint="trans('ui.ingestion.prefix_hint')">
+                    <TextInput v-model="prefix" />
+                </FormField>
+                <FormField :label="trans('ui.ingestion.references')" :hint="trans('ui.ingestion.references_hint')">
+                    <TextareaInput v-model="references" :rows="4" />
+                </FormField>
+                <div>
+                    <AppButton type="submit" variant="primary" :loading="starting">
+                        {{ trans('ui.ingestion.start_import') }}
+                    </AppButton>
+                </div>
+            </form>
+        </AppCard>
 
         <AppCard :padded="false">
             <template #header>{{ trans('ui.catalog.filters') }}</template>

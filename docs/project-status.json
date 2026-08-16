@@ -1,8 +1,8 @@
 {
   "$comment": "Machine-readable project state. Any new session reads this first, then verifies it against GitHub before trusting it. Written at the end of each ticket, so a stale entry means a session ended mid-ticket — check the branch and CI rather than the status field.",
   "updated_at": "2026-08-16",
-  "current_phase": "DEP-002/003 merged",
-  "last_completed_ticket": "DEP-002/003",
+  "current_phase": "ING-002 merged; DIST-001-H1 (PR 35) awaiting review",
+  "last_completed_ticket": "ING-002",
   "default_branch": "main",
   "tickets": {
     "ARCH-001": {
@@ -201,10 +201,10 @@
       "ci": null
     },
     "OPS-001": {
-      "status": "not_started",
-      "branch": null,
-      "pr": null,
-      "ci": null
+      "status": "merged",
+      "branch": "claude/ops-001-backup-restore",
+      "pr": 41,
+      "ci": "green 10/10"
     },
     "UI-003a": {
       "status": "merged",
@@ -320,16 +320,17 @@
       "reason": "Publishing administration. Its purpose is collection and distribution of publishing income, which the scope correction removes from V1. Composition and writer metadata already exists in CAT-002 and stays."
     },
     "REL-002": {
-      "status": "open — backend GAP raised by REL-UI-001",
-      "summary": "Make release validation problems machine-readable (code + context) so they can be translated, while keeping a rendered sentence for logs and delivery-attempt records.",
-      "touches": "ValidateRelease, ReleaseValidationResult, Release::readinessProblems(), ValidateDelivery, SubmitDelivery",
-      "note": "DIST-UI-001 will hit the same wall for delivery validation."
+      "status": "merged",
+      "branch": "claude/rel-002-structured-validation",
+      "pr": 42,
+      "ci": "green 10/10",
+      "note": "Validation answers in ReleaseValidationIssue codes rather than English. Closed the bug where SubmitDelivery decided unreachability by substring-matching a message."
     },
     "DIST-UI-001": {
-      "status": "implemented, awaiting PR",
+      "status": "merged",
       "branch": "claude/dist-ui-001-distribution-operations",
-      "ci": "local gate green; CI pending",
-      "note": "Delivery list, delivery detail and a per-release send screen over DIST-001. No screen probes a distributor on render. UNKNOWN, FAILED and REJECTED are drawn as three different things. The preflight is a GET that creates nothing."
+      "pr": 34,
+      "ci": "green 10/10"
     },
     "SET-001": {
       "status": "merged",
@@ -348,17 +349,39 @@
       "pr": 39,
       "ci": "green 10/10"
     },
+    "E2E-001": {
+      "status": "merged",
+      "branch": "claude/e2e-001-acceptance-walk",
+      "pr": 43,
+      "ci": "green 10/10",
+      "note": "The V1 definition of done as a walk. Found and fixed a restore that could not restore (alphabetical dump order broke foreign keys) and found the catalogue write gap CAT-002 closes."
+    },
+    "CAT-002": {
+      "status": "merged",
+      "branch": "claude/cat-002-track-releasable",
+      "pr": 44,
+      "ci": "green 10/10",
+      "note": "Track credits and readiness behind can.role:catalogue. Also fixed the stale-cache defect: DeploymentTest left the application cached, which can make a removed authorization guard look enforced."
+    },
+    "REL-003": {
+      "status": "merged into CAT-002",
+      "note": "Track::readinessProblems() answers in issues. Folded in because without it the new track screen would render English into six locales."
+    },
+    "ING-002": {
+      "status": "merged",
+      "branch": "claude/ing-002-start-import",
+      "pr": 45,
+      "ci": "green 10/10",
+      "note": "Starting an import from the interface. Gave IngestionException a reason distinct from its persisted failure code, refused an ambiguous folder+list selection that used to drop the list silently, and stopped the stylesheet being built from the compiled-view cache."
+    },
     "DIST-001-H1": {
-      "status": "REVIEW_REQUIRED — PR 35 open, deliberately not merged",
+      "status": "review approved with corrections — applying them now",
       "branch": "claude/dist-001-h1-unknown-outcome",
       "pr": 35,
-      "ci": "green 10/10 before the audit merge; re-running",
-      "note": "Adds SUBMITTED_UNCONFIRMED for a submission whose outcome is genuinely unknown, splits prepare from submit, widens the Distributor contract with findSubmission(), and adds a human resolution recorded against decided_by. Changes external submission semantics and amends a contract DIST-001 closed at five methods.",
-      "review_points": [
-        "The default for an unclassified submission failure is now \"unknown\", which blocks the retry.",
-        "findSubmission() widens the Distributor contract to six methods.",
-        "A hand-typed external reference is written as though received — guarded by a required note and a recorded actor.",
-        "decided_by carries no foreign key."
+      "corrections": [
+        "findSubmission() moves out of the Distributor contract into a SupportsSubmissionLookup capability",
+        "external reference carries provenance: PROVIDER_RESPONSE / PROVIDER_LOOKUP / MANUAL_OPERATOR",
+        "decided_by gets a RESTRICT foreign key to users"
       ]
     }
   },
@@ -686,5 +709,51 @@
     "existing_code": "Not deleted. No Revenue/Royalty/Payout/Ledger module was ever built, so nothing has to be removed; the tickets are reclassified instead.",
     "multi_distributor": "The domain must contain no logic specific to TuneCore, Too Lost, DistroKid, CD Baby or Ditto. Provider specifics live in adapters. No TuneCore API is assumed to exist, and scraping is never an API substitute.",
     "navigation": "`publishing` and `royalties` removed from the sidebar in DIST-UI-001, with their translation keys and icons. Both were placeholders for financial administration. `rights` stays, unavailable: credit and ownership metadata is required for distribution and is not a right to money."
+  },
+  "progress": {
+    "$comment": "Nine fixed blocks. The denominator does not change. PRODUCTION_READY is the figure that matters.",
+    "blocks": {
+      "core_domain": {
+        "implemented": 95,
+        "production_ready": 90
+      },
+      "assets_catalogue_import": {
+        "implemented": 90,
+        "production_ready": 85
+      },
+      "generation_ai": {
+        "implemented": 70,
+        "production_ready": 55
+      },
+      "release_management": {
+        "implemented": 95,
+        "production_ready": 90
+      },
+      "distribution": {
+        "implemented": 80,
+        "production_ready": 55
+      },
+      "ui_ux": {
+        "implemented": 85,
+        "production_ready": 80
+      },
+      "security_identity": {
+        "implemented": 85,
+        "production_ready": 80
+      },
+      "installation_deployment": {
+        "implemented": 85,
+        "production_ready": 80
+      },
+      "operations_backup_observability": {
+        "implemented": 85,
+        "production_ready": 80
+      }
+    },
+    "implemented_percent": 86,
+    "production_ready_percent": 77
+  },
+  "open_prs": {
+    "35": "DIST-001-H1 — REVIEW_REQUIRED, audited and hardened, deliberately not merged"
   }
 }

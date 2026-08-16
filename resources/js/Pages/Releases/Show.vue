@@ -651,7 +651,7 @@ const editable = computed(() => props.release.actions.can_edit_details);
                 <p class="text-caption text-danger">{{ trans('ui.releases.errors') }}</p>
                 <ul class="list-disc space-y-1 pl-5 text-small text-foreground">
                     <li v-for="problem in release.validation.errors" :key="problem.code + problem.path">
-                        {{ trans(`ui.releases.issue.${problem.code}`, problem.context) }}
+                        {{ trans(`ui.issue.${problem.code}`, problem.context) }}
                     </li>
                 </ul>
             </div>
@@ -663,7 +663,7 @@ const editable = computed(() => props.release.actions.can_edit_details);
                 </p>
                 <ul v-else class="list-disc space-y-1 pl-5 text-small text-muted">
                     <li v-for="warning in release.validation.warnings" :key="warning.code + warning.path">
-                        {{ trans(`ui.releases.issue.${warning.code}`, warning.context) }}
+                        {{ trans(`ui.issue.${warning.code}`, warning.context) }}
                     </li>
                 </ul>
             </div>

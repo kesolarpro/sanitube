@@ -4,12 +4,15 @@ declare(strict_types=1);
 
 namespace SaniTube\Ui\Queries;
 
+use App\Models\User;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use SaniTube\Assets\Models\Asset;
+use SaniTube\Catalog\Enums\TrackStatus;
 use SaniTube\Catalog\Models\ExternalIdentifier;
 use SaniTube\Catalog\Models\Track;
 use SaniTube\Catalog\Models\TrackArtist;
 use SaniTube\Catalog\Models\TrackContributor;
+use SaniTube\Foundation\Validation\ValidationIssue;
 use SaniTube\Media\Models\AudioAnalysis;
 use SaniTube\Releases\Models\ReleaseTrack;
 
@@ -32,7 +35,7 @@ final readonly class TrackDetailQuery
     /**
      * @return array<string, mixed>
      */
-    public function forTrack(Track $track): array
+    public function forTrack(Track $track, ?User $viewer = null): array
     {
         // Loaded through the typed pivot models rather than the many-to-many
         // relations. `$artist->pivot->role` is an untyped property bag that
@@ -51,6 +54,10 @@ final readonly class TrackDetailQuery
                 ->orderByDesc('is_authoritative')
                 ->orderByDesc('assigned_at'),
         ]);
+
+        $problems = $track->readinessProblems();
+        $mayWrite = $viewer?->role->canWriteCatalogue() ?? false;
+        $creditable = ! in_array($track->status, [TrackStatus::Released, TrackStatus::Archived], true);
 
         $artistCredits = TrackArtist::query()->with('artist')->where('track_id', $track->getKey())->get();
         $contributorCredits = TrackContributor::query()->with('contributor')->where('track_id', $track->getKey())->get();
@@ -115,6 +122,26 @@ final readonly class TrackDetailQuery
                 'track_number' => $placement->track_number,
                 'is_focus_track' => (bool) $placement->is_focus_track,
             ])->values()->all(),
+
+            // The same list markReady() throws on — not a second opinion about
+            // readiness, the one the domain will act on. CAT-002 made these
+            // issues rather than sentences so the screen can say them in
+            // somebody's own language.
+            'readiness_problems' => array_map(
+                static fn (ValidationIssue $issue): array => $issue->toArray(),
+                $problems,
+            ),
+
+            'actions' => [
+                // Presentation, never authorisation. `can.role:catalogue` on
+                // the route decides who may act; this exists so a button can
+                // be absent with an explanation rather than failing on save.
+                'may_edit' => $mayWrite,
+                'can_edit_credits' => $mayWrite && $creditable,
+                'can_mark_ready' => $mayWrite
+                    && $track->status === TrackStatus::Draft
+                    && $problems === [],
+            ],
         ];
     }
 
