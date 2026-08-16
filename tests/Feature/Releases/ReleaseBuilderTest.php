@@ -12,6 +12,7 @@ use SaniTube\Assets\Enums\AssetStatus;
 use SaniTube\Assets\Models\Asset;
 use SaniTube\Catalog\Enums\TrackStatus;
 use SaniTube\Catalog\Models\Track;
+use SaniTube\Foundation\Validation\ValidationIssue;
 use SaniTube\Localization\ContentLanguage;
 use SaniTube\Releases\Enums\ReleaseArtistRole;
 use SaniTube\Releases\Enums\ReleaseStatus;
@@ -19,7 +20,6 @@ use SaniTube\Releases\Enums\ReleaseType;
 use SaniTube\Releases\Exceptions\ReleaseBuilderException;
 use SaniTube\Releases\Exceptions\ReleaseNotReadyException;
 use SaniTube\Releases\Models\Release;
-use SaniTube\Releases\ReleaseValidationIssue;
 use SaniTube\Releases\Services\ReleaseBuilder;
 use SaniTube\Releases\Services\ValidateRelease;
 use Tests\TestCase;
@@ -381,7 +381,7 @@ final class ReleaseBuilderTest extends TestCase
 
         $this->assertFalse($result->isValid(), 'A release with no date must not validate.');
         $this->assertContains('RELEASE_DATE_REQUIRED', array_map(
-            static fn (ReleaseValidationIssue $issue): string => $issue->code,
+            static fn (ValidationIssue $issue): string => $issue->code,
             $result->errors(),
         ));
     }
@@ -400,7 +400,7 @@ final class ReleaseBuilderTest extends TestCase
             // The refusal names what is wrong, so a caller can act on it
             // rather than only learn that something was.
             $this->assertContains('COVER_REQUIRED', array_map(
-                static fn (ReleaseValidationIssue $issue): string => $issue->code,
+                static fn (ValidationIssue $issue): string => $issue->code,
                 $e->problems,
             ));
         }

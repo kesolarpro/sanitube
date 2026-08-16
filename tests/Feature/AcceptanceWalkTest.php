@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use PHPUnit\Framework\Attributes\Test;
@@ -13,10 +14,8 @@ use SaniTube\Assets\Enums\AssetStatus;
 use SaniTube\Assets\Models\Asset;
 use SaniTube\Catalog\Enums\ExternalIdentifierSource;
 use SaniTube\Catalog\Enums\ExternalIdentifierType;
-use SaniTube\Catalog\Enums\TrackArtistRole;
 use SaniTube\Catalog\Enums\TrackStatus;
 use SaniTube\Catalog\Models\Track;
-use SaniTube\Catalog\Models\TrackArtist;
 use SaniTube\Catalog\Services\AssignExternalIdentifier;
 use SaniTube\Deployment\Services\CreateBackup;
 use SaniTube\Deployment\Services\RestoreBackup;
@@ -28,6 +27,7 @@ use SaniTube\Distribution\Models\DistributionAttempt;
 use SaniTube\Distribution\Models\DistributionDelivery;
 use SaniTube\Distribution\Services\SubmitDelivery;
 use SaniTube\Distribution\Testing\FakeDistributor;
+use SaniTube\Identity\Enums\UserRole;
 use SaniTube\Ingestion\Enums\IngestionSource;
 use SaniTube\Ingestion\Enums\TrackCandidateStatus;
 use SaniTube\Ingestion\Models\IngestionBatch;
@@ -180,27 +180,31 @@ final class AcceptanceWalkTest extends TestCase
         // READY without a primary artist — which is right: a recording with
         // nobody's name on it is not deliverable.
         //
-        // **Reached through the domain because no browser route reaches it.**
-        // The catalogue screens are read-only, so a label importing a library
-        // through the interface can promote a candidate and then has no way to
-        // credit the track or mark it ready — and every release built from it
-        // fails validation with TRACK_NOT_RELEASABLE forever. That gap is what
-        // this walk was written to find; CAT-002 closes it, and this block
-        // becomes the browser path when it does.
+        // Through the browser, which is the point. When this walk was first
+        // written the catalogue was read-only: a label could promote a
+        // candidate and then had no way to credit the track or mark it ready,
+        // so every release built from it failed validation with
+        // TRACK_NOT_RELEASABLE and the fix was unreachable from any screen.
+        // CAT-002 closed that, and the walk goes through the same two routes a
+        // person does.
         $label = Artist::factory()->create(['name' => 'The Label']);
+        $operator = $this->operator();
 
         foreach ($tracks as $track) {
             $this->assertSame(TrackStatus::Draft, $track->status);
             $this->assertFalse($track->status->isReleasable());
 
-            TrackArtist::query()->create([
-                'track_id' => $track->getKey(),
-                'artist_id' => $label->getKey(),
-                'role' => TrackArtistRole::Primary,
-                'position' => 1,
-            ]);
+            $this->actingAs($operator)
+                ->post('/catalog/tracks/'.$track->uuid.'/credits', [
+                    'artists' => [['uuid' => $label->uuid, 'role' => 'PRIMARY']],
+                ])
+                ->assertRedirect();
 
-            $track->refresh()->markReady();
+            $this->actingAs($operator)
+                ->post('/catalog/tracks/'.$track->uuid.'/ready')
+                ->assertRedirect();
+
+            $this->assertTrue($track->refresh()->status->isReleasable());
         }
 
         // ----------------------------------------------- 4. building an EP
@@ -491,6 +495,21 @@ final class AcceptanceWalkTest extends TestCase
 
     // -------------------------------------------------------------- fixtures
 
+    /**
+     * Somebody who may write to the catalogue.
+     */
+    private function operator(): User
+    {
+        $user = User::query()->firstOrCreate(
+            ['email' => 'operator@example.test'],
+            ['name' => 'Operator', 'password' => 'a-long-enough-passphrase'],
+        );
+
+        $user->forceFill(['role' => UserRole::Owner, 'is_active' => true])->save();
+
+        return $user;
+    }
+
     private function rmrf(string $path): void
     {
         if (! is_dir($path)) {
@@ -519,7 +538,7 @@ final class AcceptanceWalkTest extends TestCase
         $lines = require base_path('lang/'.$locale.'/ui.php');
 
         /** @var array<string, string> $issues */
-        $issues = $lines['releases']['issue'] ?? [];
+        $issues = $lines['issue'] ?? [];
 
         return $issues;
     }

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace SaniTube\Releases;
+namespace SaniTube\Foundation\Validation;
 
 /**
  * What is wrong with a release, separated into what blocks it and what does not.
@@ -12,18 +12,18 @@ namespace SaniTube\Releases;
  * incomplete, and a validator that reported both as "errors" would train its
  * reader to ignore the list.
  *
- * REL-002 changed what is inside: {@see ReleaseValidationIssue} objects rather
+ * REL-002 changed what is inside: {@see ValidationIssue} objects rather
  * than English sentences. The severity now lives on the issue, so the two
  * lists are views over one set rather than two independently-built arrays that
  * can disagree about which is which.
  */
-final readonly class ReleaseValidationResult
+final readonly class ValidationResult
 {
-    /** @var list<ReleaseValidationIssue> */
+    /** @var list<ValidationIssue> */
     public array $issues;
 
     /**
-     * @param  list<ReleaseValidationIssue>  $issues
+     * @param  list<ValidationIssue>  $issues
      */
     public function __construct(array $issues = [])
     {
@@ -46,19 +46,19 @@ final readonly class ReleaseValidationResult
     }
 
     /**
-     * @return list<ReleaseValidationIssue>
+     * @return list<ValidationIssue>
      */
     public function errors(): array
     {
-        return array_values(array_filter($this->issues, static fn (ReleaseValidationIssue $i): bool => $i->isError()));
+        return array_values(array_filter($this->issues, static fn (ValidationIssue $i): bool => $i->isError()));
     }
 
     /**
-     * @return list<ReleaseValidationIssue>
+     * @return list<ValidationIssue>
      */
     public function warnings(): array
     {
-        return array_values(array_filter($this->issues, static fn (ReleaseValidationIssue $i): bool => ! $i->isError()));
+        return array_values(array_filter($this->issues, static fn (ValidationIssue $i): bool => ! $i->isError()));
     }
 
     public function isValid(): bool
@@ -88,7 +88,7 @@ final readonly class ReleaseValidationResult
      */
     public function messages(): array
     {
-        return array_map(static fn (ReleaseValidationIssue $i): string => $i->message(), $this->issues);
+        return array_map(static fn (ValidationIssue $i): string => $i->message(), $this->issues);
     }
 
     public function with(self $other): self
@@ -104,11 +104,11 @@ final readonly class ReleaseValidationResult
         return [
             'valid' => $this->isValid(),
             'errors' => array_map(
-                static fn (ReleaseValidationIssue $i): array => $i->toArray(),
+                static fn (ValidationIssue $i): array => $i->toArray(),
                 $this->errors(),
             ),
             'warnings' => array_map(
-                static fn (ReleaseValidationIssue $i): array => $i->toArray(),
+                static fn (ValidationIssue $i): array => $i->toArray(),
                 $this->warnings(),
             ),
         ];

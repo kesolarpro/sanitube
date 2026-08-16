@@ -34,6 +34,57 @@ final class DeploymentTest extends TestCase
 {
     use RefreshDatabase;
 
+    /**
+     * Undo what the command under test did to this checkout.
+     *
+     * `sanitube:deploy` caches the configuration and the route table, which is
+     * the right thing on a server and leaves this repository cached
+     * afterwards. The current run does not notice — the application is already
+     * booted — but the *next* one reads a snapshot of `config/` and `routes/`
+     * as they were, so a config file added since reads as null and a route
+     * added since answers 404. Neither looks like a stale cache; both look
+     * like a broken feature, and the failure lands wherever it happens to be
+     * touched rather than here.
+     *
+     * That cost real time before it was found. `TestCase` now refuses to run
+     * against a cached application at all, and this is the other half: the
+     * only thing in the suite that creates one cleans it up.
+     */
+    protected function tearDown(): void
+    {
+        $this->artisan('optimize:clear');
+
+        parent::tearDown();
+    }
+
+    #[Test]
+    public function the_suite_removes_a_cached_application_before_it_runs(): void
+    {
+        // The other half of the same problem, and the half that regresses: a
+        // cache left behind by an interrupted run, or by an operator trying
+        // `sanitube:deploy` by hand, is read by the next `php artisan test` as
+        // if it were `config/` and `routes/`. A config file added since reads
+        // as null and a route added since answers 404 — a working feature
+        // failing in whichever test happens to touch it, with an error that
+        // describes the symptom and never the cause.
+        //
+        // Exercised by planting one and running the bootstrap over it.
+        // Requiring the file again is safe: all it does besides the sweep is
+        // require the autoloader, which is idempotent.
+        $planted = base_path('bootstrap/cache/routes-v0-planted.php');
+
+        file_put_contents($planted, '<?php return [];');
+
+        $this->assertFileExists($planted);
+
+        require base_path('tests/bootstrap.php');
+
+        $this->assertFileDoesNotExist(
+            $planted,
+            'A stale route cache survived the bootstrap, so the next run would read a snapshot.',
+        );
+    }
+
     // -------------------------------------------------------------- preflight
 
     #[Test]
