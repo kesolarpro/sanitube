@@ -32,6 +32,7 @@ use SaniTube\Ui\Http\Controllers\Releases\ReleaseBuilderController;
 use SaniTube\Ui\Http\Controllers\Releases\ReleaseIndexController;
 use SaniTube\Ui\Http\Controllers\Releases\ReleasePickerController;
 use SaniTube\Ui\Http\Controllers\Settings\SettingsController;
+use SaniTube\Ui\Http\Controllers\Settings\SettingsUpdateController;
 use SaniTube\Ui\Http\Controllers\Studio\GenerationDetailController;
 use SaniTube\Ui\Http\Controllers\Studio\GenerationIndexController;
 use SaniTube\Ui\Http\Controllers\Studio\OverviewController;
@@ -184,6 +185,15 @@ Route::middleware(['web', HandleInertiaRequests::class, 'auth', 'active'])->grou
         // AUDIT-001. Reading the log is not itself an event: a log that
         // records its own readers grows by being looked at.
         Route::get('system/audit', AuditController::class)->name('system.audit');
+
+        /*
+         * SET-002. The only path from a browser to a .env file.
+         *
+         * Behind the same role as the rest of this group, and deliberately a
+         * PATCH rather than a POST: it changes some of an existing thing.
+         * What may be written is WritableSettings' list and nothing else.
+         */
+        Route::patch('settings', SettingsUpdateController::class)->name('settings.update');
 
         // The one place a probe may run from a request: explicit, POST, and
         // pressed by a person who asked for it.

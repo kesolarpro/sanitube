@@ -30,6 +30,9 @@ final class EnvironmentFile
 {
     private bool $backedUp = false;
 
+    /** Where this run's backup went, for {@see self::restoreBackup()}. */
+    private ?string $backupPath = null;
+
     public function __construct(private readonly string $path) {}
 
     public function exists(): bool
@@ -119,6 +122,72 @@ final class EnvironmentFile
     }
 
     /**
+     * Set several keys in one write.
+     *
+     * SET-002 needs this and `set()` cannot give it. Four calls to `set()` are
+     * four rewrites of the file, and a failure on the third leaves an
+     * installation configured half one way and half the other — with a
+     * database pointing somewhere new and credentials that still belong
+     * somewhere old. One `file_put_contents` is as close to atomic as this
+     * gets without a rename dance the shared hosts this targets do not always
+     * permit, and it is the difference between a partial write and none.
+     *
+     * @param  array<string, string>  $values
+     * @return bool whether the file was written
+     */
+    public function setMany(array $values): bool
+    {
+        if ($values === [] || ! $this->exists()) {
+            return false;
+        }
+
+        if (! $this->backup()) {
+            // No backup, no write. The whole point of this class.
+            return false;
+        }
+
+        $lines = $this->lines();
+
+        foreach ($values as $key => $value) {
+            $encoded = $this->encode($value);
+            $written = false;
+
+            foreach ($lines as $index => $line) {
+                if (str_starts_with(ltrim($line), $key.'=')) {
+                    $lines[$index] = $key.'='.$encoded;
+                    $written = true;
+                }
+            }
+
+            if (! $written) {
+                $lines[] = $key.'='.$encoded;
+            }
+        }
+
+        return file_put_contents($this->path, implode("\n", $lines)."\n") !== false;
+    }
+
+    /**
+     * Put back what the backup holds.
+     *
+     * The other half of the promise `backup()` makes. A rewrite that succeeded
+     * on disk and then broke the installation — a database name with a typo,
+     * a provider key pasted with a newline — is exactly the case a backup
+     * exists for, and a backup nothing can restore is a file nobody reads.
+     *
+     * Returns false when there is nothing to restore, which is not the same as
+     * a failure to restore: a run that never wrote has nothing to undo.
+     */
+    public function restoreBackup(): bool
+    {
+        if ($this->backupPath === null || ! is_file($this->backupPath)) {
+            return false;
+        }
+
+        return copy($this->backupPath, $this->path);
+    }
+
+    /**
      * Copy the file aside, once per run.
      *
      * Once, not per write: a stage that sets four keys would otherwise leave
@@ -152,6 +221,7 @@ final class EnvironmentFile
             @chmod($destination, 0600);
 
             $this->backedUp = true;
+            $this->backupPath = $destination;
 
             return true;
         } catch (Throwable) {

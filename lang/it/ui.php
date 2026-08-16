@@ -552,8 +552,6 @@ return [
     'settings' => [
         'title' => 'Impostazioni',
         'description' => 'Con che cosa è configurata questa installazione. I valori non vengono mai mostrati: solo se sono impostati.',
-        'read_only' => 'Questa schermata riferisce; non cambia nulla',
-        'read_only_note' => 'Modificare la configurazione significa scrivere un file .env da una richiesta web, che è una decisione di sicurezza a sé. Cambia questi valori sul server, poi ricostruisci la cache di configurazione.',
         'never_shown' => 'Nessun valore di credenziale raggiunge questa pagina: né mascherato, né accorciato, né la sua lunghezza. Un segreto mascherato resta un segreto con dentro la parte indovinabile.',
         'application' => 'Applicazione',
         'environment' => 'Ambiente',
@@ -581,6 +579,21 @@ return [
             'generation' => 'Generazione musicale',
             'distribution' => 'Distribuzione',
             'api' => 'API',
+        ],
+
+        // SET-002. A subset of these is editable; the rest is still
+        // read-only, and no credential value is ever sent either way.
+        'editing' => 'Alcune di queste impostazioni si possono modificare qui',
+        'editing_note' => 'Un campo lasciato vuoto non cambia nulla. Una credenziale non viene mai mostrata, quindi il suo campo è sempre vuoto: scrivici dentro solo per sostituire ciò che c\'è. Rimuovere un valore resta una modifica al file .env, deliberatamente.',
+        'replace_placeholder' => 'Scrivi un sostituto',
+        'blank_means_unchanged' => 'I campi vuoti vengono lasciati invariati.',
+        'save' => 'Salva modifiche',
+        'not_saved' => 'Non è stato salvato nulla',
+        'saved' => 'Salvato.',
+        'unchanged' => 'Non era cambiato nulla.',
+        'failure' => [
+            'SETTINGS_NOT_WRITTEN' => 'Il file .env non è stato scritto. È stato prima salvato e lasciato esattamente com’era.',
+            'SETTINGS_CACHE_NOT_REBUILT' => 'La cache di configurazione non è stata ricostruita, quindi il .env precedente è stato ripristinato. Una cache che non corrisponde più al file sarebbe peggio di nessuna modifica.',
         ],
     ],
     'studio' => [

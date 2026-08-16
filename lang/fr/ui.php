@@ -552,8 +552,6 @@ return [
     'settings' => [
         'title' => 'Paramètres',
         'description' => 'Ce avec quoi cette installation est configurée. Les valeurs ne sont jamais affichées — seulement si elles sont définies.',
-        'read_only' => 'Cet écran rend compte ; il ne modifie rien',
-        'read_only_note' => 'Modifier la configuration signifie écrire un fichier .env depuis une requête web, ce qui est une décision de sécurité à part entière. Changez ces valeurs sur le serveur, puis reconstruisez le cache de configuration.',
         'never_shown' => 'Aucune valeur d’identifiant n’atteint cette page — ni masquée, ni raccourcie, ni sa longueur. Un secret masqué reste un secret dont la partie devinable a été laissée.',
         'application' => 'Application',
         'environment' => 'Environnement',
@@ -581,6 +579,21 @@ return [
             'generation' => 'Génération musicale',
             'distribution' => 'Distribution',
             'api' => 'API',
+        ],
+
+        // SET-002. A subset of these is editable; the rest is still
+        // read-only, and no credential value is ever sent either way.
+        'editing' => 'Certains de ces réglages peuvent être modifiés ici',
+        'editing_note' => 'Un champ laissé vide ne change rien. Un identifiant n\'est jamais affiché, donc son champ est toujours vide : n\'y saisissez quelque chose que pour remplacer ce qui s\'y trouve. Supprimer une valeur reste une modification du fichier .env, volontairement.',
+        'replace_placeholder' => 'Saisir un remplacement',
+        'blank_means_unchanged' => 'Les champs vides sont laissés tels quels.',
+        'save' => 'Enregistrer',
+        'not_saved' => 'Rien n\'a été enregistré',
+        'saved' => 'Enregistré.',
+        'unchanged' => 'Rien n\'avait changé.',
+        'failure' => [
+            'SETTINGS_NOT_WRITTEN' => 'Le fichier .env n\'a pas pu être écrit. Il a d\'abord été sauvegardé et laissé exactement tel qu\'il était.',
+            'SETTINGS_CACHE_NOT_REBUILT' => 'Le cache de configuration n\'a pas pu être reconstruit, donc le .env précédent a été restauré. Un cache qui ne correspond plus au fichier serait pire qu\'aucun changement.',
         ],
     ],
     'studio' => [

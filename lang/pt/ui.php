@@ -552,8 +552,6 @@ return [
     'settings' => [
         'title' => 'Definições',
         'description' => 'Com o que esta instalação está configurada. Os valores nunca são mostrados — apenas se estão definidos.',
-        'read_only' => 'Este ecrã relata; não altera nada',
-        'read_only_note' => 'Editar a configuração significa escrever um ficheiro .env a partir de um pedido web, o que é uma decisão de segurança por si só. Altere no servidor e depois reconstrua a cache de configuração.',
         'never_shown' => 'Nenhum valor de credencial chega a esta página — nem mascarado, nem encurtado, nem o seu comprimento. Um segredo mascarado continua a ser um segredo com a parte adivinhável lá dentro.',
         'application' => 'Aplicação',
         'environment' => 'Ambiente',
@@ -581,6 +579,21 @@ return [
             'generation' => 'Geração musical',
             'distribution' => 'Distribuição',
             'api' => 'API',
+        ],
+
+        // SET-002. A subset of these is editable; the rest is still
+        // read-only, and no credential value is ever sent either way.
+        'editing' => 'Algumas destas definições podem ser alteradas aqui',
+        'editing_note' => 'Um campo deixado em branco não altera nada. Uma credencial nunca é mostrada, por isso o seu campo está sempre vazio: escreva nele apenas para substituir o que lá está. Remover um valor continua a ser uma edição do ficheiro .env, deliberadamente.',
+        'replace_placeholder' => 'Escreva um substituto',
+        'blank_means_unchanged' => 'Os campos vazios ficam como estão.',
+        'save' => 'Guardar alterações',
+        'not_saved' => 'Nada foi guardado',
+        'saved' => 'Guardado.',
+        'unchanged' => 'Nada tinha mudado.',
+        'failure' => [
+            'SETTINGS_NOT_WRITTEN' => 'O ficheiro .env não pôde ser escrito. Foi primeiro copiado e deixado exatamente como estava.',
+            'SETTINGS_CACHE_NOT_REBUILT' => 'A cache de configuração não pôde ser reconstruída, por isso o .env anterior foi restaurado. Uma cache que já não corresponde ao ficheiro seria pior do que nenhuma alteração.',
         ],
     ],
     'studio' => [

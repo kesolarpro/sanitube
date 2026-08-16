@@ -552,8 +552,6 @@ return [
     'settings' => [
         'title' => 'Settings',
         'description' => 'What this installation is configured with. Values are never shown — only whether they are set.',
-        'read_only' => 'This screen reports; it does not change anything',
-        'read_only_note' => 'Editing configuration means writing a .env file from a web request, which is a security decision of its own. Change these on the server, then rebuild the configuration cache.',
         'never_shown' => 'No credential value reaches this page — not masked, not shortened, not its length. A masked secret is a secret with the guessable part left in.',
         'application' => 'Application',
         'environment' => 'Environment',
@@ -581,6 +579,21 @@ return [
             'generation' => 'Music generation',
             'distribution' => 'Distribution',
             'api' => 'API',
+        ],
+
+        // SET-002. A subset of these is editable; the rest is still
+        // read-only, and no credential value is ever sent either way.
+        'editing' => 'Some of these can be changed here',
+        'editing_note' => 'A field left blank changes nothing. A credential is never shown, so its field is always empty — type into it only to replace what is there. Removing a value stays a .env edit, deliberately.',
+        'replace_placeholder' => 'Type a replacement',
+        'blank_means_unchanged' => 'Blank fields are left alone.',
+        'save' => 'Save changes',
+        'not_saved' => 'Nothing was saved',
+        'saved' => 'Saved.',
+        'unchanged' => 'Nothing had changed.',
+        'failure' => [
+            'SETTINGS_NOT_WRITTEN' => 'The .env file could not be written. It was backed up first and has been left exactly as it was.',
+            'SETTINGS_CACHE_NOT_REBUILT' => 'The configuration cache could not be rebuilt, so the previous .env has been restored. A cache that no longer matches the file would be worse than no change at all.',
         ],
     ],
     'studio' => [

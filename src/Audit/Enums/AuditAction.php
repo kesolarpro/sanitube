@@ -72,6 +72,7 @@ enum AuditAction: string
 
     // --------------------------------------------------------------- system
 
+    case SettingsChanged = 'system.settings.changed';
     case FailedJobRetried = 'system.failed_job.retried';
     case FailedJobForgotten = 'system.failed_job.forgotten';
     case BackupCreated = 'system.backup.created';
@@ -117,6 +118,7 @@ enum AuditAction: string
             self::FailedJobRetried,
             self::FailedJobForgotten => AuditSubject::FailedJob,
 
+            self::SettingsChanged,
             self::BackupCreated,
             self::BackupRestored,
             self::AuditLogPruned => AuditSubject::System,
@@ -139,6 +141,7 @@ enum AuditAction: string
             self::PasswordResetRequested,
             self::PasswordResetCompleted,
             self::AssetPreviewMinted,
+            self::SettingsChanged,
             self::BackupRestored,
             self::AuditLogPruned => true,
 

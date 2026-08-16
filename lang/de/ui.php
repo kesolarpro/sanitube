@@ -552,8 +552,6 @@ return [
     'settings' => [
         'title' => 'Einstellungen',
         'description' => 'Womit diese Installation konfiguriert ist. Werte werden nie angezeigt — nur, ob sie gesetzt sind.',
-        'read_only' => 'Diese Seite berichtet; sie ändert nichts',
-        'read_only_note' => 'Konfiguration zu ändern heißt, eine .env-Datei aus einer Web-Anfrage zu schreiben — eine eigene Sicherheitsentscheidung. Ändern Sie diese Werte auf dem Server und bauen Sie danach den Konfigurations-Cache neu.',
         'never_shown' => 'Kein Zugangsdatenwert erreicht diese Seite — weder maskiert noch gekürzt noch seine Länge. Ein maskiertes Geheimnis ist ein Geheimnis, in dem der erratbare Teil stehen geblieben ist.',
         'application' => 'Anwendung',
         'environment' => 'Umgebung',
@@ -581,6 +579,21 @@ return [
             'generation' => 'Musikerzeugung',
             'distribution' => 'Vertrieb',
             'api' => 'API',
+        ],
+
+        // SET-002. A subset of these is editable; the rest is still
+        // read-only, and no credential value is ever sent either way.
+        'editing' => 'Einige davon lassen sich hier ändern',
+        'editing_note' => 'Ein leeres Feld ändert nichts. Eine Zugangsdaten-Angabe wird nie angezeigt, ihr Feld ist also immer leer: schreiben Sie nur hinein, um das Vorhandene zu ersetzen. Einen Wert zu entfernen bleibt bewusst eine .env-Bearbeitung.',
+        'replace_placeholder' => 'Ersatz eingeben',
+        'blank_means_unchanged' => 'Leere Felder bleiben unberührt.',
+        'save' => 'Änderungen speichern',
+        'not_saved' => 'Es wurde nichts gespeichert',
+        'saved' => 'Gespeichert.',
+        'unchanged' => 'Es hatte sich nichts geändert.',
+        'failure' => [
+            'SETTINGS_NOT_WRITTEN' => 'Die .env-Datei konnte nicht geschrieben werden. Sie wurde zuvor gesichert und exakt so belassen, wie sie war.',
+            'SETTINGS_CACHE_NOT_REBUILT' => 'Der Konfigurations-Cache konnte nicht neu erstellt werden, deshalb wurde die vorherige .env wiederhergestellt. Ein Cache, der nicht mehr zur Datei passt, wäre schlimmer als gar keine Änderung.',
         ],
     ],
     'studio' => [

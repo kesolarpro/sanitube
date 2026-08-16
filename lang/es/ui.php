@@ -552,8 +552,6 @@ return [
     'settings' => [
         'title' => 'Ajustes',
         'description' => 'Con qué está configurada esta instalación. Los valores nunca se muestran: sólo si están definidos.',
-        'read_only' => 'Esta pantalla informa; no cambia nada',
-        'read_only_note' => 'Editar la configuración significa escribir un archivo .env desde una petición web, lo que es una decisión de seguridad en sí misma. Cambie esto en el servidor y luego reconstruya la caché de configuración.',
         'never_shown' => 'Ningún valor de credencial llega a esta página: ni enmascarado, ni acortado, ni su longitud. Un secreto enmascarado sigue siendo un secreto con la parte adivinable dentro.',
         'application' => 'Aplicación',
         'environment' => 'Entorno',
@@ -581,6 +579,21 @@ return [
             'generation' => 'Generación musical',
             'distribution' => 'Distribución',
             'api' => 'API',
+        ],
+
+        // SET-002. A subset of these is editable; the rest is still
+        // read-only, and no credential value is ever sent either way.
+        'editing' => 'Algunos de estos ajustes se pueden cambiar aquí',
+        'editing_note' => 'Un campo en blanco no cambia nada. Una credencial nunca se muestra, así que su campo está siempre vacío: escriba en él solo para sustituir lo que hay. Eliminar un valor sigue siendo una edición del archivo .env, deliberadamente.',
+        'replace_placeholder' => 'Escriba un reemplazo',
+        'blank_means_unchanged' => 'Los campos vacíos se dejan como están.',
+        'save' => 'Guardar cambios',
+        'not_saved' => 'No se guardó nada',
+        'saved' => 'Guardado.',
+        'unchanged' => 'No había cambiado nada.',
+        'failure' => [
+            'SETTINGS_NOT_WRITTEN' => 'No se pudo escribir el archivo .env. Se hizo una copia primero y se dejó exactamente como estaba.',
+            'SETTINGS_CACHE_NOT_REBUILT' => 'No se pudo reconstruir la caché de configuración, así que se restauró el .env anterior. Una caché que ya no coincide con el archivo sería peor que no cambiar nada.',
         ],
     ],
     'studio' => [
