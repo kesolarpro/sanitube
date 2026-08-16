@@ -43,6 +43,13 @@ export interface FailedJobRow {
     name: string | null;
     error: string | null;
     failed_at: string | null;
+
+    /**
+     * Whether the job itself declared that running it again converges.
+     * Presentation only — the guard is `ResolveFailedJob`, which asks the
+     * job's type and refuses regardless of what the screen offered.
+     */
+    retryable: boolean;
 }
 
 export interface JobList<T> {

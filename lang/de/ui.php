@@ -212,6 +212,16 @@ return [
         ],
     ],
     'system' => [
+        'job_actions' => 'Aktionen',
+        'retry_job' => 'Erneut ausführen',
+        'not_retryable' => 'Wiederholung nicht sicher',
+        'forget_job' => 'Diesen Eintrag entfernen',
+        'forget_job_description' => 'Entfernt den Fehlereintrag aus der Liste. Es macht nichts rückgängig, was der Job getan hat, und führt ihn nicht erneut aus.',
+        'job_failure' => [
+            'FAILED_JOB_GONE' => 'Dieser Job steht nicht mehr in der Liste. Er wurde bereits erneut ausgeführt oder entfernt.',
+            'FAILED_JOB_UNKNOWN_KIND' => 'Dieser Eintrag sagt nicht, um welche Art Arbeit es ging — ob eine Wiederholung sicher ist, lässt sich nicht feststellen.',
+            'FAILED_JOB_NOT_RETRYABLE' => 'Diese Art Arbeit hat sich nicht als wiederholbar erklärt. Ein Job, der auf halbem Weg scheiterte, hat womöglich schon getan, was nicht zweimal passieren darf.',
+        ],
         'operations' => 'Betrieb',
         'operations_description' => 'Was die Plattform beim letzten Blick nach außen gesehen hat. Nichts auf dieser Seite prüft irgendetwas — sie während einer Störung zu öffnen darf die Störung nicht verschlimmern.',
         'jobs' => 'Aufgaben',

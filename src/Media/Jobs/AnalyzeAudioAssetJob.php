@@ -9,6 +9,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use SaniTube\Foundation\Concerns\SafelyRetryable;
 use SaniTube\Ingestion\Models\TrackCandidate;
 use SaniTube\Media\Services\AnalyzeAsset;
 use SaniTube\Media\Services\SettleCandidateAfterAnalysis;
@@ -21,8 +22,12 @@ use SaniTube\Media\Services\SettleCandidateAfterAnalysis;
  * every other job here does: a serialised model is a snapshot of a row taken
  * when the job was queued, and a worker picking it up minutes later needs the
  * row as it is now.
+
+ * **Safely retryable.** Analysis writes a measurement of bytes that do not
+ * change, keyed by asset. A second run measures the same file and overwrites
+ * its own previous answer; nothing downstream is committed by it.
  */
-final class AnalyzeAudioAssetJob implements ShouldQueue
+final class AnalyzeAudioAssetJob implements SafelyRetryable, ShouldQueue
 {
     use Dispatchable;
     use InteractsWithQueue;

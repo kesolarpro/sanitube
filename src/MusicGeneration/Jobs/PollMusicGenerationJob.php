@@ -9,6 +9,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use SaniTube\Foundation\Concerns\SafelyRetryable;
 use SaniTube\MusicGeneration\Models\MusicGeneration;
 use SaniTube\MusicGeneration\Services\PollMusicGeneration;
 
@@ -22,8 +23,12 @@ use SaniTube\MusicGeneration\Services\PollMusicGeneration;
  * which makes the loop terminate on the other side too. Two independent
  * bounds, because a self-dispatching job with one bound is a job with one bug
  * away from none.
+
+ * **Safely retryable.** Polling asks a provider for the current state of a
+ * generation it already started. It creates nothing at the provider, and a
+ * repeated question has the same answer.
  */
-final class PollMusicGenerationJob implements ShouldQueue
+final class PollMusicGenerationJob implements SafelyRetryable, ShouldQueue
 {
     use Dispatchable;
     use InteractsWithQueue;

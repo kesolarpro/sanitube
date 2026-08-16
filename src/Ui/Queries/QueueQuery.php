@@ -7,6 +7,7 @@ namespace SaniTube\Ui\Queries;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use SaniTube\Foundation\Concerns\SafelyRetryable;
 use Throwable;
 
 /**
@@ -129,10 +130,39 @@ final readonly class QueueQuery
                 // First line only, truncated. See the class comment.
                 'error' => $this->firstLine((string) $record->exception),
                 'failed_at' => $this->timestamp((string) $record->failed_at),
+
+                // Whether the job itself claims a re-run converges. Asked of
+                // the type, so a screen never has to decide — and so a job
+                // added later is unretryable until somebody has thought about
+                // it. Presentation only: the guard is in ResolveFailedJob.
+                'retryable' => $this->isRetryable((string) $record->payload),
             ];
         }
 
         return ['readable' => true, 'rows' => $rows];
+    }
+
+    /**
+     * Whether this job has declared that running it again is safe.
+     *
+     * The platform has one operation it must never perform twice, and a retry
+     * button on every row offers that one too. {@see SafelyRetryable} is opted
+     * into, never out of.
+     */
+    private function isRetryable(string $payload): bool
+    {
+        $decoded = json_decode($payload, true);
+
+        if (! is_array($decoded)) {
+            return false;
+        }
+
+        /** @var array{data?: array{commandName?: mixed}} $decoded */
+        $name = $decoded['data']['commandName'] ?? null;
+
+        return is_string($name)
+            && class_exists($name)
+            && is_a($name, SafelyRetryable::class, allow_string: true);
     }
 
     /**

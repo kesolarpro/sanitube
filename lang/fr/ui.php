@@ -212,6 +212,16 @@ return [
         ],
     ],
     'system' => [
+        'job_actions' => 'Actions',
+        'retry_job' => 'Relancer',
+        'not_retryable' => 'Relance non sûre',
+        'forget_job' => 'Supprimer cette trace',
+        'forget_job_description' => 'Cela retire la trace de l’échec de la liste. Cela n’annule rien de ce que la tâche a fait, et ne la relance pas.',
+        'job_failure' => [
+            'FAILED_JOB_GONE' => 'Cette tâche n’est plus dans la liste. Elle a déjà été relancée ou supprimée.',
+            'FAILED_JOB_UNKNOWN_KIND' => 'Cette trace n’indique pas de quel type de travail il s’agissait : impossible de savoir si une relance est sûre.',
+            'FAILED_JOB_NOT_RETRYABLE' => 'Ce type de travail ne s’est pas déclaré sûr à relancer. Une tâche interrompue en cours de route peut déjà avoir fait ce qui ne doit pas se produire deux fois.',
+        ],
         'operations' => 'Exploitation',
         'operations_description' => 'Ce que la plateforme a vu la dernière fois qu\'elle a regardé dehors. Rien sur cette page ne vérifie quoi que ce soit — l\'ouvrir pendant une panne ne doit pas aggraver la panne.',
         'jobs' => 'Tâches',

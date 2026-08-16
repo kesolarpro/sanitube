@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Illuminate\Support\Facades\Route;
 use SaniTube\Identity\Http\Controllers\LoginController;
+use SaniTube\Identity\Http\Controllers\PasswordResetController;
 
 /*
 |--------------------------------------------------------------------------
@@ -27,6 +28,27 @@ Route::middleware('web')->group(function (): void {
         ->name('login.store');
 
     Route::post('logout', [LoginController::class, 'destroy'])->name('logout');
+
+    /*
+     * Password reset. The only path that creates a session for somebody the
+     * platform did not just authenticate, and there is no self-registration —
+     * so it is the surface most worth being careful about.
+     *
+     * Throttled at the route as well as in the service: the service limits per
+     * email and IP, this bounds the raw request rate so a flood cannot cost a
+     * mail dispatch each time.
+     */
+    Route::get('forgot-password', [PasswordResetController::class, 'request'])->name('password.request');
+
+    Route::post('forgot-password', [PasswordResetController::class, 'send'])
+        ->middleware('throttle:10,1')
+        ->name('password.email');
+
+    Route::get('reset-password/{token}', [PasswordResetController::class, 'edit'])->name('password.reset');
+
+    Route::post('reset-password', [PasswordResetController::class, 'update'])
+        ->middleware('throttle:10,1')
+        ->name('password.update');
 });
 
 /*
