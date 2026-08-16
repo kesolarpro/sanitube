@@ -1,8 +1,8 @@
 {
   "$comment": "Machine-readable project state. Any new session reads this first, then verifies it against GitHub before trusting it. Written at the end of each ticket, so a stale entry means a session ended mid-ticket — check the branch and CI rather than the status field.",
   "updated_at": "2026-08-16",
-  "current_phase": "REL-UI-001",
-  "last_completed_ticket": "REL-UI-001",
+  "current_phase": "DIST-UI-001",
+  "last_completed_ticket": "DIST-UI-001",
   "default_branch": "main",
   "tickets": {
     "ARCH-001": {
@@ -302,10 +302,10 @@
       "note": "Create a campaign, start a generation, cancel one, select a result. Selecting never creates a Track — proved by mutation. Two behaviours extracted from API controllers into services because a second controller copy is the one that drifts; all 49 pre-existing generation tests passed unmodified after the move."
     },
     "REL-UI-001": {
-      "status": "implemented, awaiting PR",
+      "status": "merged",
       "branch": "claude/rel-ui-001-release-builder",
-      "ci": "local gate green; CI pending",
-      "note": "Release list and seven-section builder over REL-001. Nothing writes status; markReady() re-runs the invariants. Adds three bounded JSON pickers behind can.role:catalogue."
+      "pr": 33,
+      "ci": "green 10/10"
     },
     "ROY-001": {
       "status": "OUT_OF_SCOPE_V1",
@@ -324,6 +324,12 @@
       "summary": "Make release validation problems machine-readable (code + context) so they can be translated, while keeping a rendered sentence for logs and delivery-attempt records.",
       "touches": "ValidateRelease, ReleaseValidationResult, Release::readinessProblems(), ValidateDelivery, SubmitDelivery",
       "note": "DIST-UI-001 will hit the same wall for delivery validation."
+    },
+    "DIST-UI-001": {
+      "status": "implemented, awaiting PR",
+      "branch": "claude/dist-ui-001-distribution-operations",
+      "ci": "local gate green; CI pending",
+      "note": "Delivery list, delivery detail and a per-release send screen over DIST-001. No screen probes a distributor on render. UNKNOWN, FAILED and REJECTED are drawn as three different things. The preflight is a GET that creates nothing."
     }
   },
   "architecture_amendments": [
@@ -393,22 +399,22 @@
   },
   "open_pull_requests": [],
   "next_session": {
-    "start_with": "DIST-UI-001 — distribution operations (fake/sandbox only). Branch from main.",
+    "start_with": "DIST-001-H1 — unknown submission outcome. REVIEW_REQUIRED: open the PR, do not merge, continue on independent work.",
     "then": [
-      "DIST-001-H1 unknown submission outcome — REVIEW_REQUIRED, leave the PR open",
       "SET-001 settings shell (secrets write-only and masked; never returned to the frontend)",
       "DEP-001 deploy script, DEP-002/003 cPanel and VPS documentation",
       "OPS-001 backup and restore",
-      "REL-002 machine-readable release validation problems (see known_limitations)",
+      "REL-002 machine-readable release validation problems — now blocking two screens",
       "AUDIT-001, NOTIF-001",
       "E2E-001, accessibility audit, security hardening, performance, docs/production-readiness.md"
     ],
     "do_not_build": [
       "ROY-001, RIGHTS-001 (financial), PUB-001 — all OUT_OF_SCOPE_V1",
       "Any Revenue, Royalty, Payout or Ledger module",
-      "Any financial screen"
+      "Any financial screen",
+      "Any distributor-specific logic in the domain — provider specifics belong in adapters"
     ],
-    "suite_size": "918 tests / 3955 assertions at REL-UI-001",
+    "suite_size": "950 tests / 4130 assertions at DIST-UI-001",
     "conventions_to_honour": [
       "Disabled providers are named 'none', never 'null' (AI, generation, distribution managers all share the rule).",
       "$table->json() is forbidden; use longText + array cast.",
@@ -426,7 +432,10 @@
       "When two layers guard the same rule, mutate the inner one — a passing service-level test can hide an unguarded method a later surface will call directly.",
       "No financial calculation anywhere. A credit or ownership field is metadata; it never becomes a right to money.",
       "The domain carries no distributor-specific logic. Provider specifics belong in adapters.",
-      "A LIKE search escapes % and _ with an explicit ESCAPE clause; the escape character is ! because MySQL also treats a backslash as an escape inside string literals and SQLite does not."
+      "A LIKE search escapes % and _ with an explicit ESCAPE clause; the escape character is ! because MySQL also treats a backslash as an escape inside string literals and SQLite does not.",
+      "A screen never probes an external provider on render. Availability and sandbox mode come from configuration; asking the provider anything is a button.",
+      "UNKNOWN, FAILED and REJECTED are three different things and are never drawn the same way. An outage is not a verdict.",
+      "A provider job id, external reference or idempotency key never reaches a payload. Prefer a boolean that answers the question (has_external_reference)."
     ]
   },
   "review_policy": {
@@ -435,9 +444,9 @@
     "since": "UI-001",
     "note": "Nine tickets (ING/MED/CAT/AI/GEN/REL/DIST/SEC-001 and PR #12) were merged under an earlier autonomous-chaining instruction that bypassed review. A retroactive audit is under way; they stay in main and any correction becomes a follow-up ticket, not a revert. BULK-001b, UI-004 and UI-005 were merged under the session's explicit merge policy for read-only UI, ingestion tooling and documentation: none changes authentication, authorization, rights, money, identifier lifecycle, destructive storage behaviour or any external action."
   },
-  "main_sha": "e44a1cfd782c5f82abee4b31efeaf9ce4f5cc52e",
-  "current_ticket": "REL-UI-001",
-  "tests": "918 passed, 1 skipped, 3955 assertions",
+  "main_sha": "7de56d0",
+  "current_ticket": "DIST-UI-001",
+  "tests": "950 passed, 1 skipped, 4130 assertions",
   "phpstan": {
     "level": 6,
     "baseline": false,
@@ -451,7 +460,7 @@
     "build": "clean",
     "note": "PHP suite stubs Vite when no manifest exists; the frontend CI job renders against a real one."
   },
-  "next_action": "Open the REL-UI-001 PR, wait for real CI, merge if 10/10 green, verify main, then start DIST-UI-001.",
+  "next_action": "Open the DIST-UI-001 PR, wait for real CI, merge if 10/10 green, verify main, then start DIST-001-H1 (REVIEW_REQUIRED — PR only).",
   "session_boundary": {
     "reason": "Context capacity approaching its limit at a clean ticket boundary. Five tickets merged, main green, no open PR.",
     "repository_state": "green",
@@ -459,7 +468,7 @@
     "note": "UI-004b, UI-005b, SYS-001, INS-001 merged this session, each 10/10 green before merge and verified after. Both new screen sets are now operational rather than read-only, the platform reports on itself, and it can be installed from a terminal. Resume from next_action."
   },
   "v1_progress_percent": {
-    "value": 55,
+    "value": 59,
     "method": "weighted by block, production-ready not implemented-only; reweighted by the 2026-08-16 scope correction",
     "breakdown": {
       "core_domain": {
@@ -484,8 +493,8 @@
       },
       "distribution": {
         "weight": 15,
-        "implemented": 45,
-        "production_ready": 10
+        "implemented": 70,
+        "production_ready": 35
       },
       "ui_ux": {
         "weight": 10,
@@ -508,7 +517,7 @@
         "production_ready": 25
       }
     },
-    "note": "53 -> 55 on a changed denominator, so the two numbers are not directly comparable. The rights/royalties block (weight 10, at zero) is gone from V1 entirely and its weight moved to installer/deployment/backup, which is now the largest unfinished block. The release builder is a screen rather than an API call for the first time. What stands between this and a V1 is no longer rights: it is deployment, backup/restore and distribution operations."
+    "note": "55 -> 59. Distribution is now operable from a screen rather than an API call: a label can see where a release could go, ask a distributor for a verdict without handing anything over, submit once, check back and request a takedown. It stays well short of production-ready for one reason that no amount of UI fixes — DIST-002, no real distributor account has ever been exercised. Installer/deployment/backup is now the largest unfinished block."
   },
   "decisions": {
     "asset_preview_url": {
@@ -575,6 +584,14 @@
       "why_not_fixed": "The same strings are imploded into delivery-attempt records and matched on by SubmitDelivery::wasUnreachable(). Turning them into codes changes delivery semantics, which is a domain ticket (REL-002), not something a UI ticket does quietly.",
       "severity": "real, visible to non-English users",
       "ticket": "REL-002"
+    },
+    {
+      "id": "delivery-validation-not-localisable",
+      "where": "The distribution send screen’s preflight",
+      "what": "The preflight’s errors and warnings are the same untranslated domain sentences the release builder shows.",
+      "why_not_fixed": "ValidateDelivery merges ValidateRelease’s output with its own and SubmitDelivery::wasUnreachable() matches on the text. Same root cause, same ticket.",
+      "severity": "real, visible to non-English users",
+      "ticket": "REL-002"
     }
   ],
   "findings": {
@@ -622,6 +639,7 @@
     ],
     "still_in_scope": "Rights and credit information strictly necessary for distribution, as catalogue metadata only: author, composer, publisher (as metadata), copyright, the P and C notices, declarative master ownership, contributor roles, ISRC, UPC/EAN, territories, explicit content, language, credits. None of it may trigger a financial calculation.",
     "existing_code": "Not deleted. No Revenue/Royalty/Payout/Ledger module was ever built, so nothing has to be removed; the tickets are reclassified instead.",
-    "multi_distributor": "The domain must contain no logic specific to TuneCore, Too Lost, DistroKid, CD Baby or Ditto. Provider specifics live in adapters. No TuneCore API is assumed to exist, and scraping is never an API substitute."
+    "multi_distributor": "The domain must contain no logic specific to TuneCore, Too Lost, DistroKid, CD Baby or Ditto. Provider specifics live in adapters. No TuneCore API is assumed to exist, and scraping is never an API substitute.",
+    "navigation": "`publishing` and `royalties` removed from the sidebar in DIST-UI-001, with their translation keys and icons. Both were placeholders for financial administration. `rights` stays, unavailable: credit and ownership metadata is required for distribution and is not a right to money."
   }
 }

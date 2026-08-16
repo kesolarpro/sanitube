@@ -16,6 +16,10 @@ use SaniTube\Ui\Http\Controllers\Catalog\TrackDetailController;
 use SaniTube\Ui\Http\Controllers\Catalog\TrackIndexController;
 use SaniTube\Ui\Http\Controllers\DashboardController;
 use SaniTube\Ui\Http\Controllers\DesignSystemController;
+use SaniTube\Ui\Http\Controllers\Distribution\DeliveryDetailController;
+use SaniTube\Ui\Http\Controllers\Distribution\DeliveryIndexController;
+use SaniTube\Ui\Http\Controllers\Distribution\DistributionActionController;
+use SaniTube\Ui\Http\Controllers\Distribution\ReleaseDistributionController;
 use SaniTube\Ui\Http\Controllers\Ingestion\BatchDetailController;
 use SaniTube\Ui\Http\Controllers\Ingestion\BatchIndexController;
 use SaniTube\Ui\Http\Controllers\Ingestion\CandidateDetailController;
@@ -180,6 +184,41 @@ Route::middleware(['web', HandleInertiaRequests::class, 'auth', 'active'])->grou
             ->name('releases.options.artwork');
         Route::get('releases/{release}/options/tracks', [ReleasePickerController::class, 'tracks'])
             ->name('releases.options.tracks');
+    });
+
+    /*
+     * Distribution.
+     *
+     * Reading is open to anyone signed in; every action is behind
+     * `can.role:distribute` — the one ability that is not simply "can write",
+     * because submission is the only irreversible act in the platform.
+     *
+     * Nothing here reimplements DIST-001. Whether a delivery may be submitted,
+     * what an outage means and what a status permits are SubmitDelivery's
+     * answers.
+     */
+    Route::get('distribution', DeliveryIndexController::class)->name('distribution');
+    Route::get('distribution/{delivery}', DeliveryDetailController::class)->name('distribution.show');
+    Route::get('releases/{release}/distribution', ReleaseDistributionController::class)
+        ->name('releases.distribution');
+
+    Route::middleware('can.role:distribute')->group(function (): void {
+        // Read-only preflight, answered as JSON. A GET because it changes
+        // nothing — a "let me check" that left a DRAFT delivery behind would
+        // become a record somebody later reads as an intention — and JSON
+        // because a verdict belongs beside the destination it is about rather
+        // than on a page of its own.
+        Route::get('releases/{release}/distribution/{provider}/verdict', [DistributionActionController::class, 'verdict'])
+            ->name('distribution.verdict');
+
+        Route::post('releases/{release}/distribution/{provider}/submit', [DistributionActionController::class, 'submit'])
+            ->name('distribution.submit');
+
+        Route::post('distribution/{delivery}/sync', [DistributionActionController::class, 'sync'])
+            ->name('distribution.sync');
+
+        Route::post('distribution/{delivery}/takedown', [DistributionActionController::class, 'requestTakedown'])
+            ->name('distribution.takedown');
     });
 
     Route::get('design-system', DesignSystemController::class)->name('design-system');
