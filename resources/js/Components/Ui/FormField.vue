@@ -1,18 +1,33 @@
 <script setup lang="ts">
-import { useId } from 'vue';
+import { computed, useId } from 'vue';
+import { provideField } from '@/Support/formField';
 
 /**
  * A label, a control, and the error that belongs to it — wired together.
  *
  * The wiring is the point. `for`/`id` is what lets a screen reader announce
  * the label when the control is focused, and `aria-describedby` is what makes
- * it announce the error too. Both are generated here so no screen can forget
- * them, which is exactly what happens when each form does it by hand.
+ * it announce the error too.
+ *
+ * Both used to be *offered* as slot props, and sixty-one of the platform's
+ * sixty-five fields never bound them — which is a mechanism problem rather
+ * than sixty-one careless authors. A label pointing at nothing is silent: the
+ * screen looks right and a screen-reader user hears "edit text, blank". So the
+ * wiring is now also **provided**, and the controls pick it up themselves. The
+ * slot props stay for the handful of screens that want to place them by hand.
  */
-defineProps<{ label: string; error?: string | null; hint?: string; required?: boolean }>();
+const props = defineProps<{ label: string; error?: string | null; hint?: string; required?: boolean }>();
 
 const id = useId();
 const describedBy = `${id}-description`;
+
+provideField({
+    id,
+    // Only when there is something to describe. Pointing at an element that
+    // does not exist makes some screen readers announce nothing at all.
+    describedBy: computed(() => (props.hint || props.error ? describedBy : undefined)),
+    invalid: computed(() => Boolean(props.error)),
+});
 </script>
 
 <template>
