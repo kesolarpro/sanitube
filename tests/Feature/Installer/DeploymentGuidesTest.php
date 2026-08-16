@@ -199,4 +199,27 @@ final class DeploymentGuidesTest extends TestCase
     {
         return (string) file_get_contents(base_path('docs/deployment/'.$name));
     }
+
+    #[Test]
+    public function every_host_guide_tells_an_operator_how_to_check_before_going_live(): void
+    {
+        // A diagnostic nobody knows about is one nobody runs. Both guides name
+        // both commands and say which question each answers — `sanitube:health`
+        // reports the machine, `sanitube:doctor` reports the installation, and
+        // an operator who confuses them checks the wrong thing.
+        foreach (['cpanel', 'vps'] as $host) {
+            $guide = (string) file_get_contents(base_path('docs/deployment/'.$host.'.md'));
+
+            $this->assertStringContainsString(
+                'sanitube:doctor',
+                $guide,
+                sprintf('The %s guide never mentions the production check.', $host),
+            );
+            $this->assertStringContainsString('sanitube:health', $guide);
+
+            // And that it gates a deploy, which is the only reason its exit
+            // code is what it is.
+            $this->assertStringContainsString('non-zero', $guide);
+        }
+    }
 }

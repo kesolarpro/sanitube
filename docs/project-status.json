@@ -1,8 +1,8 @@
 {
   "$comment": "Machine-readable project state. Any new session reads this first, then verifies it against GitHub before trusting it. Written at the end of each ticket, so a stale entry means a session ended mid-ticket — check the branch and CI rather than the status field.",
   "updated_at": "2026-08-16",
-  "current_phase": "DIST-001-H1 merged; PROD-001 in PR 47",
-  "last_completed_ticket": "DIST-001-H1",
+  "current_phase": "PROD-001 merged; closing the remaining internal V1 gaps",
+  "last_completed_ticket": "PROD-001",
   "default_branch": "main",
   "tickets": {
     "ARCH-001": {
@@ -379,13 +379,14 @@
       "branch": "claude/dist-001-h1-unknown-outcome",
       "pr": 35,
       "ci": "green 10/10",
-      "note": "Merged after the three approved corrections: findSubmission() moved to a SupportsSubmissionLookup capability, external references carry provenance (PROVIDER_RESPONSE/PROVIDER_LOOKUP/MANUAL_OPERATOR), decided_by carries a RESTRICT foreign key. Six contradiction orderings data-provided."
+      "note": "Unknown submission outcome, merged after the three approved corrections: findSubmission() moved to a SupportsSubmissionLookup capability, external references carry provenance (PROVIDER_RESPONSE/PROVIDER_LOOKUP/MANUAL_OPERATOR), and decided_by carries a RESTRICT foreign key."
     },
     "PROD-001": {
-      "status": "PR 47 open, CI running at hand-off",
+      "status": "merged",
       "branch": "claude/prod-001-doctor",
       "pr": 47,
-      "note": "sanitube:doctor (read-only, non-zero exit on internal blockers) and docs/production-readiness.md. Local gate green: 1137 tests / 5308 assertions, PHPStan clean, 7 mutations killed."
+      "ci": "green 10/10",
+      "note": "sanitube:doctor — read-only, non-zero exit on internal blockers — and docs/production-readiness.md."
     }
   },
   "architecture_amendments": [
@@ -532,12 +533,12 @@
   },
   "next_action": {
     "$comment": "Read this first. In order.",
-    "1": "Verify CI on PR 47 and merge it. The branch is green locally on the full gate; only the four-engine matrix is outstanding.",
-    "2": "SYS-001b — complete the Operations screen: app version, git SHA, environment, last successful/failed backup, migrations state, last deploy; plus retry/delete for failed jobs behind can.role:administer with a confirmation surface. GET stays read-only — snapshots, never probes.",
-    "3": "INS-002 — web installer at /install over the SAME InstallationService the CLI uses. No second implementation. Available only while uninstalled, permanent lock after success, no secret in page source.",
-    "4": "SET-002 — settings write path. REVIEW_REQUIRED: never return an existing secret to the browser; empty field means unchanged.",
-    "5": "BULK-001c — re-import storage amplification. Needs a real measurement. 'Same key means skip' is forbidden: a key can be replaced, and new bytes under an old key must never be lost.",
-    "6": "AUDIT-001 — platform-wide audit log. Distribution has attempt records; nothing else records who did what."
+    "1": "SYS-001b — Operations completion: app version, git SHA, environment, backup freshness, migrations state, deploy state; failed-job retry/delete behind can.role:administer. GET stays read-only — snapshots, never probes.",
+    "2": "AUTH-002 — password reset. No self-registration; generic responses; a deactivated account must not regain access by resetting.",
+    "3": "AUDIT-001 — platform-wide audit log.",
+    "4": "INS-002 — web installer over the SAME InstallationService.",
+    "5": "SET-002 — settings write path. REVIEW_REQUIRED.",
+    "6": "BULK-001c — re-import amplification. 'Same key means skip' is forbidden."
   },
   "session_boundary": {
     "reason": "Context capacity approaching its limit at a clean ticket boundary. Five tickets merged, main green, no open PR.",
@@ -764,14 +765,11 @@
     "implemented_percent": 86,
     "production_ready_percent": 77
   },
-  "open_prs": {
-    "35": "DIST-001-H1 — REVIEW_REQUIRED, audited and hardened, deliberately not merged"
-  },
   "blocked_external": {
-    "DIST-002": "Real distributor adapter — needs credentials and their API.",
+    "DIST-002": "Real distributor adapter — credentials and their API.",
     "AI-002": "Real AI provider.",
     "GEN-002": "Real music generation provider.",
     "STO-002": "Object storage certification against a real bucket.",
-    "HOST-CERT": "cPanel/VPS deployment has never been run on a real host. Guides are written; nobody has certified them."
+    "HOST-CERT": "cPanel/VPS has never been run on a real host. Guides written; nobody has certified them."
   }
 }

@@ -7,6 +7,7 @@ namespace SaniTube\Deployment;
 use Illuminate\Database\Connection;
 use Illuminate\Support\ServiceProvider;
 use SaniTube\Deployment\Console\BackupCommand;
+use SaniTube\Deployment\Console\DoctorCommand;
 use SaniTube\Deployment\Console\RestoreCommand;
 use SaniTube\Deployment\Services\DatabaseDumper;
 
@@ -26,7 +27,7 @@ final class DeploymentServiceProvider extends ServiceProvider
     public function boot(): void
     {
         if ($this->app->runningInConsole()) {
-            $this->commands([BackupCommand::class, RestoreCommand::class]);
+            $this->commands([BackupCommand::class, RestoreCommand::class, DoctorCommand::class]);
         }
     }
 }

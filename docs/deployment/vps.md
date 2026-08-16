@@ -86,6 +86,40 @@ See [deploying.md](deploying.md). The script puts the site into maintenance
 mode, releases it from a shell trap on any failure, and never pulls a revision
 of its own choosing — fetch or upload the code you intend to deploy first.
 
+## Before you call it live
+
+Two commands, and they answer different questions.
+
+```
+php artisan sanitube:health
+```
+
+**What this machine can do** — PHP extensions, FFmpeg, Redis, object storage.
+The same question in development as in production, and a missing optional
+capability is reported rather than fatal.
+
+```
+php artisan sanitube:doctor
+```
+
+**Whether this installation is configured the way a live one has to be.** Most
+of what it checks is correct on a laptop and serious here: debug mode left on,
+`APP_URL` still pointing at localhost, a queue that runs work inline, backups
+written somewhere the web server will serve them.
+
+It is read-only — it starts nothing and changes nothing — and it **exits
+non-zero when something internal blocks going live**, so a deploy script can
+gate on it:
+
+```
+php artisan sanitube:deploy && php artisan sanitube:doctor || echo "not ready"
+```
+
+Neither command prints a secret. Both are safe to paste into a support thread.
+
+`docs/production-readiness.md` is the full list, including the parts that need
+a real provider or a real host before anybody can honestly call them certified.
+
 ## Backups
 
 There is no backup command yet — that is OPS-001, and until it lands you are
