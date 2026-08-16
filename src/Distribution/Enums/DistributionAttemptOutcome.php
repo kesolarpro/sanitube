@@ -17,4 +17,14 @@ enum DistributionAttemptOutcome: string
     case Succeeded = 'SUCCEEDED';
     case Rejected = 'REJECTED';
     case Failed = 'FAILED';
+
+    /**
+     * The request went out and no answer came back.
+     *
+     * A fourth outcome rather than a flavour of FAILED, because FAILED is what
+     * retry logic reads. "It did not work" and "we do not know whether it
+     * worked" call for opposite next moves, and a log that records them the
+     * same way cannot tell anybody which one happened.
+     */
+    case Unknown = 'UNKNOWN';
 }

@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
 use SaniTube\Distribution\Enums\DistributionDeliveryStatus;
+use SaniTube\Distribution\Enums\ExternalReferenceSource;
 use SaniTube\Foundation\Concerns\HasPublicUuid;
 use SaniTube\Releases\Models\Release;
 
@@ -21,6 +22,7 @@ use SaniTube\Releases\Models\Release;
  * @property string $provider
  * @property DistributionDeliveryStatus $status
  * @property string|null $external_release_id
+ * @property ExternalReferenceSource|null $external_reference_source
  * @property string $idempotency_key
  * @property string|null $failure_reason
  * @property Carbon|null $submitted_at
@@ -45,6 +47,7 @@ final class DistributionDelivery extends Model
     protected function casts(): array
     {
         return [
+            'external_reference_source' => ExternalReferenceSource::class,
             'status' => DistributionDeliveryStatus::class,
             'submitted_at' => 'datetime',
             'delivered_at' => 'datetime',

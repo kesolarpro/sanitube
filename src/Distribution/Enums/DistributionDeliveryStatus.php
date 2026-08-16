@@ -30,6 +30,22 @@ enum DistributionDeliveryStatus: string
     case Validating = 'VALIDATING';
     case Ready = 'READY';
     case Submitting = 'SUBMITTING';
+
+    /**
+     * The request went out and no answer came back.
+     *
+     * Not FAILED and not SUBMITTED: SaniTube genuinely does not know whether
+     * the distributor has the package. A read timeout, a reset connection or a
+     * gateway error after the request was forwarded all land here, and every
+     * one of them is compatible with the package having arrived.
+     *
+     * It is the *only* status that is neither retryable nor pending on the
+     * distributor: nobody owes anybody an answer, because nobody knows there
+     * is a question. It leaves this state by being reconciled — asked about by
+     * idempotency key — or by a person who has looked.
+     */
+    case SubmittedUnconfirmed = 'SUBMITTED_UNCONFIRMED';
+
     case Submitted = 'SUBMITTED';
     case Accepted = 'ACCEPTED';
     case Delivered = 'DELIVERED';
@@ -61,8 +77,24 @@ enum DistributionDeliveryStatus: string
     {
         return match ($this) {
             self::Draft, self::Validating, self::Ready, self::Rejected, self::Failed => true,
+            // SUBMITTED_UNCONFIRMED is deliberately absent. Offering a retry
+            // for a delivery that may already be in the distributor's system
+            // is the duplicate this module exists to prevent — and the
+            // idempotency key only saves a caller from it if the distributor
+            // honours keys, which no contract can make it do.
             default => false,
         };
+    }
+
+    /**
+     * Whether SaniTube can state where this delivery stands.
+     *
+     * The one honest use of "unknown" in this enum. Every other state is a
+     * claim; this one is the absence of one.
+     */
+    public function isUnknown(): bool
+    {
+        return $this === self::SubmittedUnconfirmed;
     }
 
     public function isTerminal(): bool

@@ -256,6 +256,13 @@ Route::middleware(['web', HandleInertiaRequests::class, 'auth', 'active'])->grou
 
         Route::post('distribution/{delivery}/takedown', [DistributionActionController::class, 'requestTakedown'])
             ->name('distribution.takedown');
+
+        // DIST-001-H1. Neither of these is a retry: one asks the distributor
+        // what it holds, the other records what a person found.
+        Route::post('distribution/{delivery}/reconcile', [DistributionActionController::class, 'reconcile'])
+            ->name('distribution.reconcile');
+        Route::post('distribution/{delivery}/resolve', [DistributionActionController::class, 'resolve'])
+            ->name('distribution.resolve');
     });
 
     /*

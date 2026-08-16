@@ -66,6 +66,10 @@ export interface DeliveryActions {
     can_submit: boolean;
     can_sync: boolean;
     can_request_takedown: boolean;
+    /** DIST-001-H1. Asks the distributor what it holds; hands nothing over. */
+    can_reconcile: boolean;
+    /** DIST-001-H1. Records what a person found when they looked. */
+    can_resolve_manually: boolean;
 }
 
 export interface DeliveryDetail {
@@ -73,6 +77,13 @@ export interface DeliveryDetail {
     provider: string;
     status: string;
     has_external_reference: boolean;
+
+    /**
+     * `PROVIDER_RESPONSE` · `PROVIDER_LOOKUP` · `MANUAL_OPERATOR`, or null
+     * when nothing has been handed over. The last one means the platform never
+     * received the value — a person reported it.
+     */
+    external_reference_source: string | null;
     failure_reason: string | null;
     submitted_at: string | null;
     delivered_at: string | null;

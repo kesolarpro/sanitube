@@ -373,6 +373,16 @@
       "pr": 45,
       "ci": "green 10/10",
       "note": "Starting an import from the interface. Gave IngestionException a reason distinct from its persisted failure code, refused an ambiguous folder+list selection that used to drop the list silently, and stopped the stylesheet being built from the compiled-view cache."
+    },
+    "DIST-001-H1": {
+      "status": "review approved with corrections — applying them now",
+      "branch": "claude/dist-001-h1-unknown-outcome",
+      "pr": 35,
+      "corrections": [
+        "findSubmission() moves out of the Distributor contract into a SupportsSubmissionLookup capability",
+        "external reference carries provenance: PROVIDER_RESPONSE / PROVIDER_LOOKUP / MANUAL_OPERATOR",
+        "decided_by gets a RESTRICT foreign key to users"
+      ]
     }
   },
   "architecture_amendments": [

@@ -20,6 +20,7 @@ use SaniTube\Foundation\Concerns\HasPublicUuid;
  * @property DistributionAction $action
  * @property DistributionAttemptOutcome $outcome
  * @property string $idempotency_key
+ * @property int|null $decided_by
  * @property string|null $response_summary
  * @property int|null $duration_ms
  * @property Carbon|null $created_at

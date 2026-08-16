@@ -27,6 +27,12 @@ use SaniTube\Releases\Models\Release;
  * force every adapter to stub the half it does not do. Those arrive as
  * capability interfaces when a real adapter needs them.
  *
+ * DIST-001-H1 needed one and took that route rather than widening this:
+ * {@see SupportsSubmissionLookup} asks a distributor whether it already holds
+ * a submission. An adapter whose provider has no such endpoint simply does not
+ * implement it, and "I cannot look" is answered by the type rather than by an
+ * exception thrown from a method the adapter was obliged to declare.
+ *
  * Validation and submission are separate because a label needs to know a
  * package will be accepted *before* handing it over — every distributor's
  * checks are stricter than SaniTube's, and discovering that during submission

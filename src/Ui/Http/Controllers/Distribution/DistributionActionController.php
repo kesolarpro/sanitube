@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SaniTube\Ui\Http\Controllers\Distribution;
 
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use RuntimeException;
@@ -13,6 +14,7 @@ use SaniTube\Distribution\Models\DistributionDelivery;
 use SaniTube\Distribution\Services\SubmitDelivery;
 use SaniTube\Distribution\Services\ValidateDelivery;
 use SaniTube\Releases\Models\Release;
+use SaniTube\Ui\Http\Requests\Distribution\ResolveDeliveryRequest;
 use Throwable;
 
 /**
@@ -104,6 +106,56 @@ final class DistributionActionController
         }
 
         return back()->with('status', 'distribution.takedown_requested');
+    }
+
+    /**
+     * Ask the distributor whether it actually received the package.
+     *
+     * Not a retry, and the difference matters: a retry hands the package over
+     * again, this asks a question. It is offered only while the answer is
+     * unknown.
+     */
+    public function reconcile(DistributionDelivery $delivery, SubmitDelivery $submitter): RedirectResponse
+    {
+        try {
+            $submitter->reconcile($delivery);
+        } catch (DistributionException $exception) {
+            return $this->refused($exception->reason);
+        } catch (RuntimeException) {
+            return $this->refused('UNKNOWN_DISTRIBUTOR');
+        }
+
+        return back()->with('status', 'distribution.reconciled');
+    }
+
+    /**
+     * Record what a person found when they looked.
+     *
+     * The escape hatch for a distributor that cannot be asked. The reviewer is
+     * named from the session, never from the request — a decision that says
+     * who made it is only worth something if the caller could not choose.
+     */
+    public function resolve(
+        ResolveDeliveryRequest $request,
+        DistributionDelivery $delivery,
+        SubmitDelivery $submitter,
+    ): RedirectResponse {
+        /** @var User $decider */
+        $decider = $request->user();
+
+        try {
+            $submitter->resolveManually(
+                $delivery,
+                arrived: $request->arrived(),
+                externalReleaseId: $request->externalReleaseId(),
+                decidedBy: $decider->getKey(),
+                note: $request->note(),
+            );
+        } catch (DistributionException $exception) {
+            return $this->refused($exception->reason);
+        }
+
+        return back()->with('status', 'distribution.resolved');
     }
 
     private function refused(string $code): RedirectResponse

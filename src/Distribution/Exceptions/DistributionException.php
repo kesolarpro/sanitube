@@ -68,6 +68,36 @@ final class DistributionException extends RuntimeException
         );
     }
 
+    public static function notReconcilable(DistributionDeliveryStatus $status): self
+    {
+        return new self(
+            sprintf(
+                'A delivery in [%s] has nothing to reconcile. Reconciliation answers "did our '
+                    .'submission arrive", and that question only exists while the answer is unknown.',
+                $status->value,
+            ),
+            'NOT_RECONCILABLE',
+        );
+    }
+
+    public static function manualResolutionNeedsReference(): self
+    {
+        return new self(
+            'Recording a submission as received requires the distributor\'s reference for it. '
+                .'Without one the delivery can never be polled or taken down again.',
+            'RESOLUTION_NEEDS_REFERENCE',
+        );
+    }
+
+    public static function manualResolutionNeedsNote(): self
+    {
+        return new self(
+            'Overruling the platform about what a distributor holds requires a stated reason. '
+                .'It is the only record of where the person looked.',
+            'RESOLUTION_NEEDS_NOTE',
+        );
+    }
+
     public static function notTakedownable(DistributionDeliveryStatus $status): self
     {
         return new self(
