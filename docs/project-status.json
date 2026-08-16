@@ -1,7 +1,7 @@
 {
   "$comment": "Machine-readable project state. Any new session reads this first, then verifies it against GitHub before trusting it. Written at the end of each ticket, so a stale entry means a session ended mid-ticket — check the branch and CI rather than the status field.",
   "updated_at": "2026-08-16",
-  "current_phase": "DEP-001 merged",
+  "current_phase": "DEP-002/003",
   "last_completed_ticket": "DEP-001",
   "default_branch": "main",
   "tickets": {
@@ -341,6 +341,12 @@
       "status": "open — raised by SET-001",
       "summary": "Writing configuration from the interface: which values may be set, what happens to .env permissions, and how the configuration cache is rebuilt afterwards.",
       "note": "Builds on the installer’s EnvironmentFile, which backs up before writing and refuses to write without a backup. REVIEW_REQUIRED when built — it is a security surface."
+    },
+    "DEP-002-003": {
+      "status": "implemented, awaiting PR",
+      "branch": "claude/dep-002-003-host-guides",
+      "ci": "local gate green; CI pending",
+      "note": "cPanel and VPS guides, both carrying an explicit banner that neither has been run against a real host. Ten tests hold the claims that are expensive to get wrong: document root, scheduler, Restart=always, no debug-mode advice, nothing destructive."
     }
   },
   "architecture_amendments": [
@@ -469,8 +475,8 @@
     "note": "Nine tickets (ING/MED/CAT/AI/GEN/REL/DIST/SEC-001 and PR #12) were merged under an earlier autonomous-chaining instruction that bypassed review. A retroactive audit is under way; they stay in main and any correction becomes a follow-up ticket, not a revert. BULK-001b, UI-004 and UI-005 were merged under the session's explicit merge policy for read-only UI, ingestion tooling and documentation: none changes authentication, authorization, rights, money, identifier lifecycle, destructive storage behaviour or any external action."
   },
   "main_sha": "2c5e224",
-  "current_ticket": null,
-  "tests": "992 passed, 1 skipped, 4253 assertions",
+  "current_ticket": "DEP-002/003",
+  "tests": "1002 passed, 1 skipped, 4282 assertions",
   "phpstan": {
     "level": 6,
     "baseline": false,
@@ -484,7 +490,7 @@
     "build": "clean",
     "note": "PHP suite stubs Vite when no manifest exists; the frontend CI job renders against a real one."
   },
-  "next_action": "Start OPS-001 from main. PR #35 stays open for review.",
+  "next_action": "Open the DEP-002/003 PR, wait for real CI, merge if 10/10 green. Then OPS-001. PR #35 stays open for review.",
   "session_boundary": {
     "reason": "Context capacity approaching its limit at a clean ticket boundary. Five tickets merged, main green, no open PR.",
     "repository_state": "green",
