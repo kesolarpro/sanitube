@@ -1,7 +1,7 @@
 {
   "$comment": "Machine-readable project state. Any new session reads this first, then verifies it against GitHub before trusting it. Written at the end of each ticket, so a stale entry means a session ended mid-ticket — check the branch and CI rather than the status field.",
   "updated_at": "2026-08-16",
-  "current_phase": "DIST-UI-001",
+  "current_phase": "SET-001",
   "last_completed_ticket": "DIST-UI-001",
   "default_branch": "main",
   "tickets": {
@@ -330,6 +330,17 @@
       "branch": "claude/dist-ui-001-distribution-operations",
       "ci": "local gate green; CI pending",
       "note": "Delivery list, delivery detail and a per-release send screen over DIST-001. No screen probes a distributor on render. UNKNOWN, FAILED and REJECTED are drawn as three different things. The preflight is a GET that creates nothing."
+    },
+    "SET-001": {
+      "status": "implemented, awaiting PR",
+      "branch": "claude/set-001-settings-shell",
+      "ci": "local gate green; CI pending",
+      "note": "Read-only, administrator-only settings shell. Credentials are reported as configured/not configured and nothing else — no value, no mask, no length. Presence is read through config, not env(), because a config:cache-d installation gets null from env() for everything."
+    },
+    "SET-002": {
+      "status": "open — raised by SET-001",
+      "summary": "Writing configuration from the interface: which values may be set, what happens to .env permissions, and how the configuration cache is rebuilt afterwards.",
+      "note": "Builds on the installer’s EnvironmentFile, which backs up before writing and refuses to write without a backup. REVIEW_REQUIRED when built — it is a security surface."
     }
   },
   "architecture_amendments": [
@@ -445,8 +456,8 @@
     "note": "Nine tickets (ING/MED/CAT/AI/GEN/REL/DIST/SEC-001 and PR #12) were merged under an earlier autonomous-chaining instruction that bypassed review. A retroactive audit is under way; they stay in main and any correction becomes a follow-up ticket, not a revert. BULK-001b, UI-004 and UI-005 were merged under the session's explicit merge policy for read-only UI, ingestion tooling and documentation: none changes authentication, authorization, rights, money, identifier lifecycle, destructive storage behaviour or any external action."
   },
   "main_sha": "7de56d0",
-  "current_ticket": "DIST-UI-001",
-  "tests": "950 passed, 1 skipped, 4130 assertions",
+  "current_ticket": "SET-001",
+  "tests": "971 passed, 1 skipped, 4206 assertions",
   "phpstan": {
     "level": 6,
     "baseline": false,
@@ -460,7 +471,7 @@
     "build": "clean",
     "note": "PHP suite stubs Vite when no manifest exists; the frontend CI job renders against a real one."
   },
-  "next_action": "Open the DIST-UI-001 PR, wait for real CI, merge if 10/10 green, verify main, then start DIST-001-H1 (REVIEW_REQUIRED — PR only).",
+  "next_action": "Open the SET-001 PR, wait for real CI, merge if 10/10 green, verify main. DIST-001-H1 (PR #35) stays open for review.",
   "session_boundary": {
     "reason": "Context capacity approaching its limit at a clean ticket boundary. Five tickets merged, main green, no open PR.",
     "repository_state": "green",
