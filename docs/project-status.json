@@ -285,11 +285,9 @@
       "note": "Re-import storage amplification — see known_limitations.bulk_reimport_storage_cost. Needs a measurement and a deliberate choice, not a guess."
     },
     "SYS-001b": {
-      "status": "not_started",
-      "branch": null,
-      "pr": null,
-      "ci": null,
-      "note": "Capability detail page (sixteen detectors with individual findings), and retry/delete for failed jobs — writes to the queue needing their own confirmation surface."
+      "status": "implemented, awaiting PR",
+      "branch": "claude/sys-001b-failed-jobs",
+      "note": "Failed-job retry and record removal behind can.role:administer. Retryability is declared by the job via SafelyRetryable — opt in, never opt out — so the one operation that must never happen twice is never offered a retry button."
     },
     "UI-005b": {
       "status": "merged",

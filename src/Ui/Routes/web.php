@@ -38,6 +38,7 @@ use SaniTube\Ui\Http\Controllers\Studio\OverviewController;
 use SaniTube\Ui\Http\Controllers\Studio\ProjectDetailController;
 use SaniTube\Ui\Http\Controllers\Studio\ProjectIndexController;
 use SaniTube\Ui\Http\Controllers\Studio\StudioActionController;
+use SaniTube\Ui\Http\Controllers\System\FailedJobController;
 use SaniTube\Ui\Http\Controllers\System\JobsController;
 use SaniTube\Ui\Http\Controllers\System\OperationsController;
 use SaniTube\Ui\Http\Controllers\System\RefreshHealthController;
@@ -183,6 +184,19 @@ Route::middleware(['web', HandleInertiaRequests::class, 'auth', 'active'])->grou
         // pressed by a person who asked for it.
         Route::post('system/operations/refresh', RefreshHealthController::class)
             ->name('system.operations.refresh');
+
+        /*
+         * SYS-001b. Acting on a job that failed.
+         *
+         * Identified by the failed job's uuid, never by the `failed_jobs` row
+         * id — a counter somebody can walk. Which jobs may be run again is
+         * `ResolveFailedJob`'s decision and is asked of the job's own type;
+         * nothing here re-implements it.
+         */
+        Route::post('system/jobs/failed/{uuid}/retry', [FailedJobController::class, 'retry'])
+            ->name('system.jobs.retry');
+        Route::post('system/jobs/failed/{uuid}/forget', [FailedJobController::class, 'forget'])
+            ->name('system.jobs.forget');
     });
 
     /*
