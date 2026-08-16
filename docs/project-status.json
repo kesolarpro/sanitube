@@ -1,8 +1,8 @@
 {
   "$comment": "Machine-readable project state. Any new session reads this first, then verifies it against GitHub before trusting it. Written at the end of each ticket, so a stale entry means a session ended mid-ticket — check the branch and CI rather than the status field.",
   "updated_at": "2026-08-16",
-  "current_phase": "DEP-002/003",
-  "last_completed_ticket": "DEP-001",
+  "current_phase": "DEP-002/003 merged",
+  "last_completed_ticket": "DEP-002/003",
   "default_branch": "main",
   "tickets": {
     "ARCH-001": {
@@ -343,10 +343,10 @@
       "note": "Builds on the installer’s EnvironmentFile, which backs up before writing and refuses to write without a backup. REVIEW_REQUIRED when built — it is a security surface."
     },
     "DEP-002-003": {
-      "status": "implemented, awaiting PR",
+      "status": "merged",
       "branch": "claude/dep-002-003-host-guides",
-      "ci": "local gate green; CI pending",
-      "note": "cPanel and VPS guides, both carrying an explicit banner that neither has been run against a real host. Ten tests hold the claims that are expensive to get wrong: document root, scheduler, Restart=always, no debug-mode advice, nothing destructive."
+      "pr": 39,
+      "ci": "green 10/10"
     }
   },
   "architecture_amendments": [
@@ -423,9 +423,8 @@
     }
   ],
   "next_session": {
-    "start_with": "OPS-001 — backup and restore. Branch from main.",
+    "start_with": "OPS-001 — backup and restore. Branch from main. It is the single largest remaining gap.",
     "then": [
-      "DEP-002/003 cPanel and VPS deployment documentation",
       "REL-002 machine-readable validation problems — blocking two screens",
       "SET-002 writing configuration from the interface (REVIEW_REQUIRED when built)",
       "AUDIT-001, NOTIF-001",
@@ -440,7 +439,7 @@
       "Any financial screen",
       "Any distributor-specific logic in the domain — provider specifics belong in adapters"
     ],
-    "suite_size": "992 tests / 4253 assertions at DEP-001",
+    "suite_size": "1002 tests / 4282 assertions at DEP-002/003",
     "conventions_to_honour": [
       "Disabled providers are named 'none', never 'null' (AI, generation, distribution managers all share the rule).",
       "$table->json() is forbidden; use longText + array cast.",
@@ -465,7 +464,9 @@
       "A credential is reported as configured or not configured. Never a value, never a mask, never a length.",
       "Read presence through config, not env(): a config:cache-d installation gets null from env() for everything.",
       "A deploy creates nothing an install would create. Missing .env, key or database is a refusal with its reason, never a silent fix.",
-      "A guard that reads a file as text will trip on a comment naming what it forbids. Reword the comment, never weaken the guard."
+      "A guard that reads a file as text will trip on a comment naming what it forbids. Reword the comment, never weaken the guard.",
+      "An assertion must fail for the reason it names. Nine defective tests this session were satisfied by something other than the thing they checked — a comment explaining a flag, a neighbouring path, prose about a setting.",
+      "Documentation that has not been verified against a real host says so in its first paragraph, and a test keeps it saying so."
     ]
   },
   "review_policy": {
@@ -474,8 +475,8 @@
     "since": "UI-001",
     "note": "Nine tickets (ING/MED/CAT/AI/GEN/REL/DIST/SEC-001 and PR #12) were merged under an earlier autonomous-chaining instruction that bypassed review. A retroactive audit is under way; they stay in main and any correction becomes a follow-up ticket, not a revert. BULK-001b, UI-004 and UI-005 were merged under the session's explicit merge policy for read-only UI, ingestion tooling and documentation: none changes authentication, authorization, rights, money, identifier lifecycle, destructive storage behaviour or any external action."
   },
-  "main_sha": "2c5e224",
-  "current_ticket": "DEP-002/003",
+  "main_sha": "9bb4b68",
+  "current_ticket": null,
   "tests": "1002 passed, 1 skipped, 4282 assertions",
   "phpstan": {
     "level": 6,
@@ -490,7 +491,7 @@
     "build": "clean",
     "note": "PHP suite stubs Vite when no manifest exists; the frontend CI job renders against a real one."
   },
-  "next_action": "Open the DEP-002/003 PR, wait for real CI, merge if 10/10 green. Then OPS-001. PR #35 stays open for review.",
+  "next_action": "Start OPS-001 from main. PR #35 stays open for review.",
   "session_boundary": {
     "reason": "Context capacity approaching its limit at a clean ticket boundary. Five tickets merged, main green, no open PR.",
     "repository_state": "green",
@@ -498,7 +499,7 @@
     "note": "UI-004b, UI-005b, SYS-001, INS-001 merged this session, each 10/10 green before merge and verified after. Both new screen sets are now operational rather than read-only, the platform reports on itself, and it can be installed from a terminal. Resume from next_action."
   },
   "v1_progress_percent": {
-    "value": 64,
+    "value": 66,
     "method": "weighted by block, production-ready not implemented-only; reweighted by the 2026-08-16 scope correction",
     "breakdown": {
       "core_domain": {
@@ -538,8 +539,8 @@
       },
       "installer_deployment_backup": {
         "weight": 15,
-        "implemented": 50,
-        "production_ready": 25
+        "implemented": 65,
+        "production_ready": 30
       },
       "qa_e2e_hardening": {
         "weight": 5,
@@ -547,7 +548,7 @@
         "production_ready": 25
       }
     },
-    "note": "61 -> 64. An installation can now be updated by a script rather than by remembering the order of six artisan commands. Installer/deployment/backup stays the largest unfinished block for two reasons that no amount of code fixes here: there is still no backup and no restore (OPS-001), and nothing in this block has ever been run against a real shared host or VPS (DEP-002/003)."
+    "note": "64 -> 66. Install, deploy and both host guides are done. What is left in the largest block is one thing: OPS-001, backup and restore. There is no backup command, the VPS guide currently tells operators they are on their own for it, and nothing in this block has ever been run against a real shared host or VPS — both guides say so in their first paragraph and a test enforces that they keep saying it."
   },
   "decisions": {
     "asset_preview_url": {
