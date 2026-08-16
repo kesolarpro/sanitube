@@ -47,6 +47,17 @@ function verdict(value: boolean | null | undefined): string {
 
 const schedulerNeverRan = computed(() => props.operations.scheduler.last_run_at === null);
 
+/**
+ * Never backed up is a state of its own, not an unknown.
+ *
+ * A backup job that silently stopped is the classic disaster: nothing looks
+ * wrong until the day something is, and by then the newest backup is months
+ * old. A dash would hide exactly that.
+ */
+const neverBackedUp = computed(
+    () => props.operations.backups.readable && props.operations.backups.taken_at === null,
+);
+
 function refresh(): void {
     refreshing.value = true;
     refreshForm.post('/system/operations/refresh', {
@@ -156,6 +167,42 @@ function refresh(): void {
                 <dd class="text-small text-foreground">
                     {{ dateTime(operations.scheduler.last_run_at, locale) }}
                 </dd>
+            </dl>
+        </AppCard>
+
+        <AppCard>
+            <template #header>{{ trans('ui.system.backups') }}</template>
+
+            <!-- A misconfigured destination reports itself rather than taking
+                 this screen down. This is the page somebody opens when things
+                 are already wrong. -->
+            <AppAlert
+                v-if="!operations.backups.readable"
+                tone="danger"
+                :title="trans('ui.system.backups_unreadable')"
+            >
+                {{ trans('ui.system.backups_unreadable_note') }}
+            </AppAlert>
+
+            <AppAlert
+                v-else-if="neverBackedUp"
+                tone="warning"
+                :title="trans('ui.system.never_backed_up')"
+            >
+                {{ trans('ui.system.never_backed_up_note') }}
+            </AppAlert>
+
+            <dl v-else class="grid gap-3 sm:grid-cols-2">
+                <div>
+                    <dt class="text-caption text-muted">{{ trans('ui.system.last_backup') }}</dt>
+                    <dd class="text-small text-foreground">
+                        {{ dateTime(operations.backups.taken_at, locale) }}
+                    </dd>
+                </div>
+                <div>
+                    <dt class="text-caption text-muted">{{ trans('ui.system.backup_count') }}</dt>
+                    <dd class="text-small text-foreground">{{ operations.backups.count }}</dd>
+                </div>
             </dl>
         </AppCard>
 

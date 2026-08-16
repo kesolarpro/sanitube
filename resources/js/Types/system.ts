@@ -65,10 +65,23 @@ export interface OperationalHealthView {
     capabilities: { healthy: boolean | null; items?: unknown[] };
 }
 
+/**
+ * `taken_at` of null means **no backup has ever been taken** — not "unknown".
+ * Never backed up and backed up a long time ago are different problems, and a
+ * dash for both is how the first one goes unnoticed for months.
+ */
+export interface BackupSummary {
+    readable: boolean;
+    count: number | null;
+    taken_at: string | null;
+    destination_configured: boolean;
+}
+
 export interface Operations {
     health: OperationalHealthView;
     scheduler: { last_run_at: string | null; seconds_since: number | null };
     queue: QueueSummary;
+    backups: BackupSummary;
     runtime: {
         php_version: string;
         environment: string;
