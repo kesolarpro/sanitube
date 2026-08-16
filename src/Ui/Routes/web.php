@@ -12,6 +12,7 @@ use SaniTube\Ui\Http\Controllers\Catalog\CompositionDetailController;
 use SaniTube\Ui\Http\Controllers\Catalog\CompositionIndexController;
 use SaniTube\Ui\Http\Controllers\Catalog\ContributorDetailController;
 use SaniTube\Ui\Http\Controllers\Catalog\ContributorIndexController;
+use SaniTube\Ui\Http\Controllers\Catalog\TrackActionController;
 use SaniTube\Ui\Http\Controllers\Catalog\TrackDetailController;
 use SaniTube\Ui\Http\Controllers\Catalog\TrackIndexController;
 use SaniTube\Ui\Http\Controllers\DashboardController;
@@ -74,6 +75,32 @@ Route::middleware(['web', HandleInertiaRequests::class, 'auth', 'active'])->grou
     Route::get('catalog/artists/{artist}', ArtistDetailController::class)->name('catalog.artists.show');
     Route::get('catalog/tracks', TrackIndexController::class)->name('catalog.tracks');
     Route::get('catalog/tracks/{track}', TrackDetailController::class)->name('catalog.tracks.show');
+
+    /*
+     * Catalogue writes.
+     *
+     * CAT-002, and the reason it exists is worth writing down: everything
+     * above this line is a read, and for a while everything in the catalogue
+     * was. Promotion creates a DRAFT track, I3 refuses READY without a primary
+     * artist, and nothing gave a person a way to supply one — so a label who
+     * imported a library could promote a candidate and then stop, with every
+     * release built from those tracks failing validation on an issue whose fix
+     * was not reachable from any screen.
+     *
+     * Behind `can.role:catalogue`, the same guard candidate review uses: a
+     * MEMBER may read the catalogue and may not credit or promote anything in
+     * it. On the route rather than in the controller, so a future action
+     * cannot acquire the surface without acquiring the guard.
+     *
+     * Named actions, never a settable status. `PATCH {status: READY}` would
+     * present I3 as an assignment.
+     */
+    Route::middleware('can.role:catalogue')->group(function (): void {
+        Route::post('catalog/tracks/{track}/credits', [TrackActionController::class, 'setCredits'])
+            ->name('catalog.tracks.credits');
+        Route::post('catalog/tracks/{track}/ready', [TrackActionController::class, 'markReady'])
+            ->name('catalog.tracks.ready');
+    });
 
     // Ingestion. Read-only: these screens report what an import did, and the
     // decisions taken on what it produced. Starting an import and promoting a

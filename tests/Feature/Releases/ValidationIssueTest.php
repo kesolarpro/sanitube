@@ -6,8 +6,8 @@ namespace Tests\Feature\Releases;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\Test;
-use SaniTube\Releases\ReleaseValidationIssue;
-use SaniTube\Releases\ReleaseValidationResult;
+use SaniTube\Foundation\Validation\ValidationIssue;
+use SaniTube\Foundation\Validation\ValidationResult;
 use Tests\TestCase;
 
 /**
@@ -45,7 +45,7 @@ final class ValidationIssueTest extends TestCase
             /** @var array<string, mixed> $lines */
             $lines = require base_path('lang/'.$locale.'/ui.php');
             /** @var array<string, string> $issues */
-            $issues = $lines['releases']['issue'] ?? [];
+            $issues = $lines['issue'] ?? [];
 
             foreach ($codes as $code) {
                 // Every code, with no exemption list. A list of codes that do
@@ -68,7 +68,7 @@ final class ValidationIssueTest extends TestCase
         /** @var array<string, mixed> $lines */
         $lines = require base_path('lang/en/ui.php');
         /** @var array<string, string> $issues */
-        $issues = $lines['releases']['issue'] ?? [];
+        $issues = $lines['issue'] ?? [];
 
         $codes = $this->codesInSource();
 
@@ -90,7 +90,7 @@ final class ValidationIssueTest extends TestCase
         /** @var array<string, mixed> $lines */
         $lines = require base_path('lang/en/ui.php');
         /** @var array<string, string> $issues */
-        $issues = $lines['releases']['issue'] ?? [];
+        $issues = $lines['issue'] ?? [];
 
         $contexts = $this->contextKeysInSource();
 
@@ -113,10 +113,10 @@ final class ValidationIssueTest extends TestCase
     #[Test]
     public function issues_are_deduplicated_by_code_and_path_rather_than_by_message(): void
     {
-        $result = new ReleaseValidationResult([
-            ReleaseValidationIssue::error('COVER_REQUIRED', 'cover', 'One wording.'),
-            ReleaseValidationIssue::error('COVER_REQUIRED', 'cover', 'A different wording entirely.'),
-            ReleaseValidationIssue::error('COVER_REQUIRED', 'other', 'Same code, different place.'),
+        $result = new ValidationResult([
+            ValidationIssue::error('COVER_REQUIRED', 'cover', 'One wording.'),
+            ValidationIssue::error('COVER_REQUIRED', 'cover', 'A different wording entirely.'),
+            ValidationIssue::error('COVER_REQUIRED', 'other', 'Same code, different place.'),
         ]);
 
         // Two validators finding the same missing cover is one problem. The
@@ -127,9 +127,9 @@ final class ValidationIssueTest extends TestCase
     #[Test]
     public function severity_lives_on_the_issue_so_the_two_lists_cannot_disagree(): void
     {
-        $result = new ReleaseValidationResult([
-            ReleaseValidationIssue::error('A', 'x', 'blocking'),
-            ReleaseValidationIssue::warning('B', 'y', 'not blocking'),
+        $result = new ValidationResult([
+            ValidationIssue::error('A', 'x', 'blocking'),
+            ValidationIssue::warning('B', 'y', 'not blocking'),
         ]);
 
         $this->assertCount(1, $result->errors());
@@ -140,8 +140,8 @@ final class ValidationIssueTest extends TestCase
     #[Test]
     public function a_caller_asks_by_code_and_never_by_message(): void
     {
-        $result = new ReleaseValidationResult([
-            ReleaseValidationIssue::error('DISTRIBUTOR_UNREACHABLE', 'distributor', 'Some wording or other.'),
+        $result = new ValidationResult([
+            ValidationIssue::error('DISTRIBUTOR_UNREACHABLE', 'distributor', 'Some wording or other.'),
         ]);
 
         // The bug REL-002 was raised for. SubmitDelivery used to search the
@@ -155,7 +155,7 @@ final class ValidationIssueTest extends TestCase
     #[Test]
     public function the_payload_carries_no_english(): void
     {
-        $issue = ReleaseValidationIssue::error('COVER_REQUIRED', 'cover', 'A cover asset is required.');
+        $issue = ValidationIssue::error('COVER_REQUIRED', 'cover', 'A cover asset is required.');
 
         $encoded = json_encode($issue->toArray(), JSON_THROW_ON_ERROR);
 
@@ -182,7 +182,7 @@ final class ValidationIssueTest extends TestCase
 
         foreach ($this->sourceFiles() as $file) {
             preg_match_all(
-                "/ReleaseValidationIssue::(?:error|warning)\(\s*'([A-Z0-9_]+)'/",
+                "/ValidationIssue::(?:error|warning)\(\s*'([A-Z0-9_]+)'/",
                 (string) file_get_contents($file),
                 $matches,
             );
@@ -210,7 +210,7 @@ final class ValidationIssueTest extends TestCase
             // sprintf's closing paren and silently reports an empty context —
             // which is how this test first passed while checking nothing.
             $chunks = preg_split(
-                '/ReleaseValidationIssue::(?:error|warning)\(/',
+                '/ValidationIssue::(?:error|warning)\(/',
                 (string) file_get_contents($file),
             ) ?: [];
 
@@ -238,7 +238,7 @@ final class ValidationIssueTest extends TestCase
     {
         $files = [];
 
-        foreach (['src/Releases', 'src/Distribution'] as $directory) {
+        foreach (['src/Releases', 'src/Distribution', 'src/Catalog'] as $directory) {
             $iterator = new \RecursiveIteratorIterator(
                 new \RecursiveDirectoryIterator(base_path($directory)),
             );
