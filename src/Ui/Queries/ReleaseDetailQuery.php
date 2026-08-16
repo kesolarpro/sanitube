@@ -13,6 +13,7 @@ use SaniTube\Releases\Models\Release;
 use SaniTube\Releases\Models\ReleaseArtist;
 use SaniTube\Releases\Models\ReleaseTrack;
 use SaniTube\Releases\ReleaseMutationPolicy;
+use SaniTube\Releases\ReleaseValidationIssue;
 use SaniTube\Releases\Services\ValidateRelease;
 
 /**
@@ -75,8 +76,12 @@ final readonly class ReleaseDetailQuery
             'validation' => $validation->toArray(),
 
             // The same list markReady() throws on. Not a second opinion about
-            // readiness — the one the domain will act on.
-            'readiness_problems' => $release->readinessProblems(),
+            // readiness — the one the domain will act on. REL-002: issues with
+            // codes, so the screen can say this in somebody's own language.
+            'readiness_problems' => array_map(
+                static fn (ReleaseValidationIssue $issue): array => $issue->toArray(),
+                $release->readinessProblems(),
+            ),
 
             'actions' => [
                 'may_edit' => $mayWrite,

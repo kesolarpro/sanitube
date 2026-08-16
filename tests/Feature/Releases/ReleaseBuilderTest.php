@@ -17,7 +17,9 @@ use SaniTube\Releases\Enums\ReleaseArtistRole;
 use SaniTube\Releases\Enums\ReleaseStatus;
 use SaniTube\Releases\Enums\ReleaseType;
 use SaniTube\Releases\Exceptions\ReleaseBuilderException;
+use SaniTube\Releases\Exceptions\ReleaseNotReadyException;
 use SaniTube\Releases\Models\Release;
+use SaniTube\Releases\ReleaseValidationIssue;
 use SaniTube\Releases\Services\ReleaseBuilder;
 use SaniTube\Releases\Services\ValidateRelease;
 use Tests\TestCase;
@@ -308,11 +310,14 @@ final class ReleaseBuilderTest extends TestCase
         $result = $this->validator()->handle($release);
 
         $this->assertFalse($result->isValid());
-        $this->assertNotSame([], $result->errors);
-        $this->assertNotSame([], $result->warnings);
+        $this->assertNotSame([], $result->errors());
+        $this->assertNotSame([], $result->warnings());
 
-        $this->assertStringContainsString('cover', strtolower(implode(' ', $result->errors)));
-        $this->assertStringContainsString('catalogue number', implode(' ', $result->warnings));
+        // REL-002: asserted on codes rather than on English. The old version
+        // of this test would have gone green on a reworded sentence and red on
+        // a translated one, which is the wrong way round for both.
+        $this->assertTrue($result->has('COVER_REQUIRED'));
+        $this->assertTrue($result->has('NO_CATALOGUE_NUMBER'));
     }
 
     #[Test]
@@ -320,7 +325,7 @@ final class ReleaseBuilderTest extends TestCase
     {
         $result = $this->validator()->handle($this->readyRelease());
 
-        $this->assertTrue($result->isValid(), implode('; ', $result->errors));
+        $this->assertTrue($result->isValid(), implode('; ', $result->messages()));
     }
 
     #[Test]
@@ -332,7 +337,7 @@ final class ReleaseBuilderTest extends TestCase
         $result = $this->validator()->handle($release->refresh());
 
         $this->assertFalse($result->isValid());
-        $this->assertStringContainsString('cannot be released', implode(' ', $result->errors));
+        $this->assertTrue($result->has('TRACK_NOT_RELEASABLE'));
     }
 
     #[Test]
@@ -347,7 +352,7 @@ final class ReleaseBuilderTest extends TestCase
         $result = $this->validator()->handle($release->refresh());
 
         $this->assertFalse($result->isValid());
-        $this->assertStringContainsString('continuously', implode(' ', $result->errors));
+        $this->assertTrue($result->has('DISC_NUMBERING_NOT_CONTIGUOUS'));
     }
 
     #[Test]
@@ -357,8 +362,28 @@ final class ReleaseBuilderTest extends TestCase
 
         $result = $this->validator()->handle($release);
 
-        $this->assertTrue($result->isValid(), implode('; ', $result->errors));
-        $this->assertStringContainsString('focus track', implode(' ', $result->warnings));
+        $this->assertTrue($result->isValid(), implode('; ', $result->messages()));
+        $this->assertTrue($result->has('NO_FOCUS_TRACK'));
+    }
+
+    #[Test]
+    public function a_release_with_no_date_is_blocked_rather_than_merely_warned_about(): void
+    {
+        // Severity is what decides whether a release may be delivered, so it is
+        // asserted here rather than inferred from the issue being present at
+        // all: downgrading this one to a warning would leave the list looking
+        // identical while letting a dateless release through validation, and a
+        // store given a release with no date has nothing to schedule.
+        $release = $this->completeDraft();
+        $release->forceFill(['release_date' => null])->save();
+
+        $result = $this->validator()->handle($release->refresh());
+
+        $this->assertFalse($result->isValid(), 'A release with no date must not validate.');
+        $this->assertContains('RELEASE_DATE_REQUIRED', array_map(
+            static fn (ReleaseValidationIssue $issue): string => $issue->code,
+            $result->errors(),
+        ));
     }
 
     #[Test]
@@ -367,6 +392,19 @@ final class ReleaseBuilderTest extends TestCase
         $release = $this->builder()->createDraft('Single');
 
         $this->assertFalse($this->validator()->handle($release)->isValid());
+
+        try {
+            $release->markReady();
+            $this->fail('An incomplete release was promoted to READY.');
+        } catch (ReleaseNotReadyException $e) {
+            // The refusal names what is wrong, so a caller can act on it
+            // rather than only learn that something was.
+            $this->assertContains('COVER_REQUIRED', array_map(
+                static fn (ReleaseValidationIssue $issue): string => $issue->code,
+                $e->problems,
+            ));
+        }
+
         $this->assertSame(ReleaseStatus::Draft, $release->refresh()->status);
     }
 

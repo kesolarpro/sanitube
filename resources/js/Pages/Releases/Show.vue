@@ -637,12 +637,9 @@ const editable = computed(() => props.release.actions.can_edit_details);
 
         <!-- 6. What is still wrong.
 
-             These are sentences produced by the domain, not codes, and they
-             render in English on every locale. That is a known limitation
-             carried by REL-002, not an oversight: the same strings are imploded
-             into delivery-attempt records and matched on by SubmitDelivery, so
-             turning them into codes changes delivery semantics and belongs in
-             its own ticket. -->
+             REL-002: issues with codes, translated here. `context` carries the
+             values — a track number, a disc — so each locale puts them in its
+             own word order rather than receiving a pre-built English sentence. -->
         <AppCard>
             <template #header>{{ trans('ui.releases.section.validation') }}</template>
 
@@ -653,8 +650,8 @@ const editable = computed(() => props.release.actions.can_edit_details);
             <div v-else class="space-y-2">
                 <p class="text-caption text-danger">{{ trans('ui.releases.errors') }}</p>
                 <ul class="list-disc space-y-1 pl-5 text-small text-foreground">
-                    <li v-for="(problem, index) in release.validation.errors" :key="`error-${index}`">
-                        {{ problem }}
+                    <li v-for="problem in release.validation.errors" :key="problem.code + problem.path">
+                        {{ trans(`ui.releases.issue.${problem.code}`, problem.context) }}
                     </li>
                 </ul>
             </div>
@@ -665,8 +662,8 @@ const editable = computed(() => props.release.actions.can_edit_details);
                     {{ trans('ui.releases.no_warnings') }}
                 </p>
                 <ul v-else class="list-disc space-y-1 pl-5 text-small text-muted">
-                    <li v-for="(warning, index) in release.validation.warnings" :key="`warning-${index}`">
-                        {{ warning }}
+                    <li v-for="warning in release.validation.warnings" :key="warning.code + warning.path">
+                        {{ trans(`ui.releases.issue.${warning.code}`, warning.context) }}
                     </li>
                 </ul>
             </div>

@@ -14,7 +14,10 @@ import type { SharedProps } from '@/Types/inertia';
  * is unmistakable and gets fixed. The translation-completeness test is what
  * stops one reaching production, but the fallback still has to be honest.
  */
-export function trans(key: string, replacements: Record<string, string | number> = {}): string {
+export function trans(
+    key: string,
+    replacements: Record<string, string | number | boolean | null> = {},
+): string {
     const page = usePage<SharedProps>();
     const line = page.props.translations?.[key];
 
