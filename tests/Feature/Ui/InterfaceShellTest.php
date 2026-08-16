@@ -163,9 +163,12 @@ final class InterfaceShellTest extends TestCase
                 $this->assertTrue($byKey['releases']['available']);
                 $this->assertSame('/releases', $byKey['releases']['href']);
 
+                $this->assertTrue($byKey['distribution']['available']);
+                $this->assertSame('/distribution', $byKey['distribution']['href']);
+
                 // Not built yet, and honest about it.
-                $this->assertFalse($byKey['distribution']['available'] ?? true, 'Distribution has no screen yet.');
-                $this->assertNull($byKey['distribution']['href']);
+                $this->assertFalse($byKey['analytics']['available'] ?? true, 'Analytics has no screen yet.');
+                $this->assertNull($byKey['analytics']['href']);
             });
     }
 

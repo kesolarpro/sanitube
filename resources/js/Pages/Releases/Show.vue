@@ -698,6 +698,15 @@ const editable = computed(() => props.release.actions.can_edit_details);
                 <AppButton v-if="release.actions.can_reopen" variant="secondary" @click="reopening = true">
                     {{ trans('ui.releases.reopen') }}
                 </AppButton>
+
+                <!-- Always offered, not only once ready: "where could this go
+                     and has it gone there already" is a question people have
+                     while a release is still being assembled, and the
+                     destination screen answers it without handing anything
+                     over. -->
+                <AppButton variant="ghost" :href="`/releases/${release.uuid}/distribution`">
+                    {{ trans('ui.distribution.send_title') }}
+                </AppButton>
             </div>
         </AppCard>
 

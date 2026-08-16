@@ -48,10 +48,17 @@ final readonly class NavigationTree
             ]),
 
             $this->item('releases', '/releases', 'releases', available: true),
-            $this->item('distribution', null, 'distribution', available: false),
+            $this->item('distribution', '/distribution', 'distribution', available: true),
             $this->item('rights', null, 'rights', available: false),
-            $this->item('publishing', null, 'publishing', available: false),
-            $this->item('royalties', null, 'royalties', available: false),
+            // No `publishing` and no `royalties`. Both were placeholders for
+            // financial administration, and the 2026-08-16 scope correction
+            // takes finance out of V1 entirely: SaniTube is a catalogue and
+            // distribution platform and performs no calculation of income.
+            // A sidebar entry for a screen the product will never build is a
+            // promise, not a roadmap. `rights` stays because credit and
+            // ownership *metadata* — author, composer, publisher as a name,
+            // the P and C notices — is required for distribution and is not a
+            // right to money.
             $this->item('analytics', null, 'analytics', available: false),
             // Administration only. `available` is presentation — the route
             // middleware is the authorisation — but showing an operator a link
