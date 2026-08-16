@@ -212,6 +212,16 @@ return [
         ],
     ],
     'system' => [
+        'job_actions' => 'Acciones',
+        'retry_job' => 'Volver a ejecutar',
+        'not_retryable' => 'No es seguro repetir',
+        'forget_job' => 'Eliminar este registro',
+        'forget_job_description' => 'Quita el registro del fallo de la lista. No deshace nada de lo que hizo el trabajo ni lo vuelve a ejecutar.',
+        'job_failure' => [
+            'FAILED_JOB_GONE' => 'Ese trabajo ya no está en la lista. Ya se volvió a ejecutar o se eliminó.',
+            'FAILED_JOB_UNKNOWN_KIND' => 'Ese registro no dice qué tipo de trabajo era, así que no hay forma de saber si repetirlo es seguro.',
+            'FAILED_JOB_NOT_RETRYABLE' => 'Ese tipo de trabajo no se ha declarado seguro para repetirse. Un trabajo que falló a medias puede haber hecho ya lo que no debe ocurrir dos veces.',
+        ],
         'operations' => 'Operaciones',
         'operations_description' => 'Lo que la plataforma vio la última vez que miró hacia fuera. Nada en esta página comprueba nada: abrirla durante una caída no debe empeorarla.',
         'jobs' => 'Tareas',

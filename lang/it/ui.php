@@ -212,6 +212,16 @@ return [
         ],
     ],
     'system' => [
+        'job_actions' => 'Azioni',
+        'retry_job' => 'Riesegui',
+        'not_retryable' => 'Non è sicuro rieseguire',
+        'forget_job' => 'Rimuovi questa traccia',
+        'forget_job_description' => 'Toglie dalla lista la traccia dell’errore. Non annulla nulla di ciò che il job ha fatto e non lo riesegue.',
+        'job_failure' => [
+            'FAILED_JOB_GONE' => 'Quel job non è più nella lista. È già stato rieseguito o rimosso.',
+            'FAILED_JOB_UNKNOWN_KIND' => 'Quella traccia non dice di che tipo di lavoro si trattasse, quindi non si può sapere se rieseguirlo sia sicuro.',
+            'FAILED_JOB_NOT_RETRYABLE' => 'Quel tipo di lavoro non si è dichiarato sicuro da rieseguire. Un job fallito a metà può aver già fatto ciò che non deve accadere due volte.',
+        ],
         'operations' => 'Operatività',
         'operations_description' => 'Ciò che la piattaforma ha visto l\'ultima volta che ha guardato fuori. Nulla in questa pagina verifica alcunché: aprirla durante un disservizio non deve peggiorarlo.',
         'jobs' => 'Attività',

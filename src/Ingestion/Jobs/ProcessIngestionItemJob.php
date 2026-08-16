@@ -9,6 +9,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use SaniTube\Foundation\Concerns\SafelyRetryable;
 use SaniTube\Ingestion\Models\IngestionItem;
 use SaniTube\Ingestion\Services\FinalizeIngestionBatch;
 use SaniTube\Ingestion\Services\ProcessIngestionItem;
@@ -26,8 +27,13 @@ use SaniTube\Ingestion\Services\ProcessIngestionItem;
  * item was the last one outstanding. That bounds the work: N item jobs and, in
  * the ordinary case, exactly one finalise. Under a race two workers may both
  * see themselves as last, which is why finalising is idempotent.
+
+ * **Safely retryable.** It re-reads the item row rather than trusting the
+ * snapshot it was queued with, and the ingestion key is unique among in-flight
+ * items — so a second run of the same intent finds the work already done and
+ * records that, rather than importing the bytes twice.
  */
-final class ProcessIngestionItemJob implements ShouldQueue
+final class ProcessIngestionItemJob implements SafelyRetryable, ShouldQueue
 {
     use Dispatchable;
     use InteractsWithQueue;

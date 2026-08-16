@@ -212,6 +212,16 @@ return [
         ],
     ],
     'system' => [
+        'job_actions' => 'Ações',
+        'retry_job' => 'Executar de novo',
+        'not_retryable' => 'Não é seguro repetir',
+        'forget_job' => 'Remover este registo',
+        'forget_job_description' => 'Retira o registo da falha da lista. Não desfaz nada do que o trabalho fez nem o volta a executar.',
+        'job_failure' => [
+            'FAILED_JOB_GONE' => 'Esse trabalho já não está na lista. Já foi executado de novo ou removido.',
+            'FAILED_JOB_UNKNOWN_KIND' => 'Esse registo não diz que tipo de trabalho era, por isso não há como saber se repeti-lo é seguro.',
+            'FAILED_JOB_NOT_RETRYABLE' => 'Esse tipo de trabalho não se declarou seguro para repetir. Um trabalho que falhou a meio pode já ter feito o que não pode acontecer duas vezes.',
+        ],
         'operations' => 'Operações',
         'operations_description' => 'O que a plataforma viu da última vez que olhou para fora. Nada nesta página verifica o que quer que seja — abri-la durante uma falha não deve piorá-la.',
         'jobs' => 'Tarefas',

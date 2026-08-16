@@ -212,6 +212,16 @@ return [
         ],
     ],
     'system' => [
+        'job_actions' => 'Actions',
+        'retry_job' => 'Run again',
+        'not_retryable' => 'Not safe to run again',
+        'forget_job' => 'Remove this record',
+        'forget_job_description' => 'This removes the failure record from the list. It does not undo anything the job did, and it does not run the job again.',
+        'job_failure' => [
+            'FAILED_JOB_GONE' => 'That job is no longer in the list. It was already run again or removed.',
+            'FAILED_JOB_UNKNOWN_KIND' => 'That record does not say what kind of work it was, so there is no way to know whether running it again is safe.',
+            'FAILED_JOB_NOT_RETRYABLE' => 'That kind of work has not declared itself safe to run twice. A job that got partway before failing may already have done the thing that must not happen twice.',
+        ],
         'operations' => 'Operations',
         'operations_description' => 'What the platform last saw when it looked outside. Nothing on this page checks anything — opening it during an outage must not make the outage worse.',
         'jobs' => 'Jobs',
