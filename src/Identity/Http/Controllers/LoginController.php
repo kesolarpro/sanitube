@@ -4,11 +4,14 @@ declare(strict_types=1);
 
 namespace SaniTube\Identity\Http\Controllers;
 
+use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
+use SaniTube\Audit\Enums\AuditAction;
+use SaniTube\Audit\Services\RecordAuditEvent;
 use SaniTube\Identity\Exceptions\AuthenticationFailed;
 use SaniTube\Identity\Http\Requests\LoginRequest;
 use SaniTube\Identity\Services\AuthenticateUser;
@@ -52,8 +55,17 @@ final class LoginController
         return redirect()->intended('/');
     }
 
-    public function destroy(Request $request): RedirectResponse
+    public function destroy(Request $request, RecordAuditEvent $audit): RedirectResponse
     {
+        $user = Auth::user();
+
+        // Before the logout, while the guard can still say who this is. A
+        // sign-out recorded afterwards would be attributed to a guest and
+        // would name nobody, which is the one fact it exists to carry.
+        if ($user instanceof User) {
+            $audit->record(AuditAction::UserSignedOut, subjectUuid: $user->uuid);
+        }
+
         Auth::logout();
 
         // Both, and in this order. Invalidating drops the session data;

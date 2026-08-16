@@ -196,6 +196,10 @@ final class PortabilityTest extends TestCase
             'artists' => ['status', 'type'],
             'assets' => ['kind', 'status'],
             'external_identifiers' => ['type', 'source'],
+            // The audit log is the longest-lived table in the platform, which
+            // makes it the one where an ALTER to add an enum case would hurt
+            // most: adding an action is a code change here too.
+            'audit_events' => ['action', 'subject', 'outcome', 'actor_kind'],
         ] as $table => $columns) {
             foreach ($columns as $column) {
                 // Engines spell it differently — `varchar` here, `varchar(32)`

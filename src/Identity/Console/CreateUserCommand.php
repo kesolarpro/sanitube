@@ -7,6 +7,8 @@ namespace SaniTube\Identity\Console;
 use App\Models\User;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Validator;
+use SaniTube\Audit\Enums\AuditAction;
+use SaniTube\Audit\Services\RecordAuditEvent;
 use SaniTube\Identity\Enums\UserRole;
 
 /**
@@ -31,7 +33,7 @@ final class CreateUserCommand extends Command
 
     protected $description = 'Create a SaniTube user account';
 
-    public function handle(): int
+    public function handle(RecordAuditEvent $audit): int
     {
         $name = (string) ($this->option('name') ?? '');
         $email = (string) ($this->option('email') ?? '');
@@ -97,6 +99,11 @@ final class CreateUserCommand extends Command
         // endpoint that forwards user input into create(). Setting it here is
         // explicit and greppable.
         $user->forceFill(['role' => $role, 'is_active' => true])->save();
+
+        // Console, so the actor is the system: nobody is authenticated at a
+        // terminal. The role goes in the context because "who was made an
+        // OWNER, and when" is the first question asked after an incident.
+        $audit->record(AuditAction::UserCreated, subjectUuid: $user->uuid, context: ['role' => $role->value]);
 
         $this->info(sprintf('Created %s (%s) as %s.', $user->name, $user->email, $role->value));
 

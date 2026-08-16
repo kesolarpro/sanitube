@@ -23,5 +23,23 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->throttleApi();
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        // A failed validation redirects back with the input flashed into the
+        // session, and Laravel's default exclusion list knows about `password`
+        // and `password_confirmation` — which is every secret the framework
+        // can guess the name of, and not every secret this platform has.
         //
+        // `db_password` is typed into the web installer and `token` is both
+        // the installer's filesystem credential and a password-reset token.
+        // Flashed, they sit in the session waiting for somebody to add an
+        // entirely reasonable `value="{{ old('db_password') }}"` — at which
+        // point a secret is rendered into HTML by a template that did nothing
+        // wrong. Found by a mutation that survived, which is what a surviving
+        // mutation is for.
+        $exceptions->dontFlash([
+            'current_password',
+            'password',
+            'password_confirmation',
+            'db_password',
+            'token',
+        ]);
     })->create();

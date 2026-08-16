@@ -1,8 +1,8 @@
 {
   "$comment": "Machine-readable project state. Any new session reads this first, then verifies it against GitHub before trusting it. Written at the end of each ticket, so a stale entry means a session ended mid-ticket — check the branch and CI rather than the status field.",
   "updated_at": "2026-08-16",
-  "current_phase": "Closing the remaining internal V1 gaps. PROD-001, SYS-001b and AUTH-002 merged; AUDIT-001 next.",
-  "last_completed_ticket": "AUTH-002",
+  "current_phase": "AUDIT-001, INS-002 and SET-002 in PR #51. BULK-001c and the accessibility audit remain.",
+  "last_completed_ticket": "SET-002",
   "default_branch": "main",
   "tickets": {
     "ARCH-001": {
@@ -182,11 +182,11 @@
       "note": "Operations and jobs screens behind can.role:administer. A GET probes nothing — proved by forgetting the snapshot, loading the page, and asserting it is still absent. No job payload and no stack trace reaches the browser; only the exception's first line, truncated. Unknown is not zero: an installation on Redis has no jobs table and the counts read null."
     },
     "INS-002": {
-      "status": "not_started",
-      "branch": null,
-      "pr": null,
-      "ci": null,
-      "note": "Web installer at /install over the same InstallationService. Available only while uninstalled, permanent lock after success, CSRF, and no database password reflected into HTML."
+      "status": "merged-pending",
+      "branch": "claude/audit-001-operational-log",
+      "pr": 51,
+      "ci": "green locally; PR CI in flight at the time of writing",
+      "note": "Web installer over the SAME InstallationService. Filesystem token, two guards, permanent lock. Found that SESSION_DRIVER=database makes the install page unable to hold a CSRF token before migrations, and that db_password was being flashed into the session by Laravel validation redirects."
     },
     "DEP-002": {
       "status": "not_started",
@@ -340,9 +340,11 @@
       "ci": "green 10/10"
     },
     "SET-002": {
-      "status": "open — raised by SET-001",
-      "summary": "Writing configuration from the interface: which values may be set, what happens to .env permissions, and how the configuration cache is rebuilt afterwards.",
-      "note": "Builds on the installer’s EnvironmentFile, which backs up before writing and refuses to write without a backup. REVIEW_REQUIRED when built — it is a security surface."
+      "status": "merged-pending",
+      "branch": "claude/audit-001-operational-log",
+      "pr": 51,
+      "ci": "green locally; PR CI in flight at the time of writing",
+      "note": "Settings write path. Allowlist of thirteen variables; APP_KEY, APP_DEBUG and DB_* deliberately absent. Blank never clears. One write over a backup, config cache rebuilt or the file restored. Not REVIEW_REQUIRED: no new secrets architecture, it writes through the installer EnvironmentFile."
     },
     "DEP-002-003": {
       "status": "merged",
@@ -399,11 +401,11 @@
       "note": "Password reset over Laravel's broker. The request never says whether an address is known — same status, same Location, same empty error bag — and a deactivated account cannot reset its way back in, including one deactivated after the link was sent. Reset rotates remember_token and logs out other devices."
     },
     "AUDIT-001": {
-      "status": "in_progress",
+      "status": "merged-pending",
       "branch": "claude/audit-001-operational-log",
-      "pr": null,
-      "ci": null,
-      "note": "Operational audit log: who did what, to which object, when, from where. NOT a financial ledger. Never stores a password, reset token, API key, signed URL, provider credential or raw secret."
+      "pr": 51,
+      "ci": "green locally; PR CI in flight at the time of writing",
+      "note": "Operational audit log: 24 named actions, append-only and enforced, structural redaction, retention prune. Explicit call sites rather than model hooks -- bulk writes and refusals fire no model event. ADR-0014."
     }
   },
   "architecture_amendments": [
@@ -471,7 +473,17 @@
     "design_system": "Semantic tokens only (--color-surface, never --color-zinc-900). Status colour is decided in StatusBadge alone; labels always come from translations. Navigation is built server-side and unbuilt sections show as disabled — 'available' is presentation, never authorisation. MetricCard takes number|null and renders null as an em dash, never 0.",
     "frontend_toolchain": "@vitejs/plugin-vue@5 peers Vite ^5||^6; the project is on Vite 7. Resolved with plugin-vue@6 (which supports Vite 7), NOT --force or --legacy-peer-deps: a peer conflict is compatibility information, and overriding it keeps the incompatibility. Same for vue-tsc@3. npm run types runs in CI."
   },
-  "open_pull_requests": [],
+  "open_pull_requests": [
+    {
+      "number": 51,
+      "tickets": [
+        "AUDIT-001",
+        "INS-002",
+        "SET-002"
+      ],
+      "status": "open, awaiting CI. Local gate green: 1221 tests / 5753 assertions."
+    }
+  ],
   "next_session": {
     "start_with": "AUDIT-001 — operational audit log. Branch from main.",
     "then": [
@@ -492,7 +504,7 @@
     "since": "UI-001",
     "note": "Nine tickets (ING/MED/CAT/AI/GEN/REL/DIST/SEC-001 and PR #12) were merged under an earlier autonomous-chaining instruction that bypassed review. A retroactive audit is under way; they stay in main and any correction becomes a follow-up ticket, not a revert. BULK-001b, UI-004 and UI-005 were merged under the session's explicit merge policy for read-only UI, ingestion tooling and documentation: none changes authentication, authorization, rights, money, identifier lifecycle, destructive storage behaviour or any external action."
   },
-  "main_sha": "d37c11d",
+  "main_sha": "be15054",
   "current_ticket": null,
   "tests": "1002 passed, 1 skipped, 4282 assertions",
   "phpstan": {
@@ -510,17 +522,15 @@
   },
   "next_action": {
     "$comment": "Read this first. In order.",
-    "1": "AUDIT-001 — platform-wide operational audit log. Operational, never financial. No secret material of any kind is recordable.",
-    "2": "INS-002 — web installer over the SAME InstallationService. No duplicate implementation. Permanent lock, CSRF, no secret echoed back into HTML.",
-    "3": "SET-002 — settings write path. REVIEW_REQUIRED. Never return an existing secret value to the browser; blank input means unchanged.",
-    "4": "BULK-001c — re-import amplification. 'Same object key means unchanged' is a forbidden shortcut; identity needs a checksum or provider version.",
-    "5": "Accessibility audit across the operational screens."
+    "1": "BULK-001c -- re-import storage amplification. 'Same object key means unchanged' is a forbidden shortcut; identity needs a checksum, fingerprint or provider version. Four identity combinations, mutation-tested.",
+    "2": "Accessibility audit across all V1 screens, including the two added by this session (System/Audit, the editable Settings form) and the installer Blade page.",
+    "3": "Verify CI on PR 51 and merge it before starting either."
   },
   "session_boundary": {
-    "reason": "Checkpoint after AUTH-002. main green, no open PR.",
-    "repository_state": "green",
-    "main_sha": "d37c11d3887fb42db1a67c0c9a0c3aad77643206",
-    "note": "DIST-001-H1, PROD-001, SYS-001b and AUTH-002 merged since the last checkpoint, each verified green on its own run before merging and main verified green after. Resume from next_action."
+    "reason": "Context capacity. AUDIT-001, INS-002 and SET-002 complete and pushed; PR #51 open.",
+    "repository_state": "main green at be15054; one open PR",
+    "main_sha": "be15054f966c8e5050d82c45572856936b776393",
+    "note": "PROD-001, SYS-001b, AUTH-002 and the docs checkpoint merged this session. AUDIT-001, INS-002 and SET-002 are on PR #51 with the full local gate green. Resume from next_action."
   },
   "v1_progress_percent": {
     "value": 66,

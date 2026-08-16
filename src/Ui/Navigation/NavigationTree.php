@@ -65,6 +65,7 @@ final readonly class NavigationTree
             // they cannot open is not honesty, it is noise.
             $this->item('jobs', '/system/jobs', 'jobs', available: $user->role->canAdminister()),
             $this->item('operations', '/system/operations', 'system', available: $user->role->canAdminister()),
+            $this->item('audit', '/system/audit', 'system', available: $user->role->canAdminister()),
 
             // The one screen UI-001 ships. It exists to prove the design
             // system holds together, and it is deliberately not a business

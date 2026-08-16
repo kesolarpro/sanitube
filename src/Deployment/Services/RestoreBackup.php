@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace SaniTube\Deployment\Services;
 
 use Illuminate\Database\Connection;
+use SaniTube\Audit\Enums\AuditAction;
+use SaniTube\Audit\Services\RecordAuditEvent;
 use SaniTube\Deployment\BackupManifest;
 use SaniTube\Deployment\Exceptions\BackupException;
 use Throwable;
@@ -42,6 +44,7 @@ final readonly class RestoreBackup
     public function __construct(
         private Connection $connection,
         private BackupRepository $repository,
+        private RecordAuditEvent $audit,
     ) {}
 
     /**
@@ -118,6 +121,21 @@ final readonly class RestoreBackup
         // recoverable. The other order leaves files from a backup beside a
         // database that never received it, which is not.
         $files = $this->restoreFiles($directory, $manifest);
+
+        // The one audit line that survives its own subject. A restore replaces
+        // `audit_events` with whatever the backup held, so every line written
+        // before this moment is now the backup's history rather than this
+        // installation's — and this line, written after, is the only thing
+        // that says the two were ever different.
+        $this->audit->record(
+            AuditAction::BackupRestored,
+            context: [
+                'name' => basename($directory),
+                'tables' => $restored['tables'],
+                'rows' => $restored['rows'],
+                'schema_drift' => count($verified['drift']),
+            ],
+        );
 
         return [
             'tables' => $restored['tables'],
