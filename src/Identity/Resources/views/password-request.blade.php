@@ -14,7 +14,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>{{ __('identity.auth.sign_in') }} — {{ config('app.name') }}</title>
+    <title>{{ __('identity.reset.request_title') }} — {{ config('app.name') }}</title>
     <style>
         /* Inline and minimal. This page must render correctly before the
            asset pipeline has been built, which is precisely the state a fresh
@@ -64,7 +64,7 @@
 </head>
 <body>
     <main class="card">
-        <h1>{{ __('identity.auth.sign_in') }}</h1>
+        <h1>{{ __('identity.reset.request_title') }}</h1>
         <p class="sub">{{ config('app.name') }}</p>
 
         @if ($errors->any())
@@ -79,29 +79,18 @@
             </div>
         @endif
 
-        <form method="POST" action="{{ route('login.store') }}">
+        <form method="POST" action="{{ route('password.email') }}">
             @csrf
 
             <label for="email">{{ __('identity.auth.email') }}</label>
             <input id="email" name="email" type="email" value="{{ old('email') }}"
                    required autofocus autocomplete="username">
 
-            <label for="password">{{ __('identity.auth.password') }}</label>
-            <input id="password" name="password" type="password"
-                   required autocomplete="current-password">
-
-            <div class="remember">
-                <input id="remember" name="remember" type="checkbox" value="1">
-                <label for="remember">{{ __('identity.auth.remember_me') }}</label>
-            </div>
-
-            <button type="submit">{{ __('identity.auth.sign_in') }}</button>
+            <button type="submit">{{ __('identity.reset.send') }}</button>
         </form>
 
-        {{-- The only way back in without an administrator. Named plainly:
-             "forgot" is what a person searches the page for. --}}
         <p class="sub" style="margin-top:1rem">
-            <a href="{{ route('password.request') }}">{{ __('identity.reset.request_title') }}</a>
+            <a href="{{ route('login') }}">{{ __('identity.auth.sign_in') }}</a>
         </p>
     </main>
 </body>
