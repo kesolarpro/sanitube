@@ -1,7 +1,7 @@
 {
   "$comment": "Machine-readable project state. Any new session reads this first, then verifies it against GitHub before trusting it. Written at the end of each ticket, so a stale entry means a session ended mid-ticket — check the branch and CI rather than the status field.",
   "updated_at": "2026-08-16",
-  "current_phase": "ING-002 delivered",
+  "current_phase": "ING-002 merged; DIST-001-H1 (PR 35) awaiting review",
   "last_completed_ticket": "ING-002",
   "default_branch": "main",
   "tickets": {
@@ -368,8 +368,10 @@
       "note": "Track::readinessProblems() answers in issues. Folded in because without it the new track screen would render English into six locales."
     },
     "ING-002": {
-      "status": "implemented, awaiting PR",
+      "status": "merged",
       "branch": "claude/ing-002-start-import",
+      "pr": 45,
+      "ci": "green 10/10",
       "note": "Starting an import from the interface. Gave IngestionException a reason distinct from its persisted failure code, refused an ambiguous folder+list selection that used to drop the list silently, and stopped the stylesheet being built from the compiled-view cache."
     }
   },
@@ -697,5 +699,51 @@
     "existing_code": "Not deleted. No Revenue/Royalty/Payout/Ledger module was ever built, so nothing has to be removed; the tickets are reclassified instead.",
     "multi_distributor": "The domain must contain no logic specific to TuneCore, Too Lost, DistroKid, CD Baby or Ditto. Provider specifics live in adapters. No TuneCore API is assumed to exist, and scraping is never an API substitute.",
     "navigation": "`publishing` and `royalties` removed from the sidebar in DIST-UI-001, with their translation keys and icons. Both were placeholders for financial administration. `rights` stays, unavailable: credit and ownership metadata is required for distribution and is not a right to money."
+  },
+  "progress": {
+    "$comment": "Nine fixed blocks. The denominator does not change. PRODUCTION_READY is the figure that matters.",
+    "blocks": {
+      "core_domain": {
+        "implemented": 95,
+        "production_ready": 90
+      },
+      "assets_catalogue_import": {
+        "implemented": 90,
+        "production_ready": 85
+      },
+      "generation_ai": {
+        "implemented": 70,
+        "production_ready": 55
+      },
+      "release_management": {
+        "implemented": 95,
+        "production_ready": 90
+      },
+      "distribution": {
+        "implemented": 80,
+        "production_ready": 55
+      },
+      "ui_ux": {
+        "implemented": 85,
+        "production_ready": 80
+      },
+      "security_identity": {
+        "implemented": 85,
+        "production_ready": 80
+      },
+      "installation_deployment": {
+        "implemented": 85,
+        "production_ready": 80
+      },
+      "operations_backup_observability": {
+        "implemented": 85,
+        "production_ready": 80
+      }
+    },
+    "implemented_percent": 86,
+    "production_ready_percent": 77
+  },
+  "open_prs": {
+    "35": "DIST-001-H1 — REVIEW_REQUIRED, audited and hardened, deliberately not merged"
   }
 }
