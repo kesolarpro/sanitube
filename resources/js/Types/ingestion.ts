@@ -156,6 +156,22 @@ export interface CandidateAsset {
     preview: { available: boolean; reason: string | null };
 }
 
+/**
+ * Which decisions the candidate is in a state to receive.
+ *
+ * Presentation, never authorisation: the route middleware decides who may act
+ * and the domain services decide what is permissible. These exist so a button
+ * can be disabled with an explanation instead of failing when pressed.
+ */
+export interface CandidateActions {
+    may_review: boolean;
+    can_promote: boolean;
+    can_promote_with_override: boolean;
+    override_requires_note: boolean;
+    can_reject: boolean;
+    can_revise: boolean;
+}
+
 export interface CandidateDetail {
     uuid: string;
     status: string;
@@ -171,6 +187,7 @@ export interface CandidateDetail {
         track: { uuid: string; title: string } | null;
     } | null;
     manifest: CandidateManifest | null;
+    actions: CandidateActions;
     review: {
         reviewed_at: string | null;
         note: string | null;

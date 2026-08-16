@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SaniTube\Ui\Queries;
 
 use App\Models\User;
+use SaniTube\Ingestion\Enums\TrackCandidateStatus;
 use SaniTube\Ingestion\Models\TrackCandidate;
 use SaniTube\Media\Models\AudioAnalysis;
 use SaniTube\Ui\Assets\AssetPreviewPolicy;
@@ -76,6 +77,7 @@ final readonly class TrackCandidateDetailQuery
             'analysis' => $this->analysis($candidate),
             'duplicate' => $this->duplicate($candidate),
             'manifest' => $this->manifest($metadata),
+            'actions' => $this->actions($candidate, $viewer),
             'review' => [
                 'reviewed_at' => $candidate->reviewed_at?->toAtomString(),
                 'note' => $candidate->review_note,
@@ -87,6 +89,49 @@ final readonly class TrackCandidateDetailQuery
 
             'created_at' => $candidate->created_at?->toAtomString(),
             'updated_at' => $candidate->updated_at?->toAtomString(),
+        ];
+    }
+
+    /**
+     * Which decisions this candidate is in a state to receive, and whether
+     * this person may take them.
+     *
+     * **Presentation, never authorisation.** The route's `can.role:catalogue`
+     * middleware decides who may act, and the domain services decide what is
+     * permissible; this exists so the interface can render a disabled button
+     * with an explanation instead of a button that fails. Removing every one
+     * of these flags would change what the screen looks like and change
+     * nothing about what a request is allowed to do — which is the property
+     * that makes it safe to compute here at all.
+     *
+     * The status predicates are the enum's own, not a second copy of them. If
+     * `isPromotable()` ever changes meaning, this changes with it.
+     *
+     * @return array<string, mixed>
+     */
+    private function actions(TrackCandidate $candidate, User $viewer): array
+    {
+        $mayWrite = $viewer->role->canWriteCatalogue();
+        $status = $candidate->status;
+
+        return [
+            'may_review' => $mayWrite,
+
+            // Outright: READY only.
+            'can_promote' => $mayWrite && $status->isPromotable(),
+
+            // With an explicit override and a stated reason: NEEDS_REVIEW and
+            // DUPLICATE. A person who has listened to the file may legitimately
+            // overrule the machine; what they may not do is overrule it
+            // silently.
+            'can_promote_with_override' => $mayWrite && $status->isPromotableWithOverride(),
+            'override_requires_note' => true,
+
+            'can_reject' => $mayWrite
+                && $status !== TrackCandidateStatus::Promoted
+                && $status !== TrackCandidateStatus::Rejected,
+
+            'can_revise' => $mayWrite && $status->isRevisable(),
         ];
     }
 

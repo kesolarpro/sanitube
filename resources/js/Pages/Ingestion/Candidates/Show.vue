@@ -1,10 +1,16 @@
 <script setup lang="ts">
-import { computed } from 'vue';
-import { Link, usePage } from '@inertiajs/vue3';
+import { computed, ref } from 'vue';
+import { Link, useForm, usePage } from '@inertiajs/vue3';
 import AppAlert from '@/Components/Ui/AppAlert.vue';
+import AppButton from '@/Components/Ui/AppButton.vue';
 import AppCard from '@/Components/Ui/AppCard.vue';
+import AppModal from '@/Components/Ui/AppModal.vue';
 import CodeValue from '@/Components/Ui/CodeValue.vue';
+import ConfirmDialog from '@/Components/Ui/ConfirmDialog.vue';
+import FormField from '@/Components/Ui/FormField.vue';
 import StatusBadge from '@/Components/Ui/StatusBadge.vue';
+import TextInput from '@/Components/Ui/TextInput.vue';
+import TextareaInput from '@/Components/Ui/TextareaInput.vue';
 import { bitrate, bytes, dateTime, duration, sampleRate } from '@/Support/format';
 import { trans } from '@/Support/i18n';
 import type { SharedProps } from '@/Types/inertia';
@@ -24,12 +30,99 @@ import type { CandidateDetail } from '@/Types/ingestion';
  * would invite a reviewer to accord them the same confidence, and they have
  * earned very different amounts.
  *
- * This screen takes no action. Promoting and rejecting are writes to the
- * catalogue and are not here.
+ * The actions sit at the bottom, after the evidence. A decision is taken after
+ * reading, and a promote button above the analysis is one people press before
+ * they have looked.
  */
 const props = defineProps<{ candidate: CandidateDetail }>();
 
-const locale = usePage<SharedProps>().props.app.locale;
+const page = usePage<SharedProps>();
+const locale = page.props.app.locale;
+
+const promoting = ref(false);
+const rejecting = ref(false);
+const revising = ref(false);
+
+/**
+ * Whether the domain will demand an explicit override with a note.
+ *
+ * Asked of the payload rather than inferred from the status here, so the rule
+ * lives in one place. A NEEDS_REVIEW or DUPLICATE candidate can still be
+ * promoted by a person who has listened to the file — what they cannot do is
+ * overrule the machine silently.
+ */
+const needsOverride = computed(
+    () => !props.candidate.actions.can_promote && props.candidate.actions.can_promote_with_override,
+);
+
+const promoteForm = useForm({
+    title: props.candidate.suggested_title ?? '',
+    override: false,
+    note: '',
+});
+
+const rejectForm = useForm({ reason: '' });
+const reviseForm = useForm({ suggested_title: props.candidate.suggested_title ?? '' });
+
+/**
+ * A refusal from the domain, as its machine-readable reason code.
+ *
+ * The server never sends the domain's English sentence — it is written for a
+ * developer reading a log — so the code is what travels and this translates
+ * it.
+ */
+const reviewError = computed(() => {
+    const errors = page.props.errors as Record<string, string> | undefined;
+
+    return errors?.review ?? null;
+});
+
+function openPromote(): void {
+    promoteForm.clearErrors();
+    promoteForm.title = props.candidate.suggested_title ?? '';
+    promoteForm.note = '';
+    promoteForm.override = needsOverride.value;
+    promoting.value = true;
+}
+
+function openReject(): void {
+    rejectForm.clearErrors();
+    rejectForm.reason = '';
+    rejecting.value = true;
+}
+
+function openRevise(): void {
+    reviseForm.clearErrors();
+    reviseForm.suggested_title = props.candidate.suggested_title ?? '';
+    revising.value = true;
+}
+
+function submitPromote(): void {
+    promoteForm.post(`/ingestion/candidates/${props.candidate.uuid}/promote`, {
+        preserveScroll: true,
+        onSuccess: () => {
+            promoting.value = false;
+        },
+    });
+}
+
+function submitReject(): void {
+    rejectForm.post(`/ingestion/candidates/${props.candidate.uuid}/reject`, {
+        preserveScroll: true,
+        onSuccess: () => {
+            rejecting.value = false;
+        },
+    });
+}
+
+function submitRevise(): void {
+    reviseForm.patch(`/ingestion/candidates/${props.candidate.uuid}`, {
+        preserveScroll: true,
+        onSuccess: () => {
+            revising.value = false;
+        },
+    });
+}
 
 const claimed = computed(() => {
     const manifest = props.candidate.manifest;
@@ -316,5 +409,117 @@ function labelFor(key: string): string {
                 </div>
             </dl>
         </AppCard>
+
+        <!-- The actions. Last on the page on purpose: a decision is taken
+             after reading the evidence, not before it. -->
+        <AppCard v-if="candidate.actions.may_review">
+            <template #header>{{ trans('ui.ingestion.review_actions') }}</template>
+
+            <AppAlert v-if="reviewError !== null" tone="danger" :title="trans('ui.ingestion.refused')">
+                {{ trans(`ui.ingestion.refusal.${reviewError}`) }}
+            </AppAlert>
+
+            <div class="mt-3 flex flex-wrap gap-2">
+                <AppButton
+                    v-if="candidate.actions.can_promote || candidate.actions.can_promote_with_override"
+                    variant="primary"
+                    @click="openPromote"
+                >
+                    {{ trans('ui.ingestion.promote') }}
+                </AppButton>
+
+                <AppButton v-if="candidate.actions.can_revise" variant="secondary" @click="openRevise">
+                    {{ trans('ui.ingestion.revise') }}
+                </AppButton>
+
+                <AppButton v-if="candidate.actions.can_reject" variant="danger" @click="openReject">
+                    {{ trans('ui.ingestion.reject') }}
+                </AppButton>
+            </div>
+
+            <p
+                v-if="!candidate.actions.can_promote && !candidate.actions.can_promote_with_override"
+                class="mt-3 text-caption text-muted"
+            >
+                {{ trans('ui.ingestion.not_promotable_here') }}
+            </p>
+        </AppCard>
+
+        <!-- Promote. A confirmation rather than a button, because it is the one
+             action on this screen that writes to the catalogue. -->
+        <ConfirmDialog
+            :open="promoting"
+            :title="trans('ui.ingestion.promote')"
+            :description="trans('ui.ingestion.promote_description')"
+            :confirm-label="trans('ui.ingestion.promote_confirm')"
+            :busy="promoteForm.processing"
+            @cancel="promoting = false"
+            @confirm="submitPromote"
+        >
+            <div class="space-y-3">
+                <FormField :label="trans('ui.ingestion.title_for_catalogue')" :error="promoteForm.errors.title">
+                    <TextInput v-model="promoteForm.title" />
+                </FormField>
+
+                <!-- Only when the domain would demand it. Showing an override
+                     box on a READY candidate would teach reviewers to fill one
+                     in every time, which is how an override stops meaning
+                     anything. -->
+                <template v-if="needsOverride">
+                    <AppAlert tone="warning" :title="trans('ui.ingestion.override_required')">
+                        {{ trans('ui.ingestion.override_required_note') }}
+                    </AppAlert>
+
+                    <FormField
+                        :label="trans('ui.ingestion.override_note')"
+                        :error="promoteForm.errors.note"
+                        required
+                    >
+                        <TextareaInput v-model="promoteForm.note" :rows="3" />
+                    </FormField>
+                </template>
+            </div>
+        </ConfirmDialog>
+
+        <!-- Reject. Destructive in the sense that matters: the proposal stops
+             being one, and the row is kept so nobody reviews it twice. -->
+        <ConfirmDialog
+            :open="rejecting"
+            :title="trans('ui.ingestion.reject')"
+            :description="trans('ui.ingestion.reject_description')"
+            :confirm-label="trans('ui.ingestion.reject_confirm')"
+            destructive
+            :busy="rejectForm.processing"
+            @cancel="rejecting = false"
+            @confirm="submitReject"
+        >
+            <FormField :label="trans('ui.ingestion.reject_reason')" :error="rejectForm.errors.reason" required>
+                <TextareaInput v-model="rejectForm.reason" :rows="3" />
+            </FormField>
+        </ConfirmDialog>
+
+        <!-- Revise. No confirmation: correcting a guess before anybody acts on
+             it is the cheapest action here to undo. -->
+        <AppModal
+            :open="revising"
+            :title="trans('ui.ingestion.revise')"
+            :description="trans('ui.ingestion.revise_description')"
+            @close="revising = false"
+        >
+            <FormField
+                :label="trans('ui.ingestion.suggested_title')"
+                :error="reviseForm.errors.suggested_title"
+                required
+            >
+                <TextInput v-model="reviseForm.suggested_title" />
+            </FormField>
+
+            <template #footer>
+                <AppButton variant="ghost" @click="revising = false">{{ trans('ui.actions.cancel') }}</AppButton>
+                <AppButton variant="primary" :loading="reviseForm.processing" @click="submitRevise">
+                    {{ trans('ui.actions.save') }}
+                </AppButton>
+            </template>
+        </AppModal>
     </div>
 </template>
