@@ -1,8 +1,8 @@
 {
   "$comment": "Machine-readable project state. Any new session reads this first, then verifies it against GitHub before trusting it. Written at the end of each ticket, so a stale entry means a session ended mid-ticket — check the branch and CI rather than the status field.",
   "updated_at": "2026-08-16",
-  "current_phase": "INS-001",
-  "last_completed_ticket": "INS-001",
+  "current_phase": "REL-UI-001",
+  "last_completed_ticket": "REL-UI-001",
   "default_branch": "main",
   "tickets": {
     "ARCH-001": {
@@ -300,6 +300,30 @@
       "report": "docs/reports/UI-005b.md",
       "merge_commit": "ebd558d",
       "note": "Create a campaign, start a generation, cancel one, select a result. Selecting never creates a Track — proved by mutation. Two behaviours extracted from API controllers into services because a second controller copy is the one that drifts; all 49 pre-existing generation tests passed unmodified after the move."
+    },
+    "REL-UI-001": {
+      "status": "implemented, awaiting PR",
+      "branch": "claude/rel-ui-001-release-builder",
+      "ci": "local gate green; CI pending",
+      "note": "Release list and seven-section builder over REL-001. Nothing writes status; markReady() re-runs the invariants. Adds three bounded JSON pickers behind can.role:catalogue."
+    },
+    "ROY-001": {
+      "status": "OUT_OF_SCOPE_V1",
+      "reason": "Royalty engine. Removed from V1 by the scope correction: SaniTube performs no financial calculation."
+    },
+    "RIGHTS-001": {
+      "status": "OUT_OF_SCOPE_V1",
+      "reason": "Rights management. Removed from V1 in its financial form. Credit and ownership metadata needed for distribution stays, and is delivered as catalogue metadata under the REL and CAT tickets."
+    },
+    "PUB-001": {
+      "status": "OUT_OF_SCOPE_V1",
+      "reason": "Publishing administration. Its purpose is collection and distribution of publishing income, which the scope correction removes from V1. Composition and writer metadata already exists in CAT-002 and stays."
+    },
+    "REL-002": {
+      "status": "open — backend GAP raised by REL-UI-001",
+      "summary": "Make release validation problems machine-readable (code + context) so they can be translated, while keeping a rendered sentence for logs and delivery-attempt records.",
+      "touches": "ValidateRelease, ReleaseValidationResult, Release::readinessProblems(), ValidateDelivery, SubmitDelivery",
+      "note": "DIST-UI-001 will hit the same wall for delivery validation."
     }
   },
   "architecture_amendments": [
@@ -369,17 +393,22 @@
   },
   "open_pull_requests": [],
   "next_session": {
-    "start_with": "REL-UI-001 — the release builder. Branch from main.",
+    "start_with": "DIST-UI-001 — distribution operations (fake/sandbox only). Branch from main.",
     "then": [
-      "DIST-UI-001 distribution operations (fake/sandbox only; real provider activation is REVIEW_REQUIRED)",
       "DIST-001-H1 unknown submission outcome — REVIEW_REQUIRED, leave the PR open",
-      "SET-001 settings shell",
+      "SET-001 settings shell (secrets write-only and masked; never returned to the frontend)",
       "DEP-001 deploy script, DEP-002/003 cPanel and VPS documentation",
       "OPS-001 backup and restore",
+      "REL-002 machine-readable release validation problems (see known_limitations)",
       "AUDIT-001, NOTIF-001",
-      "SEC-002, RIGHTS-001, ROY-001 — all REVIEW_REQUIRED"
+      "E2E-001, accessibility audit, security hardening, performance, docs/production-readiness.md"
     ],
-    "suite_size": "880 tests / 3734 assertions at INS-001",
+    "do_not_build": [
+      "ROY-001, RIGHTS-001 (financial), PUB-001 — all OUT_OF_SCOPE_V1",
+      "Any Revenue, Royalty, Payout or Ledger module",
+      "Any financial screen"
+    ],
+    "suite_size": "918 tests / 3955 assertions at REL-UI-001",
     "conventions_to_honour": [
       "Disabled providers are named 'none', never 'null' (AI, generation, distribution managers all share the rule).",
       "$table->json() is forbidden; use longText + array cast.",
@@ -394,7 +423,10 @@
       "Authorisation lives on the route (can.role:catalogue / :administer). An `actions` block in a payload is presentation, and a test must prove hiding a button is not what stops a request.",
       "A refusal travels as its machine-readable code; the interface translates it. The domain's English sentence is written for a developer reading a log.",
       "A preflight check asks what the machine can do; a health check asks what this installation has done. Do not block the first on the second.",
-      "When two layers guard the same rule, mutate the inner one — a passing service-level test can hide an unguarded method a later surface will call directly."
+      "When two layers guard the same rule, mutate the inner one — a passing service-level test can hide an unguarded method a later surface will call directly.",
+      "No financial calculation anywhere. A credit or ownership field is metadata; it never becomes a right to money.",
+      "The domain carries no distributor-specific logic. Provider specifics belong in adapters.",
+      "A LIKE search escapes % and _ with an explicit ESCAPE clause; the escape character is ! because MySQL also treats a backslash as an escape inside string literals and SQLite does not."
     ]
   },
   "review_policy": {
@@ -404,13 +436,8 @@
     "note": "Nine tickets (ING/MED/CAT/AI/GEN/REL/DIST/SEC-001 and PR #12) were merged under an earlier autonomous-chaining instruction that bypassed review. A retroactive audit is under way; they stay in main and any correction becomes a follow-up ticket, not a revert. BULK-001b, UI-004 and UI-005 were merged under the session's explicit merge policy for read-only UI, ingestion tooling and documentation: none changes authentication, authorization, rights, money, identifier lifecycle, destructive storage behaviour or any external action."
   },
   "main_sha": "e44a1cfd782c5f82abee4b31efeaf9ce4f5cc52e",
-  "current_ticket": null,
-  "tests": {
-    "php": 880,
-    "php_assertions": 3734,
-    "php_skipped": 1,
-    "component": 16
-  },
+  "current_ticket": "REL-UI-001",
+  "tests": "918 passed, 1 skipped, 3955 assertions",
   "phpstan": {
     "level": 6,
     "baseline": false,
@@ -424,13 +451,7 @@
     "build": "clean",
     "note": "PHP suite stubs Vite when no manifest exists; the frontend CI job renders against a real one."
   },
-  "next_action": {
-    "ticket": "REL-UI-001",
-    "name": "Release builder — metadata, artists, tracks, artwork, identifiers, validation, readiness",
-    "state": "not started",
-    "blocked_by": null,
-    "note": "Branch from main. REL-001 is merged and unchanged: ReleaseMutationPolicy is the single place that says which edits a status permits, and it is called rather than reimplemented. Nothing in the UI may write `status` — readiness is earned by passing validation, and the API's `validate`/`ready` split exists so a label can see what is missing while still assembling. Renumbering tracks must stay two-phase (park above the occupied range, then write final numbers) because UNIQUE(release_id, disc_number, track_number) collides on a row-by-row update."
-  },
+  "next_action": "Open the REL-UI-001 PR, wait for real CI, merge if 10/10 green, verify main, then start DIST-UI-001.",
   "session_boundary": {
     "reason": "Context capacity approaching its limit at a clean ticket boundary. Five tickets merged, main green, no open PR.",
     "repository_state": "green",
@@ -438,15 +459,15 @@
     "note": "UI-004b, UI-005b, SYS-001, INS-001 merged this session, each 10/10 green before merge and verified after. Both new screen sets are now operational rather than read-only, the platform reports on itself, and it can be installed from a terminal. Resume from next_action."
   },
   "v1_progress_percent": {
-    "value": 53,
-    "method": "weighted by block, production-ready not implemented-only",
+    "value": 55,
+    "method": "weighted by block, production-ready not implemented-only; reweighted by the 2026-08-16 scope correction",
     "breakdown": {
       "core_domain": {
-        "weight": 20,
+        "weight": 10,
         "implemented": 90,
-        "production_ready": 66
+        "production_ready": 68
       },
-      "asset_catalogue": {
+      "assets_catalogue_import": {
         "weight": 15,
         "implemented": 100,
         "production_ready": 84
@@ -456,33 +477,38 @@
         "implemented": 75,
         "production_ready": 25
       },
-      "release_distribution": {
-        "weight": 15,
-        "implemented": 45,
-        "production_ready": 10
-      },
-      "rights_royalties": {
-        "weight": 10,
-        "implemented": 0,
-        "production_ready": 0
-      },
-      "ui_ux": {
+      "release_builder": {
         "weight": 15,
         "implemented": 85,
         "production_ready": 70
       },
-      "api": {
+      "distribution": {
+        "weight": 15,
+        "implemented": 45,
+        "production_ready": 10
+      },
+      "ui_ux": {
+        "weight": 10,
+        "implemented": 85,
+        "production_ready": 72
+      },
+      "security_api": {
         "weight": 5,
+        "implemented": 45,
+        "production_ready": 30
+      },
+      "installer_deployment_backup": {
+        "weight": 15,
         "implemented": 30,
         "production_ready": 15
       },
-      "ops_deployment": {
-        "weight": 10,
-        "implemented": 45,
-        "production_ready": 20
+      "qa_e2e_hardening": {
+        "weight": 5,
+        "implemented": 40,
+        "production_ready": 25
       }
     },
-    "note": "46 -> 53. The catalogue is now operable end to end: import with a manifest, review, promote. The studio is usable rather than watchable. The platform reports on itself and installs from a terminal. Ops/deployment rises but stays low because the installer has never run on a real shared host, and there is still no deploy script, no backup and no restore. Rights and royalties remain at zero and are now the single largest thing standing between this and a V1."
+    "note": "53 -> 55 on a changed denominator, so the two numbers are not directly comparable. The rights/royalties block (weight 10, at zero) is gone from V1 entirely and its weight moved to installer/deployment/backup, which is now the largest unfinished block. The release builder is a screen rather than an API call for the first time. What stands between this and a V1 is no longer rights: it is deployment, backup/restore and distribution operations."
   },
   "decisions": {
     "asset_preview_url": {
@@ -541,6 +567,14 @@
       "why_not_fixed": "No such account is available to this project. The stages that would differ are the ones that touch the host: directory permissions, the PHP binary path in the cron line, and the account-prefixed database names.",
       "severity": "blocks calling installation production-ready, nothing before then",
       "ticket": "INS-003 (certification on a real host)"
+    },
+    {
+      "id": "release-validation-not-localisable",
+      "where": "ValidateRelease, Release::readinessProblems(), the release builder screen",
+      "what": "Validation errors and warnings are English sentences, not codes, so they render untranslated on the five non-English locales while the rest of the screen is translated.",
+      "why_not_fixed": "The same strings are imploded into delivery-attempt records and matched on by SubmitDelivery::wasUnreachable(). Turning them into codes changes delivery semantics, which is a domain ticket (REL-002), not something a UI ticket does quietly.",
+      "severity": "real, visible to non-English users",
+      "ticket": "REL-002"
     }
   ],
   "findings": {
@@ -564,5 +598,30 @@
       "finding": "The mutation removing the overwrite guard from EnvironmentFile::createFromExample() stayed green, because InstallationService checks exists() before ever calling it. The service-level test covered the behaviour; nothing covered the guard.",
       "instruction": "When two layers both guard the same thing, the mutation must be run against the inner one. INS-002's web installer reaches EnvironmentFile without the service's outer check, so the inner guard is the one that will matter. A direct test now covers it."
     }
+  },
+  "scope_correction_v1": {
+    "decided": "2026-08-16",
+    "statement": "SaniTube is a music catalogue and distribution platform. It is NOT a financial platform.",
+    "out_of_scope_v1": [
+      "royalties",
+      "revenue",
+      "balances",
+      "payments",
+      "payouts",
+      "revenue sharing",
+      "financial splits",
+      "accounting",
+      "ledger",
+      "invoicing",
+      "currency conversion",
+      "financial reporting",
+      "earnings calculation",
+      "revenue distribution between artists",
+      "financial collection",
+      "monetisation engine"
+    ],
+    "still_in_scope": "Rights and credit information strictly necessary for distribution, as catalogue metadata only: author, composer, publisher (as metadata), copyright, the P and C notices, declarative master ownership, contributor roles, ISRC, UPC/EAN, territories, explicit content, language, credits. None of it may trigger a financial calculation.",
+    "existing_code": "Not deleted. No Revenue/Royalty/Payout/Ledger module was ever built, so nothing has to be removed; the tickets are reclassified instead.",
+    "multi_distributor": "The domain must contain no logic specific to TuneCore, Too Lost, DistroKid, CD Baby or Ditto. Provider specifics live in adapters. No TuneCore API is assumed to exist, and scraping is never an API substitute."
   }
 }

@@ -47,7 +47,7 @@ final readonly class NavigationTree
                 $this->item('assets', '/catalog/assets', 'assets', available: true),
             ]),
 
-            $this->item('releases', null, 'releases', available: false),
+            $this->item('releases', '/releases', 'releases', available: true),
             $this->item('distribution', null, 'distribution', available: false),
             $this->item('rights', null, 'rights', available: false),
             $this->item('publishing', null, 'publishing', available: false),
