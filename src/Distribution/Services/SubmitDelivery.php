@@ -7,6 +7,7 @@ namespace SaniTube\Distribution\Services;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use SaniTube\Distribution\Contracts\Distributor;
+use SaniTube\Distribution\Contracts\SupportsSubmissionLookup;
 use SaniTube\Distribution\DeliveryStatus;
 use SaniTube\Distribution\DistributionIdempotencyKey;
 use SaniTube\Distribution\DistributorManager;
@@ -14,8 +15,8 @@ use SaniTube\Distribution\DistributorSubmission;
 use SaniTube\Distribution\Enums\DistributionAction;
 use SaniTube\Distribution\Enums\DistributionAttemptOutcome;
 use SaniTube\Distribution\Enums\DistributionDeliveryStatus;
+use SaniTube\Distribution\Enums\ExternalReferenceSource;
 use SaniTube\Distribution\Exceptions\DistributionException;
-use SaniTube\Distribution\Exceptions\SubmissionLookupUnsupported;
 use SaniTube\Distribution\Exceptions\SubmissionNotSent;
 use SaniTube\Distribution\Models\DistributionAttempt;
 use SaniTube\Distribution\Models\DistributionDelivery;
@@ -200,6 +201,9 @@ final readonly class SubmitDelivery
             $delivery->forceFill([
                 'status' => DistributionDeliveryStatus::Submitted,
                 'external_release_id' => $submission->externalReleaseId,
+                // Watched arrive. The ordinary case, and the only one where
+                // the platform saw the distributor produce the value.
+                'external_reference_source' => ExternalReferenceSource::ProviderResponse,
                 'failure_reason' => null,
                 'submitted_at' => Carbon::now(),
                 'last_synced_at' => Carbon::now(),
@@ -361,7 +365,9 @@ final readonly class SubmitDelivery
      *   - **it holds nothing** — the request never landed. FAILED, retryable,
      *     same key.
      *   - **it cannot look** — nothing moves. `SUBMITTED_UNCONFIRMED` stays,
-     *     and a person has to check the distributor's own dashboard.
+     *     and a person has to check the distributor's own dashboard. Asked of
+     *     the *type*: an adapter that does not implement
+     *     {@see SupportsSubmissionLookup} is this answer, and is never called.
      *
      * A transport failure while *asking* is the third case, not the second.
      * "The lookup timed out" is not evidence of an empty account.
@@ -375,12 +381,24 @@ final readonly class SubmitDelivery
         $distributor = $this->distributors->distributor($delivery->provider);
         $startedAt = hrtime(true);
 
-        try {
-            $found = $distributor->findSubmission($delivery->idempotency_key);
-        } catch (SubmissionLookupUnsupported $exception) {
-            $this->record($delivery, DistributionAction::Reconcile, DistributionAttemptOutcome::Unknown, $exception->getMessage(), $startedAt);
+        // Asked of the type, before any call. An adapter for a provider with
+        // no lookup endpoint does not implement the capability, and that is
+        // the answer — "I cannot look" no longer has to travel as an exception
+        // thrown from a method the adapter was obliged to declare.
+        if (! $distributor instanceof SupportsSubmissionLookup) {
+            $this->record(
+                $delivery,
+                DistributionAction::Reconcile,
+                DistributionAttemptOutcome::Unknown,
+                sprintf('The [%s] distributor cannot be asked what it holds.', $distributor->name()),
+                $startedAt,
+            );
 
             return $delivery;
+        }
+
+        try {
+            $found = $distributor->findSubmission($delivery->idempotency_key);
         } catch (Throwable $exception) {
             // The lookup itself failed. Still unknown — and moving the row on
             // a failed question would be inventing an answer.
@@ -411,6 +429,9 @@ final readonly class SubmitDelivery
             $held->forceFill([
                 'status' => DistributionDeliveryStatus::Submitted,
                 'external_release_id' => $found->externalReleaseId,
+                // From the provider, but after a lost response rather than in
+                // one. Worth telling apart when reconstructing what happened.
+                'external_reference_source' => ExternalReferenceSource::ProviderLookup,
                 'failure_reason' => null,
                 'submitted_at' => $held->submitted_at ?? Carbon::now(),
                 'last_synced_at' => Carbon::now(),
@@ -508,6 +529,11 @@ final readonly class SubmitDelivery
                 $held->forceFill([
                     'status' => DistributionDeliveryStatus::Submitted,
                     'external_release_id' => trim((string) $externalReleaseId),
+                    // **The platform never received this value.** Recorded as
+                    // such so nothing downstream — and nobody reading a screen
+                    // — can mistake a person's report of a reference for the
+                    // distributor having produced one.
+                    'external_reference_source' => ExternalReferenceSource::ManualOperator,
                     'failure_reason' => null,
                     'submitted_at' => $held->submitted_at ?? Carbon::now(),
                 ])->save();

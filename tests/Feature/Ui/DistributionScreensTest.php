@@ -18,6 +18,7 @@ use SaniTube\Distribution\Enums\DistributionDeliveryStatus;
 use SaniTube\Distribution\Models\DistributionDelivery;
 use SaniTube\Distribution\Services\SubmitDelivery;
 use SaniTube\Distribution\Testing\FakeDistributor;
+use SaniTube\Distribution\Testing\WithoutSubmissionLookup;
 use SaniTube\Identity\Enums\UserRole;
 use SaniTube\Releases\Models\Release;
 use SaniTube\Ui\Navigation\NavigationTree;
@@ -630,7 +631,10 @@ final class DistributionScreensTest extends TestCase
     {
         $delivery = $this->unconfirmed();
 
-        $this->fake()->withoutSubmissionLookup();
+        // Re-registered without the lookup capability, which is how a real
+        // adapter for a provider with no such endpoint arrives.
+        $this->app->make(DistributorManager::class)
+            ->register('fake', new WithoutSubmissionLookup($this->fake()));
 
         $this->actingAs($this->owner())
             ->post('/distribution/'.$delivery->uuid.'/reconcile')
@@ -757,6 +761,47 @@ final class DistributionScreensTest extends TestCase
         $this->assertNotNull($distribution);
         $this->assertTrue($distribution['available']);
         $this->assertSame('/distribution', $distribution['href']);
+    }
+
+    #[Test]
+    public function the_screen_is_told_when_a_reference_was_typed_by_a_person(): void
+    {
+        // The one value in this module the platform never received. A screen
+        // that showed it exactly like a reference the distributor returned
+        // would let it be read as provider-verified, and a typo in it produces
+        // a delivery nobody can poll or take down.
+        $delivery = $this->unconfirmed();
+
+        $this->actingAs($this->owner())
+            ->post('/distribution/'.$delivery->uuid.'/resolve', [
+                'arrived' => true,
+                'external_release_id' => 'TL-99321',
+                'note' => 'Found it in the distributor dashboard, awaiting review.',
+            ])
+            ->assertRedirect();
+
+        $payload = $this->detail($delivery->refresh(), $this->owner());
+
+        $this->assertTrue($payload['has_external_reference']);
+        $this->assertSame('MANUAL_OPERATOR', $payload['external_reference_source']);
+
+        // And the reference itself still does not travel: it identifies a
+        // record in somebody else's account.
+        $this->assertStringNotContainsString('TL-99321', json_encode($payload, JSON_THROW_ON_ERROR));
+    }
+
+    #[Test]
+    public function the_screen_is_told_when_a_reference_came_from_the_distributor(): void
+    {
+        // Through the real submission path, so the provenance is the one the
+        // service wrote rather than one a fixture asserted into place.
+        $release = $this->deliverableRelease();
+        $delivery = $this->app->make(SubmitDelivery::class)->handle($release, 'fake');
+
+        $payload = $this->detail($delivery->refresh(), $this->owner());
+
+        $this->assertTrue($payload['has_external_reference']);
+        $this->assertSame('PROVIDER_RESPONSE', $payload['external_reference_source']);
     }
 
     // --------------------------------------------------------------- fixtures

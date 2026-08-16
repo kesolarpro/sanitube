@@ -304,3 +304,105 @@ check is now `$verdict->has('DISTRIBUTOR_UNREACHABLE')`.
 
 **Still REVIEW_REQUIRED. Still not merged.** The four decisions at the top of
 this document are what needs a signature; nothing in this audit changes them.
+
+
+---
+
+# Approved corrections, applied
+
+Review approved the design and required three changes before merge. All three
+are in, with the concurrency matrix the review also asked for.
+
+## 1 — `findSubmission()` left the main contract
+
+DIST-001 closed `Distributor` at five methods on the argument that a contract
+demanding a half every adapter cannot do forces every adapter to stub it. This
+ticket had widened it to six, and review was right that it should not have.
+
+`SupportsSubmissionLookup` is now a capability interface. The distinction
+matters more here than in most, because the two "no" answers have opposite
+consequences:
+
+- **"I looked and hold nothing."** Retrying is safe. FAILED.
+- **"I cannot look."** Retrying could be a *second delivery*, and a person has
+  to check.
+
+With the method on the main contract, the second answer had to travel as an
+exception thrown from a method the adapter was obliged to declare. It travels
+as a **type** now: `reconcile()` asks `instanceof` and never calls at all.
+`SubmissionLookupUnsupported` is deleted — the type is the single answer.
+
+`WithoutSubmissionLookup` is a decorator, not a flag, because a boolean that
+made one object sometimes-searchable would put the distinction back inside a
+method body.
+
+**M1 survived the first mutation pass.** Removing the type guard leaves the
+delivery in the *same state* — the missing method throws, the throwable is
+caught, the row stays unknown — so state alone proves nothing. What changes is
+the attempt log: a PHP error where an operator needs a reason. The test asserts
+the summary names the distributor and does not contain `findSubmission`.
+
+## 2 — Provenance on the external reference
+
+`ExternalReferenceSource`: `PROVIDER_RESPONSE`, `PROVIDER_LOOKUP`,
+`MANUAL_OPERATOR`.
+
+The third is why it exists. A hand-typed reference that looks exactly like a
+received one invites everything downstream to treat it as provider-verified,
+and a typo in it produces a delivery nobody can poll or take down — discovered
+months later by a release that will not come off a store.
+
+The delivery screen says so, in six languages, and the reference itself still
+does not travel to the browser.
+
+## 3 — `decided_by` constrained with RESTRICT
+
+The original argument — "SEC-001 deactivates rather than deletes, so the
+reference stays resolvable" — is a property of the current code, not of the
+schema.
+
+RESTRICT, and neither alternative: `cascadeOnDelete` would erase history by way
+of the users table, which is what an append-only log exists to prevent;
+`nullOnDelete` would keep a decision that says a person made it and cannot say
+who, which is worse because it looks complete.
+
+**The constraint immediately caught something.** Four existing tests attributed
+decisions to user `42`, an account that never existed — an append-only log that
+could not have named anybody. They use a real person now.
+
+## 4 — The contradiction matrix
+
+Six orderings, data-provided, each asserting one winner and one
+`NOT_RECONCILABLE`:
+
+| First answer | Second answer |
+|---|---|
+| manual arrived | manual not-arrived |
+| manual not-arrived | manual arrived |
+| manual arrived | reconciliation |
+| manual not-arrived | reconciliation |
+| reconciliation | manual arrived |
+| reconciliation | reconciliation |
+
+Each asserts the status, the reference **and** the count of decisive rows are
+unchanged by the loser.
+
+## Mutation pass — 8 injected, 8 killed
+
+| # | Mutation | Result |
+|---|---|---|
+| M1 | A distributor that cannot look is called anyway | killed |
+| M2 | A hand-typed reference is recorded as one the provider returned | killed |
+| M3 | A looked-up reference is recorded as one returned in a response | killed |
+| M4 | A manual reference claims to be from the provider | killed |
+| M5 | Deleting a person erases the decisions they took | killed |
+| M6 | Deleting a person leaves a decision nobody made | killed |
+| M7 | The claim stops holding the row while an answer is worked out | killed |
+| M8 | The screen is not told where the reference came from | killed |
+
+M1 and M8 survived the first pass; both are described above.
+
+## Gate
+
+1120 passed, 1 skipped, 5262 assertions · PHPStan clean · Pint clean ·
+`vue-tsc` clean · Vitest 16 · build green · six locales complete.

@@ -4,23 +4,31 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Distribution;
 
+use App\Models\User;
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use SaniTube\Catalog\Enums\ExternalIdentifierSource;
 use SaniTube\Catalog\Enums\ExternalIdentifierType;
 use SaniTube\Catalog\Models\Track;
 use SaniTube\Catalog\Services\AssignExternalIdentifier;
+use SaniTube\Distribution\Contracts\SupportsSubmissionLookup;
 use SaniTube\Distribution\DistributorManager;
 use SaniTube\Distribution\Enums\DistributionAction;
 use SaniTube\Distribution\Enums\DistributionAttemptOutcome;
 use SaniTube\Distribution\Enums\DistributionDeliveryStatus;
+use SaniTube\Distribution\Enums\ExternalReferenceSource;
 use SaniTube\Distribution\Exceptions\DistributionException;
 use SaniTube\Distribution\Models\DistributionAttempt;
 use SaniTube\Distribution\Models\DistributionDelivery;
 use SaniTube\Distribution\Services\SubmitDelivery;
 use SaniTube\Distribution\Testing\FakeDistributor;
+use SaniTube\Distribution\Testing\WithoutSubmissionLookup;
+use SaniTube\Identity\Enums\UserRole;
 use SaniTube\Releases\Models\Release;
 use Tests\TestCase;
+use Throwable;
 
 /**
  * DIST-001-H1 — when SaniTube cannot say whether the package arrived.
@@ -224,7 +232,7 @@ final class UnknownSubmissionOutcomeTest extends TestCase
             $delivery,
             arrived: true,
             externalReleaseId: 'TL-99321',
-            decidedBy: 42,
+            decidedBy: $this->operator()->getKey(),
             note: 'Found it in the distributor dashboard, awaiting review.',
         );
 
@@ -241,7 +249,7 @@ final class UnknownSubmissionOutcomeTest extends TestCase
                 $delivery,
                 arrived: false,
                 externalReleaseId: null,
-                decidedBy: 43,
+                decidedBy: $this->operator('second@example.test')->getKey(),
                 note: 'Nothing in the dashboard as far as I can see.',
             );
             $this->fail('A closed question was answered twice.');
@@ -269,7 +277,7 @@ final class UnknownSubmissionOutcomeTest extends TestCase
             $delivery,
             arrived: true,
             externalReleaseId: 'TL-99321',
-            decidedBy: 42,
+            decidedBy: $this->operator()->getKey(),
             note: 'Found it in the distributor dashboard, awaiting review.',
         );
 
@@ -297,7 +305,12 @@ final class UnknownSubmissionOutcomeTest extends TestCase
         $release = $this->readyRelease();
         $delivery = $this->openUnconfirmed($release);
 
-        $this->distributor->withoutSubmissionLookup();
+        // Registered *without* the lookup capability. Not a flag on the fake:
+        // the whole point of SupportsSubmissionLookup is that an adapter which
+        // cannot search says so by its type, and the service checks before it
+        // calls anything.
+        $this->app->make(DistributorManager::class)
+            ->register('fake', new WithoutSubmissionLookup($this->distributor));
 
         $reconciled = $this->submit()->reconcile($delivery);
 
@@ -362,7 +375,7 @@ final class UnknownSubmissionOutcomeTest extends TestCase
             $delivery,
             arrived: true,
             externalReleaseId: 'TL-99321',
-            decidedBy: 42,
+            decidedBy: $this->operator()->getKey(),
             note: 'Found it in the Too Lost dashboard under 12 March, awaiting review.',
         );
 
@@ -373,7 +386,7 @@ final class UnknownSubmissionOutcomeTest extends TestCase
 
         // The one place in this module where a value the platform never
         // received is written as though it had been. Who typed it is recorded.
-        $this->assertSame(42, $attempt->decided_by);
+        $this->assertSame($this->operator()->getKey(), $attempt->decided_by);
         $this->assertStringContainsString('Too Lost dashboard', (string) $attempt->response_summary);
     }
 
@@ -387,7 +400,7 @@ final class UnknownSubmissionOutcomeTest extends TestCase
             $delivery,
             arrived: false,
             externalReleaseId: null,
-            decidedBy: 42,
+            decidedBy: $this->operator()->getKey(),
             note: 'Nothing in the dashboard and support confirmed no record.',
         );
 
@@ -395,7 +408,10 @@ final class UnknownSubmissionOutcomeTest extends TestCase
         // decision reviewable afterwards.
         $this->assertSame(DistributionDeliveryStatus::Failed, $resolved->status);
         $this->assertTrue($resolved->status->isSubmittable());
-        $this->assertSame(42, $resolved->attempts()->orderByDesc('id')->firstOrFail()->decided_by);
+        $this->assertSame(
+            $this->operator()->getKey(),
+            $resolved->attempts()->orderByDesc('id')->firstOrFail()->decided_by,
+        );
     }
 
     #[Test]
@@ -465,6 +481,265 @@ final class UnknownSubmissionOutcomeTest extends TestCase
     }
 
     // --------------------------------------------------------------- fixtures
+
+    /**
+     * A real person to attribute a decision to.
+     *
+     * `decided_by` carries a RESTRICT foreign key now, so an id nobody owns is
+     * refused — which is the point. These tests used to attribute decisions to
+     * user 42, an account that never existed, and the append-only log they
+     * assert on could not have named anybody.
+     */
+    // ---------------------------------------------------------- concurrency
+
+    /**
+     * Every pair of answers two people can give the same open question.
+     *
+     * Whoever answers first is the answer. The second is told the question is
+     * closed, and the log holds exactly one decisive row — because the failure
+     * this guards against is not a lost update but a *contradiction*: one
+     * operator recording "it arrived, reference TL-99321" and another "nothing
+     * in the dashboard", with the delivery keeping whichever landed last.
+     *
+     * The reverse ordering is the dangerous one. A reconcile already in flight
+     * when a person confirms the package did arrive would drag the delivery
+     * back to FAILED, and FAILED is submittable — a second delivery, which is
+     * the outcome this whole module exists to prevent.
+     *
+     * @return iterable<string, array{0: string, 1: string}>
+     */
+    public static function opposingAnswers(): iterable
+    {
+        yield 'manual arrived, then manual not-arrived' => ['manual-arrived', 'manual-missing'];
+        yield 'manual not-arrived, then manual arrived' => ['manual-missing', 'manual-arrived'];
+        yield 'manual arrived, then reconciliation' => ['manual-arrived', 'reconcile'];
+        yield 'manual not-arrived, then reconciliation' => ['manual-missing', 'reconcile'];
+        yield 'reconciliation, then manual arrived' => ['reconcile', 'manual-arrived'];
+        yield 'reconciliation, then reconciliation' => ['reconcile', 'reconcile'];
+    }
+
+    #[Test]
+    #[DataProvider('opposingAnswers')]
+    public function only_one_answer_to_an_open_question_ever_wins(string $first, string $second): void
+    {
+        $release = $this->readyRelease();
+
+        // Held by the distributor, so a reconcile has a real answer to give.
+        $this->distributor->swallowingSubmissions();
+        $delivery = $this->submit()->handle($release, 'fake');
+
+        $this->assertTrue($delivery->status->isUnknown());
+
+        $this->answer($first, $delivery);
+
+        $settled = $delivery->fresh();
+        $this->assertNotNull($settled);
+        $this->assertFalse($settled->status->isUnknown(), 'The first answer did not settle the question.');
+
+        $before = $settled->status;
+        $reference = $settled->external_release_id;
+        $decisions = DistributionAttempt::query()->whereNotNull('decided_by')->count();
+
+        // `$delivery` still reads SUBMITTED_UNCONFIRMED in memory — it is the
+        // instance a second operator's request would be holding, loaded before
+        // the first one answered.
+        try {
+            $this->answer($second, $delivery);
+            $this->fail('A closed question was answered twice.');
+        } catch (DistributionException $exception) {
+            $this->assertSame('NOT_RECONCILABLE', $exception->reason);
+        }
+
+        $after = $delivery->fresh();
+        $this->assertNotNull($after);
+
+        $this->assertSame($before, $after->status);
+        $this->assertSame($reference, $after->external_release_id);
+        $this->assertSame($decisions, DistributionAttempt::query()->whereNotNull('decided_by')->count());
+    }
+
+    private function answer(string $kind, DistributionDelivery $delivery): void
+    {
+        match ($kind) {
+            'manual-arrived' => $this->submit()->resolveManually(
+                $delivery,
+                arrived: true,
+                externalReleaseId: 'TL-99321',
+                decidedBy: $this->operator()->getKey(),
+                note: 'Found it in the distributor dashboard.',
+            ),
+            'manual-missing' => $this->submit()->resolveManually(
+                $delivery,
+                arrived: false,
+                externalReleaseId: null,
+                decidedBy: $this->operator('second@example.test')->getKey(),
+                note: 'Nothing in the dashboard and support confirmed no record.',
+            ),
+            'reconcile' => $this->submit()->reconcile($delivery),
+            default => throw new \InvalidArgumentException($kind),
+        };
+    }
+
+    // ----------------------------------------------------------- provenance
+
+    #[Test]
+    public function a_reference_the_distributor_returned_is_recorded_as_such(): void
+    {
+        $release = $this->readyRelease();
+
+        $delivery = $this->submit()->handle($release, 'fake');
+
+        $this->assertSame(ExternalReferenceSource::ProviderResponse, $delivery->external_reference_source);
+        $this->assertTrue($delivery->external_reference_source->isFromProvider());
+    }
+
+    #[Test]
+    public function a_reference_found_by_asking_is_told_apart_from_one_that_was_returned(): void
+    {
+        // Both came from the provider, but one arrived in a response and the
+        // other after that response was lost. Worth telling apart when
+        // reconstructing what happened to a delivery.
+        $release = $this->readyRelease();
+
+        // The request arrived; the response was lost. So the distributor does
+        // hold something under this key, and asking finds it.
+        $this->distributor->swallowingSubmissions();
+        $delivery = $this->submit()->handle($release, 'fake');
+
+        $reconciled = $this->submit()->reconcile($delivery);
+
+        $this->assertSame(DistributionDeliveryStatus::Submitted, $reconciled->status);
+        $this->assertSame(ExternalReferenceSource::ProviderLookup, $reconciled->external_reference_source);
+        $this->assertTrue($reconciled->external_reference_source->isFromProvider());
+    }
+
+    #[Test]
+    public function a_reference_a_person_typed_is_never_indistinguishable_from_one_received(): void
+    {
+        // The correction this ticket was held open for. A hand-entered
+        // reference is the one value in this module the platform never
+        // received, and a typo in it produces a delivery nobody can poll or
+        // take down — discovered months later by a release that will not come
+        // off a store.
+        $release = $this->readyRelease();
+        $delivery = $this->openUnconfirmed($release);
+
+        $resolved = $this->submit()->resolveManually(
+            $delivery,
+            arrived: true,
+            externalReleaseId: 'TL-99321',
+            decidedBy: $this->operator()->getKey(),
+            note: 'Found it in the distributor dashboard, awaiting review.',
+        );
+
+        $this->assertSame(ExternalReferenceSource::ManualOperator, $resolved->external_reference_source);
+        $this->assertFalse($resolved->external_reference_source->isFromProvider());
+    }
+
+    // ----------------------------------------------------------- the capability
+
+    #[Test]
+    public function a_distributor_without_the_lookup_capability_is_never_asked(): void
+    {
+        // Asked of the type rather than by calling and catching. The fake
+        // counts nothing here — what matters is that a provider which cannot
+        // search is identified before a call is made, so an adapter never has
+        // to declare a method it can only throw from.
+        $release = $this->readyRelease();
+        $delivery = $this->openUnconfirmed($release);
+
+        $manager = $this->app->make(DistributorManager::class);
+        $manager->register('fake', new WithoutSubmissionLookup($this->distributor));
+
+        // Asked of what the service will actually resolve, not of a local
+        // variable whose class is already known — the guard is that a
+        // registered distributor can fail this check, and it does.
+        $this->assertNotInstanceOf(SupportsSubmissionLookup::class, $manager->distributor('fake'));
+
+        $reconciled = $this->submit()->reconcile($delivery);
+
+        $this->assertSame(DistributionDeliveryStatus::SubmittedUnconfirmed, $reconciled->status);
+
+        // And the log says *why* nobody could say. Calling anyway and letting
+        // the missing method blow up would leave the delivery in the same
+        // state — so the state alone proves nothing — but it would record a
+        // PHP error where an operator needs a reason, and would have made an
+        // adapter responsible for a method it cannot implement.
+        $attempt = $reconciled->attempts()->orderByDesc('id')->firstOrFail();
+
+        $this->assertSame(DistributionAttemptOutcome::Unknown, $attempt->outcome);
+        $this->assertStringContainsString('cannot be asked', (string) $attempt->response_summary);
+        $this->assertStringNotContainsString('findSubmission', (string) $attempt->response_summary);
+    }
+
+    // ---------------------------------------------------------- accountability
+
+    #[Test]
+    public function a_person_who_decided_cannot_be_deleted_out_from_under_the_decision(): void
+    {
+        // RESTRICT, and neither of the alternatives. Cascading would erase the
+        // history by way of the users table — exactly what an append-only log
+        // exists to prevent — and nulling would keep a decision that says a
+        // person made it and cannot say who, which is worse because it looks
+        // complete.
+        $release = $this->readyRelease();
+        $delivery = $this->openUnconfirmed($release);
+        $operator = $this->operator();
+
+        $this->submit()->resolveManually(
+            $delivery,
+            arrived: false,
+            externalReleaseId: null,
+            decidedBy: $operator->getKey(),
+            note: 'Nothing in the dashboard and support confirmed no record.',
+        );
+
+        // The honest outcome. SEC-001 deactivates rather than deletes, and an
+        // installation that genuinely must remove somebody has to decide what
+        // happens to their decisions rather than have the database decide
+        // silently.
+        $deleted = true;
+
+        try {
+            $operator->delete();
+        } catch (Throwable) {
+            $deleted = false;
+        }
+
+        $this->assertFalse($deleted, 'The person who took a recorded decision was deleted.');
+        $this->assertSame(1, User::query()->whereKey($operator->getKey())->count());
+
+        $this->assertSame(1, DistributionAttempt::query()->whereNotNull('decided_by')->count());
+    }
+
+    #[Test]
+    public function a_decision_cannot_be_attributed_to_somebody_who_does_not_exist(): void
+    {
+        $release = $this->readyRelease();
+        $delivery = $this->openUnconfirmed($release);
+
+        $this->expectException(QueryException::class);
+
+        $this->submit()->resolveManually(
+            $delivery,
+            arrived: false,
+            externalReleaseId: null,
+            decidedBy: 987654,
+            note: 'Attributed to nobody in particular.',
+        );
+    }
+
+    private function operator(string $email = 'operator@example.test'): User
+    {
+        $user = User::query()->firstOrCreate(
+            ['email' => $email],
+            ['name' => 'Operator', 'password' => 'a-long-enough-passphrase'],
+        );
+
+        $user->forceFill(['role' => UserRole::Owner, 'is_active' => true])->save();
+
+        return $user;
+    }
 
     private function submit(): SubmitDelivery
     {

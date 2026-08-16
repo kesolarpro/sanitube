@@ -6,10 +6,10 @@ namespace SaniTube\Distribution\Testing;
 
 use RuntimeException;
 use SaniTube\Distribution\Contracts\Distributor;
+use SaniTube\Distribution\Contracts\SupportsSubmissionLookup;
 use SaniTube\Distribution\DeliveryStatus;
 use SaniTube\Distribution\DistributorSubmission;
 use SaniTube\Distribution\DistributorValidation;
-use SaniTube\Distribution\Exceptions\SubmissionLookupUnsupported;
 use SaniTube\Distribution\Exceptions\SubmissionNotSent;
 use SaniTube\Releases\Models\Release;
 
@@ -26,7 +26,7 @@ use SaniTube\Releases\Models\Release;
  * second. That is the behaviour the engine is written against, and a fake that
  * did not honour it would let a duplicate-delivery bug through.
  */
-final class FakeDistributor implements Distributor
+final class FakeDistributor implements Distributor, SupportsSubmissionLookup
 {
     /** @var array<string, DistributorSubmission> */
     private array $submissions = [];
@@ -44,8 +44,6 @@ final class FakeDistributor implements Distributor
     private bool $outage = false;
 
     /** Whether this fake can be asked what it holds. Real ones often cannot. */
-    private bool $lookupSupported = true;
-
     /** Raised by submitRelease() to stand in for a read timeout. */
     private bool $swallowSubmission = false;
 
@@ -170,10 +168,9 @@ final class FakeDistributor implements Distributor
 
     public function findSubmission(string $idempotencyKey): ?DistributorSubmission
     {
-        if (! $this->lookupSupported) {
-            throw SubmissionLookupUnsupported::for($this->name);
-        }
-
+        // A transport failure while *asking* is not "holds nothing" — it is a
+        // question that never completed, and the caller leaves the delivery
+        // unknown rather than inventing an answer from it.
         $this->refuseIfDown();
 
         return $this->submissions[$idempotencyKey] ?? null;
@@ -221,17 +218,6 @@ final class FakeDistributor implements Distributor
     public function failingPreparation(): self
     {
         $this->breakPreparation = true;
-
-        return $this;
-    }
-
-    /**
-     * A distributor with no way to look a submission up by key — the common
-     * case, and the one that leaves a person to resolve it.
-     */
-    public function withoutSubmissionLookup(): self
-    {
-        $this->lookupSupported = false;
 
         return $this;
     }

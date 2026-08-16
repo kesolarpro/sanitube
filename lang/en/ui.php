@@ -275,6 +275,9 @@ return [
         'database_driver' => 'Database',
     ],
     'distribution' => [
+        'reference_manual' => 'This reference was entered by a person',
+        'reference_manual_note' => 'SaniTube never received it from the distributor. Someone read it off their dashboard and typed it in, so it has not been confirmed by the distributor itself.',
+        'reference_from_lookup' => 'This reference came from asking the distributor what it held, after the original response was lost.',
         'title' => 'Distribution',
         'description' => 'Every release this installation has handed to a distributor, and what happened next.',
         'no_deliveries' => 'No deliveries yet',

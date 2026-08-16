@@ -246,6 +246,26 @@ function submitResolve(): void {
                 }}
             </p>
 
+            <!-- Where the reference came from. Said out loud only when a
+                 person supplied it: the platform never saw that value, and
+                 presenting it like one the distributor returned is how a typo
+                 becomes a release nobody can take down. -->
+            <AppAlert
+                v-if="delivery.external_reference_source === 'MANUAL_OPERATOR'"
+                tone="warning"
+                class="mt-3"
+                :title="trans('ui.distribution.reference_manual')"
+            >
+                {{ trans('ui.distribution.reference_manual_note') }}
+            </AppAlert>
+
+            <p
+                v-else-if="delivery.external_reference_source === 'PROVIDER_LOOKUP'"
+                class="mt-2 text-caption text-muted"
+            >
+                {{ trans('ui.distribution.reference_from_lookup') }}
+            </p>
+
             <div v-if="delivery.failure_reason !== null" class="mt-4 border-t border-border pt-3">
                 <p class="text-caption text-muted">{{ trans('ui.distribution.failure_reason') }}</p>
                 <p class="mt-1 text-small text-foreground">{{ delivery.failure_reason }}</p>

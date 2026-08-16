@@ -59,6 +59,13 @@ final readonly class DeliveryDetailQuery
             // somebody else's account and stays here.
             'has_external_reference' => $delivery->external_release_id !== null,
 
+            // Where that reference came from. A value a distributor returned
+            // and one a person read off a dashboard and typed in are not the
+            // same fact, and a screen that showed them identically would let
+            // the second be read as provider-verified. The code travels; the
+            // reference itself does not.
+            'external_reference_source' => $delivery->external_reference_source?->value,
+
             'failure_reason' => $this->reason($delivery->failure_reason),
 
             'submitted_at' => $delivery->submitted_at?->toAtomString(),

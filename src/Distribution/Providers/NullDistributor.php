@@ -68,8 +68,4 @@ final readonly class NullDistributor implements Distributor
      * distributor has never sent anything anywhere, so it can say with
      * certainty that it holds nothing.
      */
-    public function findSubmission(string $idempotencyKey): ?DistributorSubmission
-    {
-        return null;
-    }
 }

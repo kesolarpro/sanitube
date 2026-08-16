@@ -275,6 +275,9 @@ return [
         'database_driver' => 'Base de données',
     ],
     'distribution' => [
+        'reference_manual' => 'Cette référence a été saisie par une personne',
+        'reference_manual_note' => 'SaniTube ne l’a jamais reçue du distributeur. Quelqu’un l’a lue sur son tableau de bord et l’a saisie : elle n’a donc pas été confirmée par le distributeur lui-même.',
+        'reference_from_lookup' => 'Cette référence provient d’une interrogation du distributeur, après la perte de la réponse initiale.',
         'title' => 'Distribution',
         'description' => 'Toutes les sorties confiées à un distributeur depuis cette installation, et ce qui s’est passé ensuite.',
         'no_deliveries' => 'Aucune livraison',
