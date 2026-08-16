@@ -1,8 +1,8 @@
 {
   "$comment": "Machine-readable project state. Any new session reads this first, then verifies it against GitHub before trusting it. Written at the end of each ticket, so a stale entry means a session ended mid-ticket — check the branch and CI rather than the status field.",
   "updated_at": "2026-08-16",
-  "current_phase": "SET-001",
-  "last_completed_ticket": "DIST-UI-001",
+  "current_phase": "SET-001 merged",
+  "last_completed_ticket": "SET-001",
   "default_branch": "main",
   "tickets": {
     "ARCH-001": {
@@ -332,10 +332,10 @@
       "note": "Delivery list, delivery detail and a per-release send screen over DIST-001. No screen probes a distributor on render. UNKNOWN, FAILED and REJECTED are drawn as three different things. The preflight is a GET that creates nothing."
     },
     "SET-001": {
-      "status": "implemented, awaiting PR",
+      "status": "merged",
       "branch": "claude/set-001-settings-shell",
-      "ci": "local gate green; CI pending",
-      "note": "Read-only, administrator-only settings shell. Credentials are reported as configured/not configured and nothing else — no value, no mask, no length. Presence is read through config, not env(), because a config:cache-d installation gets null from env() for everything."
+      "pr": 36,
+      "ci": "green 10/10"
     },
     "SET-002": {
       "status": "open — raised by SET-001",
@@ -408,16 +408,26 @@
     "design_system": "Semantic tokens only (--color-surface, never --color-zinc-900). Status colour is decided in StatusBadge alone; labels always come from translations. Navigation is built server-side and unbuilt sections show as disabled — 'available' is presentation, never authorisation. MetricCard takes number|null and renders null as an em dash, never 0.",
     "frontend_toolchain": "@vitejs/plugin-vue@5 peers Vite ^5||^6; the project is on Vite 7. Resolved with plugin-vue@6 (which supports Vite 7), NOT --force or --legacy-peer-deps: a peer conflict is compatibility information, and overriding it keeps the incompatibility. Same for vue-tsc@3. npm run types runs in CI."
   },
-  "open_pull_requests": [],
+  "open_pull_requests": [
+    {
+      "number": 35,
+      "ticket": "DIST-001-H1",
+      "ci": "green 10/10",
+      "status": "REVIEW_REQUIRED — deliberately not merged. Changes external submission semantics, widens the Distributor contract, and lets a person write an external reference the platform never received."
+    }
+  ],
   "next_session": {
-    "start_with": "DIST-001-H1 — unknown submission outcome. REVIEW_REQUIRED: open the PR, do not merge, continue on independent work.",
+    "start_with": "DEP-001 — the deploy script. Branch from main.",
     "then": [
-      "SET-001 settings shell (secrets write-only and masked; never returned to the frontend)",
-      "DEP-001 deploy script, DEP-002/003 cPanel and VPS documentation",
+      "DEP-002/003 cPanel and VPS deployment documentation",
       "OPS-001 backup and restore",
-      "REL-002 machine-readable release validation problems — now blocking two screens",
+      "REL-002 machine-readable validation problems — blocking two screens",
+      "SET-002 writing configuration from the interface (REVIEW_REQUIRED when built)",
       "AUDIT-001, NOTIF-001",
       "E2E-001, accessibility audit, security hardening, performance, docs/production-readiness.md"
+    ],
+    "awaiting_review": [
+      "PR #35 DIST-001-H1 — green, REVIEW_REQUIRED, must not be merged autonomously."
     ],
     "do_not_build": [
       "ROY-001, RIGHTS-001 (financial), PUB-001 — all OUT_OF_SCOPE_V1",
@@ -425,7 +435,7 @@
       "Any financial screen",
       "Any distributor-specific logic in the domain — provider specifics belong in adapters"
     ],
-    "suite_size": "950 tests / 4130 assertions at DIST-UI-001",
+    "suite_size": "971 tests / 4206 assertions at SET-001",
     "conventions_to_honour": [
       "Disabled providers are named 'none', never 'null' (AI, generation, distribution managers all share the rule).",
       "$table->json() is forbidden; use longText + array cast.",
@@ -446,7 +456,9 @@
       "A LIKE search escapes % and _ with an explicit ESCAPE clause; the escape character is ! because MySQL also treats a backslash as an escape inside string literals and SQLite does not.",
       "A screen never probes an external provider on render. Availability and sandbox mode come from configuration; asking the provider anything is a button.",
       "UNKNOWN, FAILED and REJECTED are three different things and are never drawn the same way. An outage is not a verdict.",
-      "A provider job id, external reference or idempotency key never reaches a payload. Prefer a boolean that answers the question (has_external_reference)."
+      "A provider job id, external reference or idempotency key never reaches a payload. Prefer a boolean that answers the question (has_external_reference).",
+      "A credential is reported as configured or not configured. Never a value, never a mask, never a length.",
+      "Read presence through config, not env(): a config:cache-d installation gets null from env() for everything."
     ]
   },
   "review_policy": {
@@ -455,8 +467,8 @@
     "since": "UI-001",
     "note": "Nine tickets (ING/MED/CAT/AI/GEN/REL/DIST/SEC-001 and PR #12) were merged under an earlier autonomous-chaining instruction that bypassed review. A retroactive audit is under way; they stay in main and any correction becomes a follow-up ticket, not a revert. BULK-001b, UI-004 and UI-005 were merged under the session's explicit merge policy for read-only UI, ingestion tooling and documentation: none changes authentication, authorization, rights, money, identifier lifecycle, destructive storage behaviour or any external action."
   },
-  "main_sha": "7de56d0",
-  "current_ticket": "SET-001",
+  "main_sha": "347ecb3",
+  "current_ticket": null,
   "tests": "971 passed, 1 skipped, 4206 assertions",
   "phpstan": {
     "level": 6,
@@ -471,7 +483,7 @@
     "build": "clean",
     "note": "PHP suite stubs Vite when no manifest exists; the frontend CI job renders against a real one."
   },
-  "next_action": "Open the SET-001 PR, wait for real CI, merge if 10/10 green, verify main. DIST-001-H1 (PR #35) stays open for review.",
+  "next_action": "Start DEP-001 from main. Leave PR #35 open for review.",
   "session_boundary": {
     "reason": "Context capacity approaching its limit at a clean ticket boundary. Five tickets merged, main green, no open PR.",
     "repository_state": "green",
@@ -479,7 +491,7 @@
     "note": "UI-004b, UI-005b, SYS-001, INS-001 merged this session, each 10/10 green before merge and verified after. Both new screen sets are now operational rather than read-only, the platform reports on itself, and it can be installed from a terminal. Resume from next_action."
   },
   "v1_progress_percent": {
-    "value": 59,
+    "value": 61,
     "method": "weighted by block, production-ready not implemented-only; reweighted by the 2026-08-16 scope correction",
     "breakdown": {
       "core_domain": {
@@ -514,8 +526,8 @@
       },
       "security_api": {
         "weight": 5,
-        "implemented": 45,
-        "production_ready": 30
+        "implemented": 55,
+        "production_ready": 40
       },
       "installer_deployment_backup": {
         "weight": 15,
@@ -528,7 +540,7 @@
         "production_ready": 25
       }
     },
-    "note": "55 -> 59. Distribution is now operable from a screen rather than an API call: a label can see where a release could go, ask a distributor for a verdict without handing anything over, submit once, check back and request a takedown. It stays well short of production-ready for one reason that no amount of UI fixes — DIST-002, no real distributor account has ever been exercised. Installer/deployment/backup is now the largest unfinished block."
+    "note": "59 -> 61. The settings shell closes the last read-only gap in the interface: an operator can now see what an installation is configured with without reading .env over SSH. What remains between this and a V1 is almost entirely installer/deployment/backup (weight 15, the largest unfinished block), plus E2E and production hardening. DIST-001-H1 is written and green but waiting on a human decision."
   },
   "decisions": {
     "asset_preview_url": {
