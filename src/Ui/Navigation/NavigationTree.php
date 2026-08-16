@@ -53,7 +53,11 @@ final readonly class NavigationTree
             $this->item('publishing', null, 'publishing', available: false),
             $this->item('royalties', null, 'royalties', available: false),
             $this->item('analytics', null, 'analytics', available: false),
-            $this->item('jobs', null, 'jobs', available: false),
+            // Administration only. `available` is presentation — the route
+            // middleware is the authorisation — but showing an operator a link
+            // they cannot open is not honesty, it is noise.
+            $this->item('jobs', '/system/jobs', 'jobs', available: $user->role->canAdminister()),
+            $this->item('operations', '/system/operations', 'system', available: $user->role->canAdminister()),
 
             // The one screen UI-001 ships. It exists to prove the design
             // system holds together, and it is deliberately not a business

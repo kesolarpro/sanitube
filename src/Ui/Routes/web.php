@@ -27,6 +27,9 @@ use SaniTube\Ui\Http\Controllers\Studio\OverviewController;
 use SaniTube\Ui\Http\Controllers\Studio\ProjectDetailController;
 use SaniTube\Ui\Http\Controllers\Studio\ProjectIndexController;
 use SaniTube\Ui\Http\Controllers\Studio\StudioActionController;
+use SaniTube\Ui\Http\Controllers\System\JobsController;
+use SaniTube\Ui\Http\Controllers\System\OperationsController;
+use SaniTube\Ui\Http\Controllers\System\RefreshHealthController;
 use SaniTube\Ui\Http\Middleware\HandleInertiaRequests;
 
 /*
@@ -118,6 +121,23 @@ Route::middleware(['web', HandleInertiaRequests::class, 'auth', 'active'])->grou
             ->name('studio.generations.cancel');
         Route::post('studio/results/{result}/select', [StudioActionController::class, 'selectResult'])
             ->name('studio.results.select');
+    });
+
+    /*
+     * System.
+     *
+     * Both GETs read stored state and probe nothing: this is what somebody
+     * opens during an outage. Behind `can.role:administer` because a queue
+     * listing says what the installation is doing and how it is configured.
+     */
+    Route::middleware('can.role:administer')->group(function (): void {
+        Route::get('system/operations', OperationsController::class)->name('system.operations');
+        Route::get('system/jobs', JobsController::class)->name('system.jobs');
+
+        // The one place a probe may run from a request: explicit, POST, and
+        // pressed by a person who asked for it.
+        Route::post('system/operations/refresh', RefreshHealthController::class)
+            ->name('system.operations.refresh');
     });
 
     Route::get('design-system', DesignSystemController::class)->name('design-system');
