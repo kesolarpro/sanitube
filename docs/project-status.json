@@ -1,8 +1,8 @@
 {
   "$comment": "Machine-readable project state. Any new session reads this first, then verifies it against GitHub before trusting it. Written at the end of each ticket, so a stale entry means a session ended mid-ticket — check the branch and CI rather than the status field.",
   "updated_at": "2026-08-16",
-  "current_phase": "ING-002 merged; DIST-001-H1 (PR 35) awaiting review",
-  "last_completed_ticket": "ING-002",
+  "current_phase": "DIST-001-H1 merged with corrections; PROD-001 in flight",
+  "last_completed_ticket": "DIST-001-H1",
   "default_branch": "main",
   "tickets": {
     "ARCH-001": {
@@ -375,14 +375,16 @@
       "note": "Starting an import from the interface. Gave IngestionException a reason distinct from its persisted failure code, refused an ambiguous folder+list selection that used to drop the list silently, and stopped the stylesheet being built from the compiled-view cache."
     },
     "DIST-001-H1": {
-      "status": "review approved with corrections — applying them now",
+      "status": "merged",
       "branch": "claude/dist-001-h1-unknown-outcome",
       "pr": 35,
-      "corrections": [
-        "findSubmission() moves out of the Distributor contract into a SupportsSubmissionLookup capability",
-        "external reference carries provenance: PROVIDER_RESPONSE / PROVIDER_LOOKUP / MANUAL_OPERATOR",
-        "decided_by gets a RESTRICT foreign key to users"
-      ]
+      "ci": "green 10/10",
+      "note": "Unknown submission outcome, merged after the three approved corrections: findSubmission() moved to a SupportsSubmissionLookup capability, external references carry provenance (PROVIDER_RESPONSE/PROVIDER_LOOKUP/MANUAL_OPERATOR), and decided_by carries a RESTRICT foreign key."
+    },
+    "PROD-001": {
+      "status": "implemented, awaiting PR",
+      "branch": "claude/prod-001-doctor",
+      "note": "sanitube:doctor — read-only production diagnosis, non-zero exit on internal blockers — and docs/production-readiness.md with a per-control verdict."
     }
   },
   "architecture_amendments": [
@@ -752,8 +754,5 @@
     },
     "implemented_percent": 86,
     "production_ready_percent": 77
-  },
-  "open_prs": {
-    "35": "DIST-001-H1 — REVIEW_REQUIRED, audited and hardened, deliberately not merged"
   }
 }
