@@ -285,9 +285,12 @@
       "note": "Re-import storage amplification — see known_limitations.bulk_reimport_storage_cost. Needs a measurement and a deliberate choice, not a guess."
     },
     "SYS-001b": {
-      "status": "implemented, awaiting PR",
+      "status": "merged",
       "branch": "claude/sys-001b-failed-jobs",
-      "note": "Failed-job retry and record removal behind can.role:administer. Retryability is declared by the job via SafelyRetryable — opt in, never opt out — so the one operation that must never happen twice is never offered a retry button."
+      "pr": 49,
+      "ci": "green — run 31972577593",
+      "merge_commit": "4e17ab3",
+      "note": "Failed-job retry and record removal behind can.role:administer. Retryability is declared by the job through the SafelyRetryable marker — opt in, never opt out — so the one operation that must never happen twice (ImportGenerationResultJob, SubmitMusicGenerationJob) is never offered a retry button. No payload or stack trace ever leaves QueueQuery."
     },
     "UI-005b": {
       "status": "merged",
@@ -382,14 +385,20 @@
       "note": "Unknown submission outcome, merged after the three approved corrections: findSubmission() moved to a SupportsSubmissionLookup capability, external references carry provenance (PROVIDER_RESPONSE/PROVIDER_LOOKUP/MANUAL_OPERATOR), and decided_by carries a RESTRICT foreign key."
     },
     "PROD-001": {
-      "status": "implemented, awaiting PR",
+      "status": "merged",
       "branch": "claude/prod-001-doctor",
-      "note": "sanitube:doctor — read-only production diagnosis, non-zero exit on internal blockers — and docs/production-readiness.md with a per-control verdict."
+      "pr": 47,
+      "ci": "green — run 31972164788 (main 130)",
+      "merge_commit": "2d940dd",
+      "note": "sanitube:doctor — read-only production diagnosis, non-zero exit on internal blockers — and docs/production-readiness.md with a per-control verdict. Nothing in it claims a control passed that no one has performed on a real host."
     },
     "AUTH-002": {
-      "status": "implemented, awaiting PR",
+      "status": "merged",
       "branch": "claude/auth-002-password-reset",
-      "note": "Password reset over Laravel's broker. The request never says whether an address is known, and a deactivated account cannot reset its way back in — including one deactivated after the link was sent."
+      "pr": 50,
+      "ci": "green — run 31972896475",
+      "merge_commit": "d37c11d",
+      "note": "Password reset over Laravel's broker. The request never says whether an address is known — same status, same Location, same empty error bag — and a deactivated account cannot reset its way back in, including one deactivated after the link was sent. Reset rotates remember_token and logs out other devices."
     },
     "AUDIT-001": {
       "status": "merged-pending",
@@ -476,50 +485,17 @@
     }
   ],
   "next_session": {
-    "start_with": "OPS-001 — backup and restore. Branch from main. It is the single largest remaining gap.",
+    "start_with": "AUDIT-001 — operational audit log. Branch from main.",
     "then": [
-      "REL-002 machine-readable validation problems — blocking two screens",
-      "SET-002 writing configuration from the interface (REVIEW_REQUIRED when built)",
-      "AUDIT-001, NOTIF-001",
-      "E2E-001, accessibility audit, security hardening, performance, docs/production-readiness.md"
+      "INS-002 — web installer over the same InstallationService",
+      "SET-002 — settings write path (REVIEW_REQUIRED)",
+      "BULK-001c — re-import storage amplification",
+      "Accessibility audit; security audit sweep; performance pass"
     ],
-    "awaiting_review": [
-      "PR #35 DIST-001-H1 — green, REVIEW_REQUIRED, must not be merged autonomously."
-    ],
+    "awaiting_review": [],
     "do_not_build": [
       "ROY-001, RIGHTS-001 (financial), PUB-001 — all OUT_OF_SCOPE_V1",
-      "Any Revenue, Royalty, Payout or Ledger module",
-      "Any financial screen",
-      "Any distributor-specific logic in the domain — provider specifics belong in adapters"
-    ],
-    "suite_size": "1002 tests / 4282 assertions at DEP-002/003",
-    "conventions_to_honour": [
-      "Disabled providers are named 'none', never 'null' (AI, generation, distribution managers all share the rule).",
-      "$table->json() is forbidden; use longText + array cast.",
-      "No absolute http(s) host anywhere in PHP, config included.",
-      "A migration adding a unique index on an FK column must drop the FK first in down().",
-      "Every new UI string needs en/fr/es/it/pt/de; no hardcoded UI text.",
-      "A read model never returns an object key, a disk, a bucket, a provider job id or a provider's download reference. Prefer a boolean that answers the question (has_audio, has_manifest_row) over the value itself.",
-      "A failure *code* is translated and shown; a failure *message* from a storage driver or an analyser is withheld, because it quotes a path. A provider's own message about its own service is kept.",
-      "Counts for a page come from one grouped query, never one per row, and every enum state is present including the zeroes.",
-      "Every list validates that a cursor describes its own ordering via CursorShape, including lists that take no filters.",
-      "A controller never writes a status. If the behaviour lives in a controller today, extract it to a service both surfaces call rather than copying it — and prove the extraction by running the existing tests unmodified.",
-      "Authorisation lives on the route (can.role:catalogue / :administer). An `actions` block in a payload is presentation, and a test must prove hiding a button is not what stops a request.",
-      "A refusal travels as its machine-readable code; the interface translates it. The domain's English sentence is written for a developer reading a log.",
-      "A preflight check asks what the machine can do; a health check asks what this installation has done. Do not block the first on the second.",
-      "When two layers guard the same rule, mutate the inner one — a passing service-level test can hide an unguarded method a later surface will call directly.",
-      "No financial calculation anywhere. A credit or ownership field is metadata; it never becomes a right to money.",
-      "The domain carries no distributor-specific logic. Provider specifics belong in adapters.",
-      "A LIKE search escapes % and _ with an explicit ESCAPE clause; the escape character is ! because MySQL also treats a backslash as an escape inside string literals and SQLite does not.",
-      "A screen never probes an external provider on render. Availability and sandbox mode come from configuration; asking the provider anything is a button.",
-      "UNKNOWN, FAILED and REJECTED are three different things and are never drawn the same way. An outage is not a verdict.",
-      "A provider job id, external reference or idempotency key never reaches a payload. Prefer a boolean that answers the question (has_external_reference).",
-      "A credential is reported as configured or not configured. Never a value, never a mask, never a length.",
-      "Read presence through config, not env(): a config:cache-d installation gets null from env() for everything.",
-      "A deploy creates nothing an install would create. Missing .env, key or database is a refusal with its reason, never a silent fix.",
-      "A guard that reads a file as text will trip on a comment naming what it forbids. Reword the comment, never weaken the guard.",
-      "An assertion must fail for the reason it names. Nine defective tests this session were satisfied by something other than the thing they checked — a comment explaining a flag, a neighbouring path, prose about a setting.",
-      "Documentation that has not been verified against a real host says so in its first paragraph, and a test keeps it saying so."
+      "Any Revenue/Royalty/Payout/Ledger/Balance surface. See scope_correction_v1."
     ]
   },
   "review_policy": {
