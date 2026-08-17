@@ -267,3 +267,37 @@ jobs:
           test -f public/build/manifest.json \
             || { echo "No manifest: the build produced nothing to render against."; exit 1; }
           php artisan test tests/Feature/Ui
+
+      # The frontend the server actually runs.
+      #
+      # cPanel accounts have no Node, and installing one to build assets on a
+      # shared host is the wrong trade — so this job, which already builds the
+      # bundle and proves the interface renders against it, is where the
+      # deployable frontend comes from.
+      #
+      # **Placed last on purpose.** Everything above it has to pass first:
+      # `npm ci`, the type-check, the component tests, the build, and the
+      # manifest assertion in the step immediately before. An artifact
+      # published earlier could carry a bundle that never rendered.
+      #
+      # `if-no-files-found: error` is the second half of that guarantee. The
+      # step above proves the manifest exists; this one refuses to publish an
+      # empty directory, which is the only way the first check could pass and
+      # the artifact still be useless.
+      #
+      # `path: public/build` and nothing else: extracting the archive yields
+      # exactly what belongs in the server's `public/build/`. No .env, no
+      # vendor, no sources — the archive is the compiled bundle and the
+      # manifest, and there is nothing else in that directory to leak.
+      #
+      # No build-stamp file is written into the bundle. It would be served
+      # publicly for the sake of a fact GitHub already records: the run that
+      # produced this artifact names its commit, and the deployment procedure
+      # checks that against `git rev-parse HEAD` on the server.
+      - name: Publish the frontend build
+        uses: actions/upload-artifact@v4
+        with:
+          name: sanitube-frontend-build
+          path: public/build
+          if-no-files-found: error
+          retention-days: 30
