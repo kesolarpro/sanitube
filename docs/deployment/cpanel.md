@@ -18,7 +18,7 @@ Docker, no root — is here because of them.
 |---|---|
 | **PHP version** | Selectable per domain. SaniTube needs **8.2 or newer**. |
 | **Composer** | Usually present. If not, run `composer install` elsewhere and upload `vendor/`. |
-| **Node / npm** | Usually **absent**. Build assets elsewhere and upload `public/build`. |
+| **Node / npm** | Usually **absent**, and should stay that way. CI builds the bundle — see [The frontend bundle](#the-frontend-bundle). |
 | **Cron** | Yes, through the panel. This is how the scheduler runs. |
 | **Long-running processes** | **No.** No Supervisor, no systemd, no persistent queue worker. |
 | **Root** | **No.** Nothing in SaniTube asks for it. |
@@ -165,18 +165,98 @@ is why `sanitube:import` queues rather than importing inline: a browser tab
 closing, or a PHP process being killed at the host's time limit, must not lose
 the batch.
 
+## The frontend bundle
+
+**cPanel has no Node, and it does not need one.** Every green CI run builds the
+bundle, type-checks it, runs the component tests and renders the interface
+against the manifest — and then publishes the result as a downloadable
+artifact. That artifact is the frontend the server runs.
+
+Building on the server would mean installing a toolchain on a shared account to
+reproduce something CI has already produced and verified. This is the same
+bundle, from the same commit, that passed.
+
+### Installing it
+
+1. Open the repository's **Actions** tab and find the CI run for **the exact
+   commit you have deployed** — green, on `main`.
+2. At the bottom of that run's summary page, download the artifact named
+   **`sanitube-frontend-build`**. GitHub serves it as a `.zip`.
+3. Extract it. What comes out *is* the contents of `public/build` — a
+   `manifest.json` and an `assets/` directory, nothing else.
+4. Upload that content into the server's build directory, so that the manifest
+   lands at `<app>/public/build/manifest.json`:
+
+   ```
+   /home/sanibvrn/sanitube.alloguide.com/public/build/manifest.json
+   /home/sanibvrn/sanitube.alloguide.com/public/build/assets/...
+   ```
+
+   Replace the directory rather than merging into it. Vite's filenames are
+   content-hashed, so a merge leaves every previous build's assets behind for
+   ever — harmless until the day a stale file is the one being served.
+
+5. Check it arrived:
+
+   ```
+   test -f /home/sanibvrn/sanitube.alloguide.com/public/build/manifest.json \
+     && echo "Frontend build OK" \
+     || echo "Frontend build ABSENT"
+   ```
+
+6. **Check it belongs to the code you are running.** This is the step worth not
+   skipping:
+
+   ```
+   cd /home/sanibvrn/sanitube.alloguide.com && git rev-parse HEAD
+   ```
+
+   That SHA must be the commit the CI run was for. A bundle from an older
+   commit is not "close enough": Vite emits the entry points the manifest
+   names, so a mismatch produces missing routes, blank screens and errors that
+   look like application bugs and are not.
+
+> Under **Option B** the served directory is `public_html/build`, not
+> `<app>/public/build`. Install the artifact there — and remember that a
+> deployment then touches both, per *What Option B costs*.
+
 ## Deploying an update
 
+The bundle and the code must move together. In order:
+
 ```
-bin/deploy.sh
+cd /home/sanibvrn/sanitube.alloguide.com
+
+git fetch origin main
+git checkout main
+git pull --ff-only origin main
+
+php /home/sanibvrn/.local/bin/composer install \
+  --no-interaction --prefer-dist --no-dev --optimize-autoloader
+
+php artisan migrate --force
 ```
 
-If npm is missing the script says so and carries on — build `public/build`
-elsewhere and upload it. See [deploying.md](deploying.md) for what each stage
-does and why.
+Then install the `sanitube-frontend-build` artifact **from the CI run for the
+commit you have just pulled**, as above. Then:
 
-`bin/deploy.sh` never runs `git pull`: upload or pull the new code yourself,
-then run it.
+```
+php artisan optimize:clear
+php artisan optimize
+
+php artisan sanitube:health
+php artisan sanitube:doctor
+```
+
+`optimize:clear` before `optimize`, not instead of it: the first drops the
+caches that describe the previous release, the second builds the ones that
+describe this one. Skipping the clear leaves a config cache from before the
+pull.
+
+`bin/deploy.sh` runs the same stages and never pulls for you — upload or pull
+the code first, then run it. See [deploying.md](deploying.md) for what each
+stage does and why. If npm is missing the script says so and carries on, which
+is the expected case here.
 
 ## Storage
 
@@ -247,6 +327,8 @@ moved back.
 | `.env` downloadable over HTTP | The document root is the application directory rather than `public/` (Option A), or files were copied into `public_html` beyond the three named ones (Option B). **Fix immediately and rotate every credential in it** — assume it was read. |
 | Blank page under Option B, nothing in the log | `open_basedir` is confining PHP to `public_html`, so `require` cannot reach the application. See "What Option B does not permit". |
 | Screens look wrong after an update, under Option B | `public_html/build` still holds the previous bundle. Copy `public/build` across. |
+| Blank screens, or a route that 404s in the browser only | The bundle does not match the deployed commit. Compare `git rev-parse HEAD` with the CI run the artifact came from, and reinstall from the right run. |
+| `Vite manifest not found` | `public/build/manifest.json` is absent. Install the `sanitube-frontend-build` artifact — see [The frontend bundle](#the-frontend-bundle). |
 | Nothing ever finishes importing | No cron entry, or it runs the wrong PHP binary. |
 | A credential edit changes nothing | The configuration cache is built. `php artisan config:clear`, or run `bin/deploy.sh`. |
 | 500 with no detail | Check `storage/logs`. Do **not** turn on `APP_DEBUG` to investigate — it shows stack traces, queries and environment values to whoever triggers the error. |
