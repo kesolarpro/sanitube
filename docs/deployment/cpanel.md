@@ -31,8 +31,90 @@ Point the domain at **`public/`**, not at the application directory.
 This is the single most consequential setting on the page. With the document
 root one level too high, `.env` — your database password, your storage
 credentials, your application key — is served over HTTP to anyone who asks for
-it. If your host will not let you set the document root, SaniTube should not be
-installed on that host.
+it.
+
+### Option A — repoint the document root (do this if you can)
+
+```
+/home/USER/sanitube/          <- the application, private
+/home/USER/sanitube/public/   <- document root
+```
+
+Everything private stays private because the web server never sees it. Nothing
+else in this document changes.
+
+cPanel lets you set this for **addon domains and subdomains** freely. Use a
+subdomain if the primary domain's root is fixed — it is the cheapest way to
+land in Option A.
+
+### Option B — the root is fixed (primary domains, some hosts)
+
+Some accounts cannot repoint the primary domain: `public_html` is the document
+root and that is that. **This is still safe, and it does not require moving
+Laravel into `public_html`.**
+
+```
+/home/USER/sanitube/          <- the whole application, private, untouched
+/home/USER/public_html/       <- document root: two files and one link
+```
+
+Put **only these** in `public_html`:
+
+1. everything from `sanitube/public/` **except** `index.php` — that is
+   `.htaccess`, `favicon.ico`, `robots.txt` and the built `build/` directory;
+2. an `index.php` that boots the application from outside the root;
+3. nothing else, ever.
+
+The front controller is Laravel's own with two paths redirected:
+
+```php
+<?php
+// /home/USER/public_html/index.php
+$app = '/home/USER/sanitube';                 // absolute, and outside this directory
+
+require $app.'/vendor/autoload.php';
+
+$application = require_once $app.'/bootstrap/app.php';
+
+$application->handleRequest(Illuminate\Http\Request::capture());
+```
+
+**Why this is safe and "just move Laravel in" is not.** The only things reachable
+over HTTP are the three static files, the compiled front-end bundle, and a PHP
+file that reads code from a directory the web server cannot serve. `.env`,
+`vendor/`, `storage/`, `config/`, `database/`, `src/`, `app/`, `composer.json`
+and `.git` are all outside the document root and stay there. Moving the
+application into `public_html` puts every one of them one URL away, and no
+amount of `.htaccess` makes that safe: a rule that stops serving `.env` is a
+rule one server misconfiguration, one `AllowOverride None`, or one nginx
+front-end away from not applying.
+
+### What Option B costs
+
+- **`php artisan storage:link` produces the wrong link.** It links
+  `sanitube/public/storage`, which is no longer served. Either create the link
+  in `public_html` by hand, or — better — keep private assets on remote storage
+  and serve previews through the signed-URL path SaniTube already uses.
+- **Deployments touch two directories.** After `npm run build` you must copy
+  `public/build` into `public_html/build` as well. `sanitube:deploy` does not do
+  this for you; do it in the same step, and treat a stale bundle as the first
+  thing to check when a screen looks wrong after an update.
+- **`APP_URL` must still be the real HTTPS URL.** Nothing about Option B changes
+  that, and getting it wrong breaks signed URLs.
+
+### What Option B does not permit
+
+If your host also forbids PHP from reading outside the document root — some
+shared plans set `open_basedir` to `public_html` alone — then Option B cannot
+work either, and neither can any safe arrangement. **Do not install SaniTube on
+that host.** Check before you start:
+
+```
+php -r 'echo ini_get("open_basedir") ?: "unrestricted", PHP_EOL;'
+```
+
+An empty result, or one that includes `/home/USER`, is fine. One limited to
+`/home/USER/public_html` is a refusal.
 
 ## Install
 
@@ -140,11 +222,31 @@ Neither command prints a secret. Both are safe to paste into a support thread.
 `docs/production-readiness.md` is the full list, including the parts that need
 a real provider or a real host before anybody can honestly call them certified.
 
+**Prove the private code is private.** From anywhere, against the real URL —
+every one of these must be `403` or `404`, and none of them `200`:
+
+```
+curl -o /dev/null -s -w '%{http_code} %{url_effective}\n' \
+  https://YOUR-DOMAIN/.env \
+  https://YOUR-DOMAIN/composer.json \
+  https://YOUR-DOMAIN/storage/logs/laravel.log \
+  https://YOUR-DOMAIN/vendor/autoload.php \
+  https://YOUR-DOMAIN/.git/config \
+  https://YOUR-DOMAIN/artisan
+```
+
+A `200` on any line means stop and rotate every credential in `.env` before
+doing anything else. This check is worth running again after each deployment:
+it costs a second and it is the only one that catches a document root that
+moved back.
+
 ## Things that will go wrong
 
 | Symptom | Cause |
 |---|---|
-| `.env` downloadable over HTTP | Document root is not `public/`. Fix immediately and rotate every credential in it. |
+| `.env` downloadable over HTTP | The document root is the application directory rather than `public/` (Option A), or files were copied into `public_html` beyond the three named ones (Option B). **Fix immediately and rotate every credential in it** — assume it was read. |
+| Blank page under Option B, nothing in the log | `open_basedir` is confining PHP to `public_html`, so `require` cannot reach the application. See "What Option B does not permit". |
+| Screens look wrong after an update, under Option B | `public_html/build` still holds the previous bundle. Copy `public/build` across. |
 | Nothing ever finishes importing | No cron entry, or it runs the wrong PHP binary. |
 | A credential edit changes nothing | The configuration cache is built. `php artisan config:clear`, or run `bin/deploy.sh`. |
 | 500 with no detail | Check `storage/logs`. Do **not** turn on `APP_DEBUG` to investigate — it shows stack traces, queries and environment values to whoever triggers the error. |
