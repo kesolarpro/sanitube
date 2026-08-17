@@ -36,6 +36,18 @@ abstract class VerifiesSharedToken
 
     abstract protected function defaultHeader(): string;
 
+    /**
+     * What to call this client in an audit line.
+     *
+     * A name from configuration, not the token and not a fingerprint of it.
+     * "internal-api" tells an operator which integration acted; a truncated
+     * token tells an attacker whether their guess is close.
+     */
+    abstract protected function clientName(): string;
+
+    /** Where the accepted client's name is left for the audit recorder. */
+    public const CLIENT_ATTRIBUTE = 'sanitube.api_client';
+
     public function handle(Request $request, Closure $next): Response
     {
         $expected = config($this->tokenConfigKey());
@@ -52,6 +64,10 @@ abstract class VerifiesSharedToken
         if (! is_string($provided) || ! hash_equals($expected, $provided)) {
             abort(401, 'Invalid token.');
         }
+
+        // Set only after the token has been accepted. An attribute present on
+        // a rejected request would be a claim that something authenticated.
+        $request->attributes->set(self::CLIENT_ATTRIBUTE, $this->clientName());
 
         return $next($request);
     }

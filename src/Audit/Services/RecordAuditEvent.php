@@ -9,6 +9,7 @@ use Illuminate\Contracts\Auth\Factory as AuthFactory;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use SaniTube\Api\Http\Middleware\VerifiesSharedToken;
 use SaniTube\Audit\Enums\AuditAction;
 use SaniTube\Audit\Enums\AuditActorKind;
 use SaniTube\Audit\Enums\AuditOutcome;
@@ -130,7 +131,18 @@ final readonly class RecordAuditEvent
             ];
         }
 
-        // Nobody is signed in, so the question becomes how the action
+        // Something authenticated, and it was not a person. AUDIT-002: a
+        // shared token names no human, so the honest answer is neither "user"
+        // nor "guest" — and the client's configured *name* is what identifies
+        // it, never the token or any derivative an attacker could check a
+        // guess against.
+        $client = $this->apiClient();
+
+        if ($client !== null) {
+            return ['kind' => AuditActorKind::ApiClient, 'id' => null, 'label' => $this->clamp($client, 120), 'role' => null];
+        }
+
+        // Nobody is signed in at all, so the question becomes how the action
         // arrived. Over a route means a person the platform has not
         // identified — a failed sign-in, a password reset — and that is a
         // guest. Anything else is a worker, the scheduler or a command.
@@ -142,6 +154,24 @@ final readonly class RecordAuditEvent
         $kind = $this->arrivedOverHttp() ? AuditActorKind::Guest : AuditActorKind::System;
 
         return ['kind' => $kind, 'id' => null, 'label' => null, 'role' => null];
+    }
+
+    /**
+     * The name of the API client that authenticated this request, if one did.
+     *
+     * The attribute is set by {@see VerifiesSharedToken} only *after* the
+     * token has been accepted, so its presence is a fact about authentication
+     * rather than about what somebody sent.
+     */
+    private function apiClient(): ?string
+    {
+        if (! $this->arrivedOverHttp()) {
+            return null;
+        }
+
+        $client = $this->app->make(Request::class)->attributes->get(VerifiesSharedToken::CLIENT_ATTRIBUTE);
+
+        return is_string($client) && $client !== '' ? $client : null;
     }
 
     /**

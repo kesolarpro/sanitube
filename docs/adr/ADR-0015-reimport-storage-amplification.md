@@ -1,6 +1,6 @@
 # ADR-0015 — Re-import storage amplification
 
-**Status:** proposed — **REVIEW_REQUIRED**
+**Status:** accepted — amplification **accepted for V1**
 **Date:** 2026-08-16
 **Ticket:** BULK-001c
 
@@ -76,10 +76,31 @@ platform's baseline is a shared cPanel account. Spooling a 2 GB master to local
 disk to avoid storing it remotely trades the right resource for the wrong one.
 Reading the source twice instead would double egress on every import.
 
-**Recommendation: option 2**, on the grounds that it achieves the ticket's goal
-without touching an invariant that three other tickets depend on. Option 1 is
-the better long-term model and belongs to a storage-lifecycle ticket that can
-afford reference counting.
+**Recommendation was option 2.** The decision taken is narrower and better:
+**none of them, for V1.**
+
+## Decision — `BULK_REIMPORT_AMPLIFICATION_ACCEPTED_FOR_V1`
+
+The amplification is **accepted as it stands** and the optimisation is
+reclassified `POST_V1_STORAGE_OPTIMIZATION`.
+
+The reasoning is worth stating plainly, because "we ran out of time" is not it:
+
+- **Nothing is at risk.** Identity is cryptographic and correct; a replaced
+  master is ingested; provenance is recorded in both directions. The cost is
+  disk, and disk is the cheapest thing in this system to be wrong about.
+- **The alternatives are not.** Every option that removes the second copy
+  either breaks AST-001's UUID-derived key — the invariant that makes a retry
+  overwrite a partial write instead of orphaning one — or removes the record
+  that a second import happened at all. Trading an integrity invariant for
+  storage is the wrong direction, and doing it under time pressure is worse.
+- **It is bounded and visible.** One extra copy per duplicated master, only
+  when the same content is imported twice, with both assets listed and the
+  relationship recorded. An operator can see it and reason about it.
+
+So this stops being a V1 blocker. It does not stop being true: the baseline
+assertion stays, and whoever takes the post-V1 ticket starts from a measured
+number rather than a suspicion.
 
 ## What is not in question
 
@@ -98,8 +119,8 @@ afford reference counting.
 
 - Measured and pinned. The baseline test fails when the amendment lands, which
   is how the change announces itself.
-- Held for review, per BULK-001c's own instruction that an implementation
-  requiring a domain architecture amendment is `REVIEW_REQUIRED`.
+- **No longer a V1 blocker.** Reclassified `POST_V1_STORAGE_OPTIMIZATION`; the
+  amendment it would need stays unbuilt until somebody takes that ticket.
 - The amplification is **bounded and visible**, not a leak: it costs one extra
   copy per duplicated master, only when the same content is imported twice, and
   the operator can see it because both assets are listed with the relationship

@@ -28,4 +28,9 @@ final class VerifyInternalApiToken extends VerifiesSharedToken
     {
         return 'X-SaniTube-Api-Token';
     }
+
+    protected function clientName(): string
+    {
+        return 'internal-api';
+    }
 }

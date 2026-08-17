@@ -28,4 +28,9 @@ final class VerifyHealthToken extends VerifiesSharedToken
     {
         return 'X-SaniTube-Health-Token';
     }
+
+    protected function clientName(): string
+    {
+        return 'health';
+    }
 }

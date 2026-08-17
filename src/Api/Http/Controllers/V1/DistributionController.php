@@ -8,6 +8,8 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use RuntimeException;
 use SaniTube\Api\Http\Resources\V1\DistributionDeliveryResource;
+use SaniTube\Audit\Enums\AuditAction;
+use SaniTube\Audit\Services\RecordAuditEvent;
 use SaniTube\Distribution\DistributorManager;
 use SaniTube\Distribution\Exceptions\DistributionException;
 use SaniTube\Distribution\Models\DistributionDelivery;
@@ -65,14 +67,27 @@ final class DistributionController
         Release $release,
         string $provider,
         SubmitDelivery $submitter,
+        RecordAuditEvent $audit,
     ): JsonResponse|DistributionDeliveryResource {
+        // AUDIT-002. The platform's one irreversible act is reachable from the
+        // API as well as the interface, and until now only the interface
+        // recorded it. The actor here is the API client, by name — not a user
+        // nobody authenticated as, and not a guest when something did.
+        $about = ['release' => $release->uuid, 'provider' => $provider];
+
         try {
             $delivery = $submitter->handle($release, $provider);
         } catch (DistributionException $exception) {
+            $audit->refused(AuditAction::DeliverySubmitted, $exception->reason, context: $about);
+
             return $this->refused($exception->getMessage(), $exception->reason);
         } catch (RuntimeException $exception) {
+            $audit->refused(AuditAction::DeliverySubmitted, 'UNKNOWN_DISTRIBUTOR', context: $about);
+
             return $this->refused($exception->getMessage(), 'UNKNOWN_DISTRIBUTOR');
         }
+
+        $audit->record(AuditAction::DeliverySubmitted, subjectUuid: $delivery->uuid, context: $about);
 
         return new DistributionDeliveryResource($delivery->load('release'));
     }

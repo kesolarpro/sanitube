@@ -23,4 +23,20 @@ enum AuditActorKind: string
     case User = 'user';
     case System = 'system';
     case Guest = 'guest';
+
+    /**
+     * A server-to-server call that authenticated with a shared token.
+     *
+     * AUDIT-001 left the API out rather than lie about it, and this is why:
+     * a shared token **names no person**. Recording those calls as a user
+     * would invent one; recording them as a guest would say nobody was
+     * authenticated when somebody was, and would put a release submission
+     * beside a failed sign-in as though they were the same kind of event.
+     *
+     * So the fourth answer is the true one — *something* authenticated, and it
+     * was not a human. What it was goes in `actor_label` as the client's
+     * configured name. Never the token, never a prefix of it, never a hash
+     * that could be checked against a guess.
+     */
+    case ApiClient = 'api_client';
 }
