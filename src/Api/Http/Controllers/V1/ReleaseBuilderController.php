@@ -9,6 +9,8 @@ use Illuminate\Http\Request;
 use SaniTube\Api\Http\Requests\V1\StoreReleaseRequest;
 use SaniTube\Api\Http\Requests\V1\UpdateReleaseRequest;
 use SaniTube\Api\Http\Resources\V1\ReleaseResource;
+use SaniTube\Audit\Enums\AuditAction;
+use SaniTube\Audit\Services\RecordAuditEvent;
 use SaniTube\Catalog\Models\Track;
 use SaniTube\Releases\Enums\ReleaseType;
 use SaniTube\Releases\Exceptions\ReleaseBuilderException;
@@ -111,11 +113,16 @@ final class ReleaseBuilderController
         return response()->json(['data' => $validator->handle($release)->toArray()]);
     }
 
-    public function ready(Release $release, ValidateRelease $validator): JsonResponse|ReleaseResource
-    {
+    public function ready(
+        Release $release,
+        ValidateRelease $validator,
+        RecordAuditEvent $audit,
+    ): JsonResponse|ReleaseResource {
         $result = $validator->handle($release);
 
         if (! $result->isValid()) {
+            $audit->refused(AuditAction::ReleaseMarkedReady, 'RELEASE_NOT_READY', $release->uuid);
+
             return response()->json([
                 'message' => 'This release is not ready.',
                 'code' => 'RELEASE_NOT_READY',
@@ -128,11 +135,15 @@ final class ReleaseBuilderController
             // above is what a caller sees; markReady() is what is true.
             $release->markReady();
         } catch (ReleaseNotReadyException $exception) {
+            $audit->refused(AuditAction::ReleaseMarkedReady, 'RELEASE_NOT_READY', $release->uuid);
+
             return response()->json(
                 ['message' => $exception->getMessage(), 'code' => 'RELEASE_NOT_READY'],
                 Response::HTTP_UNPROCESSABLE_ENTITY,
             );
         }
+
+        $audit->record(AuditAction::ReleaseMarkedReady, subjectUuid: $release->uuid);
 
         return new ReleaseResource($release->refresh());
     }
