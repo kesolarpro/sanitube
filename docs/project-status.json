@@ -1,9 +1,9 @@
 {
   "$comment": "Machine-readable project state. Any new session reads this first, then verifies it against GitHub before trusting it. Written at the end of each ticket, so a stale entry means a session ended mid-ticket — check the branch and CI rather than the status field.",
   "updated_at": "2026-08-20",
-  "current_phase": "Phase 4 complete end to end (transcription and AI enrichment). Phase 5 opened: editorial profiles, production plans, slots and the inventory that precedes generation.",
+  "current_phase": "Phase 5 in progress: editorial profiles, production plans, slots and pre-generation inventory are merged. Ten of the twenty Phase 2 order items are done.",
   "last_completed_ticket": "PROD-003",
-  "default_branch": "main",
+  "default_branch": "main (locally and for every merge). GitHub's configured default branch is still \"claude/verifier-repertoire-git-k29ft2\" — see EXTERNAL_ADMIN_ACTION_REQUIRED.",
   "tickets": {
     "ARCH-001": {
       "status": "merged",
@@ -661,9 +661,9 @@
     "since": "UI-001",
     "note": "Nine tickets (ING/MED/CAT/AI/GEN/REL/DIST/SEC-001 and PR #12) were merged under an earlier autonomous-chaining instruction that bypassed review. A retroactive audit is under way; they stay in main and any correction becomes a follow-up ticket, not a revert. BULK-001b, UI-004 and UI-005 were merged under the session's explicit merge policy for read-only UI, ingestion tooling and documentation: none changes authentication, authorization, rights, money, identifier lifecycle, destructive storage behaviour or any external action."
   },
-  "main_sha": "25565b4",
+  "main_sha": "faabb05",
   "current_ticket": null,
-  "tests": "1002 passed, 1 skipped, 4282 assertions",
+  "tests": "1566 passed, 1 skipped, 8080 assertions",
   "phpstan": {
     "level": 6,
     "baseline": false,
@@ -678,15 +678,16 @@
     "note": "PHP suite stubs Vite when no manifest exists; the frontend CI job renders against a real one."
   },
   "next_action": {
-    "$comment": "Read this first. In order.",
-    "1": "REVIEW: ADR-0015 (BULK-001c amendment). Pick an option, then implement it — the baseline test fails when it lands, which is how the change announces itself.",
-    "2": "Accessibility, the part jsdom cannot reach: per-screen keyboard walkthroughs on real assistive technology, and responsive/long-content behaviour at four breakpoints across six locales. Needs a rendered browser.",
-    "3": "AUDIT-002 — an honest actor identity for src/Api. A shared token names no person; recording those calls as guest misleads and as a user is false.",
-    "4": "Real-host certification: CPANEL_CERTIFICATION and VPS_CERTIFICATION, including the settings config-cache rebuild branch that no suite can reach."
+    "$comment": "Read this first. In order. Item 1 is where the current Phase 2 order resumes; 2-5 are the standing items an earlier session left, none of them done.",
+    "1": "Item 11 of the Phase 2 order: generation hardening. Then Suno research — research only. No adapter without an official API, and never a reverse-engineered wrapper.",
+    "2": "REVIEW: ADR-0015 (BULK-001c amendment). Pick an option, then implement it — the baseline test fails when it lands, which is how the change announces itself.",
+    "3": "Accessibility, the part jsdom cannot reach: per-screen keyboard walkthroughs on real assistive technology, and responsive/long-content behaviour at four breakpoints across six locales. Needs a rendered browser.",
+    "4": "AUDIT-002 — an honest actor identity for src/Api. A shared token names no person; recording those calls as guest misleads and as a user is false.",
+    "5": "Real-host certification: CPANEL_CERTIFICATION and VPS_CERTIFICATION, including the settings config-cache rebuild branch that no suite can reach."
   },
   "session_boundary": {
-    "reason": "Context exhaustion at a clean boundary. No open PRs; every ticket this session merged with full-matrix CI.",
-    "repository_state": "green at 25565b4; no open PRs",
+    "reason": "Phase 2 continuation session; eleven functional tickets plus bookkeeping, all merged at 10/10. No open PRs.",
+    "repository_state": "green at faabb05; no open PRs",
     "main_sha": "25565b4e46f282733faa1b85f3339c98163c8ca8",
     "note": "Merged this session: PROD-001, docs checkpoint, SYS-001b, AUTH-002, AUDIT-001, INS-002, SET-002, BULK-001c, A11Y-001. Resume from next_action; item 1 needs a human decision before code."
   },
