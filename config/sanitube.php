@@ -36,6 +36,7 @@ return [
         'AI',
         'Enrichment',
         'Editorial',
+        'Production',
         'Releases',
         'Rights',
         'Publishing',

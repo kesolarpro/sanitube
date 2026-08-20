@@ -1,8 +1,8 @@
 {
   "$comment": "Machine-readable project state. Any new session reads this first, then verifies it against GitHub before trusting it. Written at the end of each ticket, so a stale entry means a session ended mid-ticket — check the branch and CI rather than the status field.",
   "updated_at": "2026-08-20",
-  "current_phase": "Phase 5 opens. EDI-001 makes an imprint data rather than code, which is what a production plan will be written against.",
-  "last_completed_ticket": "EDI-001",
+  "current_phase": "Phase 5. PROD-001 settles the autonomy ladder and locks unattended release in code rather than configuration.",
+  "last_completed_ticket": "PROD-001",
   "default_branch": "main",
   "tickets": {
     "ARCH-001": {
@@ -379,12 +379,10 @@
       "note": "Unknown submission outcome, merged after the three approved corrections: findSubmission() moved to a SupportsSubmissionLookup capability, external references carry provenance (PROVIDER_RESPONSE/PROVIDER_LOOKUP/MANUAL_OPERATOR), and decided_by carries a RESTRICT foreign key."
     },
     "PROD-001": {
-      "status": "merged",
-      "branch": "claude/prod-001-doctor",
-      "pr": 47,
-      "ci": "green — run 31972164788 (main 130)",
-      "merge_commit": "2d940dd",
-      "note": "sanitube:doctor — read-only production diagnosis, non-zero exit on internal blockers — and docs/production-readiness.md with a per-control verdict. Nothing in it claims a control passed that no one has performed on a real host."
+      "status": "in_progress",
+      "branch": "claude/sanitube-autonomous-v1-5pycx0",
+      "report": "docs/reports/PROD-001.md",
+      "notes": "ProductionPlan and the autonomy ladder. AUTONOMOUS_RELEASE is locked in code and no setting unlocks it. Nothing acts on a plan yet -- that is PROD-002 (slots)."
     },
     "AUTH-002": {
       "status": "merged",
@@ -547,10 +545,13 @@
       "notes": "The review screen. Four levels as four server-named objects. Refusal codes are not translated on the screen yet and there is no bulk action."
     },
     "EDI-001": {
-      "status": "in_progress",
+      "status": "merged",
       "branch": "claude/sanitube-autonomous-v1-5pycx0",
+      "pr": 74,
+      "ci": "green 10/10 (run 32365472712)",
       "report": "docs/reports/EDI-001.md",
-      "notes": "EditorialProfile: an imprint is a row, not code, asserted by a source scan. Separate from Artist. No caller yet -- PROD-001 is what points at it."
+      "merge_commit": "6540061",
+      "notes": "EditorialProfile: an imprint is a row, not code. No caller yet."
     }
   },
   "architecture_amendments": [
