@@ -25,6 +25,29 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Automatic transcription
+    |--------------------------------------------------------------------------
+    |
+    | Off, and this default is the design rather than caution.
+    |
+    | Every other thing that follows a stored asset is free and local: a
+    | checksum comparison, an acoustic fingerprint. A transcription is a paid
+    | call to somebody else's server, per file. Turning this on over a library
+    | of four thousand masters spends four thousand calls before anybody has
+    | read the first transcript, and no ceiling elsewhere would stop it --
+    | OPS-002 guards the queue's depth, not an external bill.
+    |
+    | So this is a decision an operator makes once they know what a transcript
+    | is worth to them. Until they make it, the platform transcribes what
+    | somebody asks for and nothing else. `sanitube:transcription:backlog`
+    | exists for the deliberate, limited sweep.
+    |
+    */
+
+    'automatic' => (bool) env('SANITUBE_TRANSCRIPTION_AUTOMATIC', false),
+
+    /*
+    |--------------------------------------------------------------------------
     | Configured suppliers
     |--------------------------------------------------------------------------
     |

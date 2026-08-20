@@ -1,8 +1,8 @@
 {
   "$comment": "Machine-readable project state. Any new session reads this first, then verifies it against GitHub before trusting it. Written at the end of each ticket, so a stale entry means a session ended mid-ticket — check the branch and CI rather than the status field.",
   "updated_at": "2026-08-20",
-  "current_phase": "Phase 4 begins. TRN-002 ships the first real transcription adapter, wired through configuration. TranscribeAsset still has no upstream caller: that is TRN-003.",
-  "last_completed_ticket": "TRN-002",
+  "current_phase": "Phase 4 wiring. TRN-003 connects transcription to real production paths: an off-by-default listener, an HTTP request, a queued job and a bounded backlog command.",
+  "last_completed_ticket": "TRN-003",
   "default_branch": "main",
   "tickets": {
     "ARCH-001": {
@@ -484,10 +484,19 @@
       "note": "Found that nothing in the application called EvaluateAssetDuplicates, FingerprintAsset or TranscribeAsset — four merged tickets whose output would have been permanently empty. Wires fingerprinting and evaluation via events, adds the backfill command behind the OPS-002 gates. Transcription stays disconnected until an adapter ships."
     },
     "TRN-002": {
+      "status": "merged",
+      "branch": "claude/sanitube-autonomous-v1-5pycx0",
+      "pr": 67,
+      "ci": "green 10/10 (run 32358991892)",
+      "report": "docs/reports/TRN-002.md",
+      "merge_commit": "ae84db4",
+      "notes": "OpenAI /audio/transcriptions adapter. Provider certification CONFIGURED_UNCERTIFIED: no real credential has ever been used from this installation. Mutation table amended by TRN-003 after a harness defect was found."
+    },
+    "TRN-003": {
       "status": "in_progress",
       "branch": "claude/sanitube-autonomous-v1-5pycx0",
-      "report": "docs/reports/TRN-002.md",
-      "notes": "OpenAI /audio/transcriptions adapter. Provider certification CONFIGURED_UNCERTIFIED: no real credential has ever been used from this installation."
+      "report": "docs/reports/TRN-003.md",
+      "notes": "Production wiring. Automatic transcription is OFF by default and that is deliberate: it is the only enrichment that costs money per file."
     }
   },
   "architecture_amendments": [

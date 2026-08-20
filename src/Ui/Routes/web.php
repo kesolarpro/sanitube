@@ -47,6 +47,7 @@ use SaniTube\Ui\Http\Controllers\System\FailedJobController;
 use SaniTube\Ui\Http\Controllers\System\JobsController;
 use SaniTube\Ui\Http\Controllers\System\OperationsController;
 use SaniTube\Ui\Http\Controllers\System\RefreshHealthController;
+use SaniTube\Ui\Http\Controllers\Transcription\TranscriptionRequestController;
 use SaniTube\Ui\Http\Middleware\HandleInertiaRequests;
 
 /*
@@ -186,6 +187,27 @@ Route::middleware(['web', HandleInertiaRequests::class, 'auth', 'active'])->grou
             ->name('assets.trash');
         Route::post('assets/{asset}/restore', [DuplicateActionController::class, 'restore'])
             ->name('assets.restore');
+    });
+
+    /*
+     * Transcription. TRN-003.
+     *
+     * Behind `can.role:catalogue` because this one spends money. Reading a
+     * transcript is not a privilege; causing a paid call to an external
+     * supplier is, and the guard sits on the route so a future action cannot
+     * acquire the surface without acquiring it.
+     *
+     * A POST, and named for the act rather than for a status. `PATCH {status:
+     * TRANSCRIBED}` would present a request to a third party as an assignment,
+     * and a GET would be prefetched by a browser and billed for the privilege.
+     *
+     * Nothing is transcribed inside the request. The supplier round-trip runs
+     * on a queue; this endpoint asks, and answers with a refusal code or
+     * nothing.
+     */
+    Route::middleware('can.role:catalogue')->group(function (): void {
+        Route::post('assets/{asset}/transcription', TranscriptionRequestController::class)
+            ->name('assets.transcription');
     });
 
     // Studio. Read-only for now: starting a generation calls a supplier and
