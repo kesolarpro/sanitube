@@ -25,6 +25,7 @@ use SaniTube\Ui\Http\Controllers\Distribution\DeliveryIndexController;
 use SaniTube\Ui\Http\Controllers\Distribution\DistributionActionController;
 use SaniTube\Ui\Http\Controllers\Distribution\ReleaseDistributionController;
 use SaniTube\Ui\Http\Controllers\Enrichment\EnrichmentRequestController;
+use SaniTube\Ui\Http\Controllers\Enrichment\SuggestionActionController;
 use SaniTube\Ui\Http\Controllers\Ingestion\BatchDetailController;
 use SaniTube\Ui\Http\Controllers\Ingestion\BatchIndexController;
 use SaniTube\Ui\Http\Controllers\Ingestion\CandidateDetailController;
@@ -223,6 +224,28 @@ Route::middleware(['web', HandleInertiaRequests::class, 'auth', 'active'])->grou
          */
         Route::post('assets/{asset}/enrichment', EnrichmentRequestController::class)
             ->name('assets.enrichment');
+
+        /*
+         * ENR-004. Answering what a model proposed.
+         *
+         * Three routes because they are three acts. Accepting writes
+         * catalogue data through the catalogue's own editor; rejecting records
+         * that a person disagreed, which is the signal a bad prompt version
+         * shows up in; regenerating is neither, and routing it through a
+         * rejection would record a verdict nobody gave.
+         *
+         * Regeneration is keyed by the asset rather than by the suggestion,
+         * for the reason trashing is: what is being asked for is a new
+         * suggestion about this recording, and tying it to the row that
+         * prompted it would make the same recording un-regenerable from
+         * anywhere else.
+         */
+        Route::post('enrichment/suggestions/{suggestion}/accept', [SuggestionActionController::class, 'accept'])
+            ->name('enrichment.suggestions.accept');
+        Route::post('enrichment/suggestions/{suggestion}/reject', [SuggestionActionController::class, 'reject'])
+            ->name('enrichment.suggestions.reject');
+        Route::post('assets/{asset}/enrichment/regenerate', [SuggestionActionController::class, 'regenerate'])
+            ->name('assets.enrichment.regenerate');
     });
 
     // Studio. Read-only for now: starting a generation calls a supplier and

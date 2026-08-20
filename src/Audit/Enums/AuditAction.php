@@ -88,6 +88,19 @@ enum AuditAction: string
     case DuplicateRejected = 'duplicate.rejected';
 
     /**
+     * A person answering something a model proposed.
+     *
+     * Both outcomes are recorded, and the rejection is the more interesting
+     * line: it is a person saying the model was wrong, and a run of them is how
+     * a bad prompt version announces itself. Accepting is audited twice by
+     * design -- once here, as "somebody accepted a suggestion", and once as a
+     * track update by the catalogue service that actually wrote the columns.
+     * The two answer different questions and neither implies the other.
+     */
+    case SuggestionAccepted = 'enrichment.suggestion.accepted';
+    case SuggestionRejected = 'enrichment.suggestion.rejected';
+
+    /**
      * The global stop, lifted and lowered.
      *
      * The subject is the installation itself. Audited because it is the one
@@ -152,6 +165,8 @@ enum AuditAction: string
 
             self::DuplicateConfirmed,
             self::DuplicateRejected => AuditSubject::DuplicateRelation,
+            self::SuggestionAccepted,
+            self::SuggestionRejected => AuditSubject::MetadataSuggestion,
 
             self::BackgroundWorkPaused,
             self::BackgroundWorkResumed => AuditSubject::System,
