@@ -2,7 +2,7 @@
   "$comment": "Machine-readable project state. Any new session reads this first, then verifies it against GitHub before trusting it. Written at the end of each ticket, so a stale entry means a session ended mid-ticket — check the branch and CI rather than the status field.",
   "updated_at": "2026-08-20",
   "current_phase": "Phase 2 order: eighteen of twenty items merged. Items 17 and 18 (DDEX, first distributor adapter) are blocked by ENVIRONMENT_EGRESS — the specifications are public but unreachable from this environment.",
-  "last_completed_ticket": "OPS-003",
+  "last_completed_ticket": "ENR-006",
   "default_branch": "main (locally and for every merge). GitHub's configured default branch is still \"claude/verifier-repertoire-git-k29ft2\" — see EXTERNAL_ADMIN_ACTION_REQUIRED.",
   "tickets": {
     "ARCH-001": {
@@ -619,10 +619,10 @@
       "ci": "green"
     },
     "ENR-006": {
-      "status": "in review",
+      "status": "merged",
       "branch": "claude/sanitube-autonomous-v1-5pycx0",
-      "pr": null,
-      "ci": "pending"
+      "pr": 89,
+      "ci": "green"
     }
   },
   "architecture_amendments": [
@@ -719,8 +719,8 @@
     "since": "UI-001",
     "note": "Nine tickets (ING/MED/CAT/AI/GEN/REL/DIST/SEC-001 and PR #12) were merged under an earlier autonomous-chaining instruction that bypassed review. A retroactive audit is under way; they stay in main and any correction becomes a follow-up ticket, not a revert. BULK-001b, UI-004 and UI-005 were merged under the session's explicit merge policy for read-only UI, ingestion tooling and documentation: none changes authentication, authorization, rights, money, identifier lifecycle, destructive storage behaviour or any external action."
   },
-  "main_sha": "65516b8",
-  "current_ticket": "ENR-006",
+  "main_sha": "83aeece",
+  "current_ticket": null,
   "tests": "1676 passed, 1 skipped, 14710 assertions",
   "phpstan": {
     "level": 6,
@@ -744,8 +744,8 @@
     "5": "POST_V1_STORAGE_OPTIMIZATION — the ADR-0015 amendment. NOT a review: the decision was taken and accepted, the amplification factor is measured at 2 and pinned by a test, and every option that removes the second copy breaks AST-001's UUID-derived key or loses the record that a second import happened. A future session takes this only as deliberate post-V1 work."
   },
   "session_boundary": {
-    "reason": "Phase 2 continuation session; eleven functional tickets plus bookkeeping, all merged at 10/10. No open PRs.",
-    "repository_state": "green at faabb05; no open PRs",
+    "reason": "Phase 2 order exhausted for this environment: eighteen of twenty items merged, and the remaining two are blocked by ENVIRONMENT_EGRESS rather than unstarted. Twenty-one functional tickets, twenty-three pull requests, all merged at 10/10.",
+    "repository_state": "green at 83aeece; no open PRs",
     "main_sha": "25565b4e46f282733faa1b85f3339c98163c8ca8",
     "note": "Merged this session: PROD-001, docs checkpoint, SYS-001b, AUTH-002, AUDIT-001, INS-002, SET-002, BULK-001c, A11Y-001. Resume from next_action; item 1 needs a human decision before code."
   },
