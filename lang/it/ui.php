@@ -127,6 +127,7 @@ return [
             'DISABLED' => 'Disattivato',
         ],
         'occasion' => [
+            'UNKNOWN_RESULT' => 'Risultato perso',
             'PENDING' => 'In attesa',
             'CLAIMED' => 'In corso',
             'COMPLETED' => 'Conclusa',
@@ -696,6 +697,8 @@ return [
             'AUTONOMOUS_RELEASE' => 'Può pubblicare da sola (non disponibile)',
         ],
         'reason' => [
+            'WORKER_LOST' => 'Il worker che ha preso questa occasione non è mai tornato. Un fornitore era già stato interpellato, quindi nessuno sa che cosa ne sia stato — controlla il registro del fornitore prima di decidere.',
+            'UNKNOWN_RESULT' => 'Un fornitore è stato interpellato e la risposta è andata persa. Non è un fallimento e deliberatamente non viene ritentato: ritentare rischia di pagare due volte.',
             'NO_ATTRIBUTION' => 'Impossibile sapere che cosa questo piano possiede già: il suo profilo editoriale non nomina alcun artista.',
             'NO_TARGET' => 'Il piano non ha un obiettivo, quindi non c\'è un numero verso cui lavorare.',
             'TARGET_REACHED' => 'Il piano ha già ciò che si era prefissato.',

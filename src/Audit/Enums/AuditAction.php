@@ -155,6 +155,23 @@ enum AuditAction: string
     case ProductionAutonomyChanged = 'production.autonomy.changed';
     case ProductionOccasionCancelled = 'production.occasion.cancelled';
 
+    /**
+     * An occasion taken back from a worker that never came home.
+     *
+     * Recorded because the row loses the answer: reclaiming clears
+     * `claimed_by`, and "which worker keeps dying" is a question only the log
+     * can answer afterwards.
+     */
+    case ProductionOccasionReclaimed = 'production.occasion.reclaimed';
+
+    /**
+     * An occasion that reached a supplier and lost the answer.
+     *
+     * The one production event that asks for a person by existing. It records
+     * which suppliers were asked, so somebody knows whose dashboard to open.
+     */
+    case ProductionOccasionUnknown = 'production.occasion.unknown';
+
     case GenerationStarted = 'generation.generation.started';
     case GenerationResultSelected = 'generation.result.selected';
 
@@ -235,7 +252,9 @@ enum AuditAction: string
             // The occasion, never the plan. A plan may outlive many cancelled
             // occasions, and recording the plan would make "which one did they
             // call off" unanswerable.
-            self::ProductionOccasionCancelled => AuditSubject::ProductionSlot,
+            self::ProductionOccasionCancelled,
+            self::ProductionOccasionReclaimed,
+            self::ProductionOccasionUnknown => AuditSubject::ProductionSlot,
 
             self::FailedJobRetried,
             self::FailedJobForgotten => AuditSubject::FailedJob,

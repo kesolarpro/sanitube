@@ -9,6 +9,7 @@ use SaniTube\Operations\Services\BackgroundWork;
 use SaniTube\Production\Enums\ProductionSlotStatus;
 use SaniTube\Production\Models\ProductionSlot;
 use SaniTube\Production\Services\ProduceForProductionSlot;
+use SaniTube\Production\Services\ReclaimProductionSlots;
 use SaniTube\Production\Services\SettleProductionSlot;
 use SaniTube\Production\Services\WorkProductionSlot;
 
@@ -26,6 +27,12 @@ use SaniTube\Production\Services\WorkProductionSlot;
  * here than anywhere: a scheduled entry that quietly begins paying a supplier
  * is not something a platform should install on somebody's behalf.
  *
+ * **Reclaiming runs first, then settling, then producing**, and the order is
+ * the recovery story read forwards. An occasion abandoned by a dead worker goes
+ * back to PENDING in the reclaim pass and is picked up by the produce pass of
+ * the *same* run — so a crash costs one cycle rather than for ever. Settling
+ * before producing matters for the same reason.
+ *
  * **Settling runs before producing**, and the order matters. A slot whose
  * generation failed is re-offered to another supplier during the settle pass,
  * so doing it first means a bad afternoon at one provider is recovered in the
@@ -40,23 +47,42 @@ final class RunProductionSlotsCommand extends Command
 {
     protected $signature = 'sanitube:production:run
         {--limit=25 : how many due slots to take in this run}
-        {--settle-only : reconcile occasions already in flight and start nothing new}';
+        {--settle-only : recover and reconcile occasions already in flight, and start nothing new}';
 
-    protected $description = 'Settle production slots that are in flight, then start work on the ones that are due.';
+    protected $description = 'Recover abandoned production slots, settle the ones in flight, then start work on the ones that are due.';
 
     public function handle(
+        ReclaimProductionSlots $reaper,
         SettleProductionSlot $settler,
         ProduceForProductionSlot $producer,
         BackgroundWork $work,
     ): int {
         if ($work->isPaused()) {
             $this->error('Refused: BACKGROUND_WORK_PAUSED');
-            $this->line('Nothing was settled and nothing was requested. Resume the platform to let plans continue.');
+            $this->line('Nothing was recovered, nothing was settled and nothing was requested. Resume the platform to let plans continue.');
 
             return self::FAILURE;
         }
 
         $limit = max(1, (int) $this->option('limit'));
+
+        // First, because an occasion abandoned by a dead worker is one this
+        // run can then do properly. Its own bound, from configuration: a
+        // recovery run after a long outage must not starve the work it exists
+        // to unblock.
+        $recovered = $reaper->handle();
+
+        $this->info(sprintf('Recovered %d abandoned occasion(s).', $recovered['reclaimed']));
+
+        if ($recovered['unknown'] > 0) {
+            // Said loudly, and never folded in with failures. These reached a
+            // supplier and lost the answer, so somebody may have been charged
+            // for a track this platform has no record of.
+            $this->warn(sprintf(
+                '%d occasion(s) reached a supplier and lost the answer. They are recorded as UNKNOWN and will not be retried: check the supplier\'s own record before deciding.',
+                $recovered['unknown'],
+            ));
+        }
 
         $settled = 0;
 
@@ -69,7 +95,7 @@ final class RunProductionSlotsCommand extends Command
         $this->info(sprintf('Settled %d occasion(s) that were already in flight.', $settled));
 
         if ((bool) $this->option('settle-only')) {
-            $this->line('Nothing new was started: --settle-only.');
+            $this->line('Nothing new was started: --settle-only. Recovery still ran, because taking back an occasion nobody is working on starts nothing.');
 
             return self::SUCCESS;
         }

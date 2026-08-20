@@ -56,6 +56,32 @@ enum ProductionSlotStatus: string
     case Failed = 'FAILED';
 
     /**
+     * A supplier was asked and nobody knows what came back.
+     *
+     * **Distinct from `Failed`, and the distinction is the whole point.** A
+     * failure is something that did not happen; this is something that may
+     * have happened. A worker that reached a supplier and then died leaves no
+     * record of the answer, and the two possibilities — the request never
+     * arrived, or it arrived and produced a track somebody has been charged
+     * for — call for different actions.
+     *
+     * So the platform stops rather than guessing. Retrying would risk paying
+     * twice for one occasion; recording a failure would tell an operator
+     * nothing happened, which may be false. What it needs is a person to look
+     * at the supplier's own record, which is exactly what this state asks for.
+     *
+     * Settled, because nothing further will happen on its own. PROD-005
+     * reaches it only through the reaper.
+     *
+     * `UNKNOWN_RESULT` rather than `UNKNOWN`: the platform is not unsure what
+     * state this occasion is in -- it knows exactly, which is that the *result*
+     * was lost. The longer name also keeps it apart from the `UNKNOWN` that
+     * commercial rights use, where "not yet determined" is the ordinary
+     * starting state and wants none of the alarm this one does.
+     */
+    case Unknown = 'UNKNOWN_RESULT';
+
+    /**
      * Whether this slot is still available to be claimed.
      */
     public function isClaimable(): bool
@@ -68,7 +94,7 @@ enum ProductionSlotStatus: string
      */
     public function isSettled(): bool
     {
-        return in_array($this, [self::Completed, self::Cancelled, self::Skipped, self::Failed], true);
+        return in_array($this, [self::Completed, self::Cancelled, self::Skipped, self::Failed, self::Unknown], true);
     }
 
     /**
