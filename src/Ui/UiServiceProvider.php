@@ -8,12 +8,19 @@ use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
+use SaniTube\Foundation\Database\SchemaPresence;
 
 final class UiServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
         $this->app->singleton(Navigation\NavigationTree::class);
+
+        // `scoped`, not `singleton`: the cache must live exactly one request.
+        // A migration between two page loads has to be seen, and a singleton
+        // under a persistent worker would report a table as missing until the
+        // process was restarted.
+        $this->app->scoped(SchemaPresence::class);
     }
 
     public function boot(): void

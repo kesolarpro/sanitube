@@ -145,10 +145,18 @@ final class DashboardTest extends TestCase
         // demo and unusable at the nine hundred tracks this platform exists to
         // manage — and the difference does not show up until it is in
         // production.
+        //
+        // Both readings are taken with a cold container. `SchemaPresence` is
+        // bound `scoped` and caches "does this table exist" for the life of a
+        // request; left warm from the first reading it would make the *second*,
+        // larger one look cheaper — which is the opposite of what this test is
+        // watching for, and would hide a real regression behind a saving.
         Track::factory()->ready()->count(2)->create();
+        $this->app->forgetScopedInstances();
         $small = $this->queriesForSnapshot();
 
         Track::factory()->ready()->count(12)->create();
+        $this->app->forgetScopedInstances();
         $larger = $this->queriesForSnapshot();
 
         $this->assertSame(
