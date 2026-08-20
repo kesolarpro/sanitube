@@ -49,6 +49,53 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Request ceilings
+    |--------------------------------------------------------------------------
+    |
+    | How many generation requests this installation is willing to make in a
+    | rolling 24 hours, 7 days and 30 days. Zero means no ceiling, and is the
+    | shipped default: a platform whose first experience of the feature is a
+    | refusal would be a worse platform.
+    |
+    | These count *requests*, not money. SaniTube holds no prices, no currency
+    | and no balance, and this is not a step towards any of those — it is the
+    | brake on a production plan that has been told to decide, unattended, that
+    | more music should exist.
+    |
+    | Rolling rather than calendar: a calendar month needs a time zone to be
+    | meaningful and a reset somebody has to remember, and both go wrong
+    | quietly.
+    |
+    */
+
+    'limits' => [
+        'daily' => (int) env('SANITUBE_GENERATION_DAILY_LIMIT', 0),
+        'weekly' => (int) env('SANITUBE_GENERATION_WEEKLY_LIMIT', 0),
+        'monthly' => (int) env('SANITUBE_GENERATION_MONTHLY_LIMIT', 0),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Circuit breaker
+    |--------------------------------------------------------------------------
+    |
+    | A provider having an outage answers every request identically and
+    | immediately, so a backlog discovers the outage once per item and burns
+    | itself in the minutes before anybody notices. After this many consecutive
+    | failed submissions the platform stops asking until the cooldown passes.
+    |
+    | Zero disables it, for an installation that would rather see every failure
+    | than have requests withheld.
+    |
+    */
+
+    'circuit' => [
+        'consecutive_failures' => (int) env('SANITUBE_GENERATION_CIRCUIT_FAILURES', 5),
+        'cooldown_minutes' => (int) env('SANITUBE_GENERATION_CIRCUIT_COOLDOWN', 15),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Submission claim
     |--------------------------------------------------------------------------
     |

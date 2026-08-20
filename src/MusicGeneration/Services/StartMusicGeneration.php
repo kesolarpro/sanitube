@@ -21,13 +21,32 @@ use SaniTube\MusicGeneration\MusicGenerationManager;
  * attached to — is already written down. A submit that crashes mid-flight
  * leaves a QUEUED row a retry can pick up, not a provider job nobody owns.
  *
+ * **Both brakes are checked here as well as at submission**, because the refusal
+ * an operator can act on is the one that arrives before a row exists.
+ *
+ * This check is a courtesy, not the bound, and the difference is worth stating
+ * plainly: the ceiling counts requests that *left this server*, and starting
+ * reaches nobody. So a hundred generations started in one breath all pass this
+ * check — it fires only once earlier **submissions** have filled the window.
+ * {@see SubmitMusicGeneration} holds the real bound, because that is where the
+ * request leaves, and a queue can run hours after this did with a thousand
+ * siblings ahead of it.
+ *
+ * Counting starts instead would be worse in the direction that matters: a
+ * generation refused before submission costs nothing, and letting it consume
+ * the ceiling would let a failed run lock out a working one.
+ *
  * Commercial rights are UNKNOWN. Always, at this point: a generation that has
  * not happened cannot have been cleared for sale, and defaulting to anything
  * else would put an unlicensed recording in front of a distributor.
  */
 final readonly class StartMusicGeneration
 {
-    public function __construct(private MusicGenerationManager $providers) {}
+    public function __construct(
+        private MusicGenerationManager $providers,
+        private GenerationSpendGuard $ceiling,
+        private GenerationCircuitBreaker $breaker,
+    ) {}
 
     /**
      * @param  array<string, mixed>  $parameters
@@ -53,6 +72,19 @@ final readonly class StartMusicGeneration
 
         if ($project instanceof GenerationProject && ! $project->status->acceptsGenerations()) {
             throw GenerationException::projectClosed($project->uuid);
+        }
+
+        // Refused before the row exists, so nothing is created that will only
+        // fail later. A generation nobody can submit is worse than a refusal:
+        // it sits QUEUED looking like work in progress.
+        $exhausted = $this->ceiling->exhaustedWindow();
+
+        if ($exhausted !== null) {
+            throw GenerationException::ceilingReached($exhausted);
+        }
+
+        if ($this->breaker->isOpenFor($provider->name())) {
+            throw GenerationException::providerCircuitOpen($provider->name());
         }
 
         return MusicGeneration::query()->create([

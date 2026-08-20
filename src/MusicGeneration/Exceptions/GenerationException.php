@@ -44,6 +44,40 @@ final class GenerationException extends RuntimeException
         );
     }
 
+    /**
+     * The installation has asked for as many generations as it allows itself.
+     *
+     * **Operational safety, not accounting.** It counts requests, holds no
+     * price and no currency, and refusing here costs nothing — which is why a
+     * refusal does not count against the ceiling that produced it.
+     */
+    public static function ceilingReached(string $window): self
+    {
+        return new self(
+            sprintf(
+                'This installation has reached its %s generation request ceiling. Nothing was sent, so '
+                    .'nothing was spent; the window is rolling and will make room on its own.',
+                $window,
+            ),
+            'CEILING_REACHED',
+        );
+    }
+
+    /**
+     * The provider has failed enough times in a row to stop asking for now.
+     */
+    public static function providerCircuitOpen(string $provider): self
+    {
+        return new self(
+            sprintf(
+                'The [%s] generation provider failed repeatedly and is not being called at the moment. '
+                    .'The circuit closes itself once the cooldown passes.',
+                $provider,
+            ),
+            'PROVIDER_CIRCUIT_OPEN',
+        );
+    }
+
     public static function notCancellable(string $status): self
     {
         return new self(
