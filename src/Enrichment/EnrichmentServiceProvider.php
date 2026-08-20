@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SaniTube\Enrichment;
 
 use Illuminate\Support\ServiceProvider;
+use SaniTube\Enrichment\Console\EnrichBacklogCommand;
 use SaniTube\Enrichment\Listeners\SuggestWhenTranscribed;
 use SaniTube\Transcription\Events\AssetTranscribed;
 
@@ -21,5 +22,12 @@ final class EnrichmentServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->app['events']->listen(AssetTranscribed::class, SuggestWhenTranscribed::class);
+
+        if ($this->app->runningInConsole()) {
+            // The listener only ever fires forwards. Without this command a
+            // catalogue transcribed before enrichment existed never gets a
+            // suggestion at all.
+            $this->commands([EnrichBacklogCommand::class]);
+        }
     }
 }
