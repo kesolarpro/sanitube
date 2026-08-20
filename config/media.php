@@ -47,6 +47,26 @@ return [
     |
     */
 
+    /*
+    |--------------------------------------------------------------------------
+    | Acoustic fingerprinting
+    |--------------------------------------------------------------------------
+    |
+    | Chromaprint's fpcalc, used to tell that two differently-encoded files are
+    | the same recording. Absent on most shared hosting, and absent is fine:
+    | the platform reports that it cannot compare acoustically rather than
+    | failing. `length_seconds` bounds the decode -- the opening of a track
+    | identifies it as well as the whole of it, and the whole of it is minutes
+    | of CPU per file.
+    |
+    */
+
+    'fpcalc' => [
+        'path' => env('SANITUBE_FPCALC_PATH', 'fpcalc'),
+        'timeout' => (int) env('SANITUBE_FPCALC_TIMEOUT', 120),
+        'length_seconds' => (int) env('SANITUBE_FPCALC_LENGTH', 120),
+    ],
+
     'ffprobe' => [
         'path' => env('SANITUBE_FFPROBE_PATH', 'ffprobe'),
         'timeout' => (int) env('SANITUBE_FFPROBE_TIMEOUT', 120),

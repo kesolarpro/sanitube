@@ -12,6 +12,9 @@ use SaniTube\Media\Analyzers\FfprobeAudioAnalyzer;
 use SaniTube\Media\Analyzers\UnavailableAudioAnalyzer;
 use SaniTube\Media\Console\AnalyzeAudioCommand;
 use SaniTube\Media\Contracts\AudioAnalyzer;
+use SaniTube\Media\Contracts\AudioFingerprinter;
+use SaniTube\Media\Fingerprinters\ChromaprintFingerprinter;
+use SaniTube\Media\Fingerprinters\UnavailableAudioFingerprinter;
 use SaniTube\Media\Listeners\RecordMeasuredDurationOnTrack;
 use SaniTube\Media\Listeners\ScheduleCandidateAnalysis;
 
@@ -28,6 +31,19 @@ final class MediaServiceProvider extends ServiceProvider
             $ffprobe = $app->make(FfprobeAudioAnalyzer::class);
 
             return $ffprobe->isAvailable() ? $ffprobe : new UnavailableAudioAnalyzer;
+        });
+
+        /*
+         * The same reasoning for fingerprinting, and it matters more here:
+         * Chromaprint is absent on essentially every shared cPanel account.
+         * An install without it can still store, analyse and promote — it
+         * simply cannot tell that two differently-encoded files are the same
+         * recording, which is a feature it lacks rather than a failure.
+         */
+        $this->app->bind(AudioFingerprinter::class, function (Application $app): AudioFingerprinter {
+            $chromaprint = $app->make(ChromaprintFingerprinter::class);
+
+            return $chromaprint->isAvailable() ? $chromaprint : new UnavailableAudioFingerprinter;
         });
     }
 
