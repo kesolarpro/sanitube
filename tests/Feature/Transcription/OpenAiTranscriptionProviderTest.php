@@ -231,18 +231,27 @@ final class OpenAiTranscriptionProviderTest extends TestCase
     #[Test]
     public function a_response_without_usable_text_is_a_refusal_rather_than_an_empty_transcript(): void
     {
-        foreach ([['text' => null], ['text' => ['not', 'a', 'string']], []] as $broken) {
-            $payload = $broken === [] ? ['language' => 'fr'] : array_merge($this->payload(), $broken);
+        // **A sequence, not three `Http::fake()` calls.** Re-faking the same
+        // URL does not replace the earlier stub -- the first registered one
+        // keeps answering -- so the loop this test was originally written as
+        // exercised its first case three times and reported three passes.
+        // Found by a mutation in ENR-001 and corrected here rather than left
+        // to look like coverage it never had.
+        Http::fakeSequence(self::BASE.'/audio/transcriptions')
+            ->push(array_merge($this->payload(), ['text' => null]))
+            ->push(array_merge($this->payload(), ['text' => ['not', 'a', 'string']]))
+            ->push(['language' => 'fr']);
 
-            Http::fake([self::BASE.'/audio/transcriptions' => Http::response($payload)]);
-
+        foreach (['a null text', 'a text that is not a string', 'no text at all'] as $shape) {
             try {
                 $this->provider()->transcribe($this->audioFile());
-                $this->fail('An unreadable response must not become a transcript.');
+                $this->fail(sprintf('A response with %s must not become a transcript.', $shape));
             } catch (TranscriptionFailed $failed) {
-                $this->assertSame('TRANSCRIPTION_UNREADABLE', $failed->reason);
+                $this->assertSame('TRANSCRIPTION_UNREADABLE', $failed->reason, $shape);
             }
         }
+
+        Http::assertSentCount(3);
     }
 
     #[Test]

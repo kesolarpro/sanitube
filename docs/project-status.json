@@ -1,8 +1,8 @@
 {
   "$comment": "Machine-readable project state. Any new session reads this first, then verifies it against GitHub before trusting it. Written at the end of each ticket, so a stale entry means a session ended mid-ticket — check the branch and CI rather than the status field.",
   "updated_at": "2026-08-20",
-  "current_phase": "Phase 4 wiring. TRN-003 connects transcription to real production paths: an off-by-default listener, an HTTP request, a queued job and a bounded backlog command.",
-  "last_completed_ticket": "TRN-003",
+  "current_phase": "Phase 4 enrichment. ENR-001 makes structured output a required shape at both vendors rather than a request in prose.",
+  "last_completed_ticket": "ENR-001",
   "default_branch": "main",
   "tickets": {
     "ARCH-001": {
@@ -493,10 +493,19 @@
       "notes": "OpenAI /audio/transcriptions adapter. Provider certification CONFIGURED_UNCERTIFIED: no real credential has ever been used from this installation. Mutation table amended by TRN-003 after a harness defect was found."
     },
     "TRN-003": {
+      "status": "merged",
+      "branch": "claude/sanitube-autonomous-v1-5pycx0",
+      "pr": 68,
+      "ci": "green 10/10 (run 32360255311)",
+      "report": "docs/reports/TRN-003.md",
+      "merge_commit": "2cb2d9c",
+      "notes": "Transcription production wiring. Automatic transcription is OFF by default; it is the only enrichment that costs money per file."
+    },
+    "ENR-001": {
       "status": "in_progress",
       "branch": "claude/sanitube-autonomous-v1-5pycx0",
-      "report": "docs/reports/TRN-003.md",
-      "notes": "Production wiring. Automatic transcription is OFF by default and that is deliberate: it is the only enrichment that costs money per file."
+      "report": "docs/reports/ENR-001.md",
+      "notes": "Schema-required structured output: OpenAI json_schema strict, Anthropic forced tool use. Malformed output is a failure, never partial data. No enrichment task yet -- that is ENR-002."
     }
   },
   "architecture_amendments": [

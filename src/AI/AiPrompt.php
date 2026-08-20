@@ -20,6 +20,17 @@ final readonly class AiPrompt
         public ?string $model = null,
         public ?float $temperature = null,
         public bool $expectsJson = false,
+
+        /**
+         * The shape the answer must arrive in.
+         *
+         * **Prefer this to `expectsJson` wherever a shape is known.**
+         * `expectsJson` asks for valid JSON and nothing more: the model picks
+         * the keys, and a model that picked different keys yesterday is a
+         * silent data-quality change nobody gets told about. A schema names
+         * the keys and both vendors can be made to hold to it.
+         */
+        public ?AiSchema $schema = null,
     ) {}
 
     public function withModel(string $model): self
@@ -31,6 +42,18 @@ final readonly class AiPrompt
             model: $model,
             temperature: $this->temperature,
             expectsJson: $this->expectsJson,
+            schema: $this->schema,
         );
+    }
+
+    /**
+     * Whether an answer that is not machine-readable is a failure.
+     *
+     * A schema implies it. Asking for a shape and then accepting a paragraph
+     * would make the schema decoration.
+     */
+    public function requiresStructuredOutput(): bool
+    {
+        return $this->schema !== null || $this->expectsJson;
     }
 }

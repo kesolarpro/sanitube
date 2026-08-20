@@ -6,6 +6,7 @@ namespace SaniTube\AI\Providers;
 
 use SaniTube\AI\AiCompletion;
 use SaniTube\AI\AiPrompt;
+use SaniTube\AI\AiSchema;
 
 /**
  * OpenAI's chat completions API.
@@ -34,7 +35,21 @@ final readonly class OpenAiProvider extends HttpAiProvider
             $body['temperature'] = $prompt->temperature;
         }
 
-        if ($prompt->expectsJson) {
+        // A schema wins over a bare JSON request. `json_object` guarantees the
+        // answer parses and nothing about what is in it; `json_schema` with
+        // `strict` guarantees the keys, per the official OpenAPI
+        // specification's `ResponseFormatJsonSchema`.
+        if ($prompt->schema instanceof AiSchema) {
+            $body['response_format'] = [
+                'type' => 'json_schema',
+                'json_schema' => [
+                    'name' => $prompt->schema->name,
+                    'description' => $prompt->schema->description,
+                    'schema' => $prompt->schema->schema,
+                    'strict' => true,
+                ],
+            ];
+        } elseif ($prompt->expectsJson) {
             $body['response_format'] = ['type' => 'json_object'];
         }
 
@@ -43,10 +58,7 @@ final readonly class OpenAiProvider extends HttpAiProvider
             ->post('/chat/completions', $body);
 
         if (! $response->successful()) {
-            return AiCompletion::failed(
-                $this->name(),
-                $this->redact(sprintf('OpenAI answered %d: %s', $response->status(), $response->body())),
-            );
+            return AiCompletion::failed($this->name(), $this->describeFailure($response->status()));
         }
 
         /** @var array<string, mixed> $payload */
@@ -57,7 +69,12 @@ final readonly class OpenAiProvider extends HttpAiProvider
         $message = is_array($first) ? ($first['message'] ?? null) : null;
         $text = is_array($message) ? ($message['content'] ?? null) : null;
 
-        if (! is_string($text)) {
+        if (! is_string($text) || trim($text) === '') {
+            // Includes the case the specification calls a refusal: a strict
+            // schema request the model declined, where `content` is null. An
+            // empty string is not an empty answer to be stored, it is no
+            // answer -- and reading it as one would write a suggestion nobody
+            // made.
             return null;
         }
 

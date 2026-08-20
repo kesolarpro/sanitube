@@ -39,12 +39,46 @@ final readonly class RunPrompt
             : $this->providers->provider($providerName);
 
         $startedAt = hrtime(true);
-        $completion = $provider->complete($prompt);
+        $completion = $this->enforceShape($prompt, $provider->complete($prompt));
         $durationMs = (int) round((hrtime(true) - $startedAt) / 1_000_000);
 
         $this->record($purpose, $prompt, $completion, $provider->name(), $durationMs);
 
         return $completion;
+    }
+
+    /**
+     * An answer that was supposed to be machine-readable and is not.
+     *
+     * **Malformed structured output is a failure, never partially trusted
+     * data.** The tempting alternative is to salvage it — pull the object out
+     * of a fenced code block, take the first `{`, regex the fields that did
+     * arrive — and every one of those turns a model that ignored the contract
+     * into a suggestion somebody accepts without knowing it was reconstructed.
+     * A schema that is enforced most of the time is not enforced.
+     *
+     * Converted here rather than in each adapter, so the rule holds for every
+     * provider including ones written later, and so the ledger records the
+     * call as failed — which is the only way "why did nothing get suggested
+     * last night" has an answer.
+     */
+    private function enforceShape(AiPrompt $prompt, AiCompletion $completion): AiCompletion
+    {
+        if (! $prompt->requiresStructuredOutput() || ! $completion->isUsable()) {
+            return $completion;
+        }
+
+        if ($completion->json() !== null) {
+            return $completion;
+        }
+
+        // The text is not carried into the failure. It is the model's output
+        // over this installation's catalogue data, and a failure message goes
+        // to a screen and into a log.
+        return AiCompletion::failed(
+            $completion->provider,
+            'The provider answered, and the answer was not in the shape that was required.',
+        );
     }
 
     private function record(
