@@ -26,6 +26,15 @@ enum AuditSubject: string
     case Delivery = 'delivery';
     case Asset = 'asset';
     case DuplicateRelation = 'duplicate_relation';
+
+    /**
+     * Filed under the suggestion rather than the asset or the track.
+     *
+     * The question an audit answers here is "what did somebody decide about
+     * this proposal", and filing it under the track would mix a decision about
+     * a model's opinion in with edits a person made directly.
+     */
+    case MetadataSuggestion = 'metadata_suggestion';
     case IngestionBatch = 'ingestion_batch';
     case Generation = 'generation';
     case FailedJob = 'failed_job';
