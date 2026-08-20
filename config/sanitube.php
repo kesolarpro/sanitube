@@ -34,6 +34,7 @@ return [
         'Deduplication',
         'Transcription',
         'AI',
+        'Enrichment',
         'Releases',
         'Rights',
         'Publishing',
