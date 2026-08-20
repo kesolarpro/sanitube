@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SaniTube\Ui\Queries;
 
 use App\Models\User;
+use SaniTube\Artwork\Services\ArtworkGenerationReadiness;
 use SaniTube\Artwork\Services\MeasuredDimensions;
 use SaniTube\Catalog\Enums\ExternalIdentifierType;
 use SaniTube\Catalog\ManuallyAssignableIdentifiers;
@@ -48,6 +49,7 @@ final readonly class ReleaseDetailQuery
     public function __construct(
         private ValidateRelease $validator,
         private MeasuredDimensions $dimensions,
+        private ArtworkGenerationReadiness $artwork,
     ) {}
 
     /**
@@ -78,6 +80,13 @@ final readonly class ReleaseDetailQuery
             'updated_at' => $release->updated_at?->toAtomString(),
 
             'cover' => $this->cover($release),
+
+            // ART-003. Whether this installation could generate a cover at all,
+            // and which two numbers disagree when it could not. `ArtworkFeasibility`
+            // has known this since ART-002 and had no caller, so an operator
+            // who configured a provider and expected covers got nothing and no
+            // explanation. Costs nothing to ask: it compares two settings.
+            'artwork_generation' => $this->artwork->describe(),
             'artists' => $this->artists($release),
             'tracks' => $this->tracks($release),
             'identifiers' => $this->identifiers($release),
