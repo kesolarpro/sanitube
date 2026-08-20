@@ -205,6 +205,34 @@ final class AudioFingerprintTest extends TestCase
     }
 
     #[Test]
+    public function a_candidate_shorter_than_the_target_is_ordered_rather_than_aborting_the_query(): void
+    {
+        // The regression, and it is an engine difference rather than a typo.
+        // `duration_seconds` is an unsigned column, and MySQL and MariaDB
+        // evaluate unsigned minus unsigned as unsigned: ordering by the
+        // obvious `ABS(duration_seconds - 300)` underflows on the first
+        // candidate *shorter* than the target and aborts the entire query with
+        // SQLSTATE[22003] before `ABS` is ever reached. SQLite has no unsigned
+        // arithmetic and quietly returns a negative number, so the obvious
+        // version passed there and failed on every other engine in the matrix.
+        //
+        // Every other candidate query in this file happens to compare against
+        // rows at or above the target, which is exactly why one test caught it
+        // and the rest did not.
+        $target = $this->row(duration: 300);
+
+        $this->row(duration: 295);
+        $this->row(duration: 298);
+        $this->row(duration: 303);
+
+        $candidates = $this->app->make(FindFingerprintCandidates::class)->for($target);
+
+        // Closest first, measured across the target rather than away from it:
+        // 298 is two seconds out, 303 is three, 295 is five.
+        $this->assertSame([298, 303, 295], $candidates->pluck('duration_seconds')->all());
+    }
+
+    #[Test]
     public function identical_fingerprints_are_a_fast_path_and_not_an_identity(): void
     {
         $target = $this->row(duration: 200, fingerprint: 'AAAA');

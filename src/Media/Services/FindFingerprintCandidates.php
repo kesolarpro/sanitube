@@ -51,7 +51,8 @@ final readonly class FindFingerprintCandidates
      */
     public function for(AudioFingerprint $fingerprint, int $limit = self::MAX_CANDIDATES): Collection
     {
-        $window = max(1, (int) round($fingerprint->duration_seconds * self::TOLERANCE));
+        $duration = $fingerprint->duration_seconds;
+        $window = max(1, (int) round($duration * self::TOLERANCE));
 
         return AudioFingerprint::query()
             // Same algorithm *and* version. Fingerprints from different
@@ -60,12 +61,34 @@ final readonly class FindFingerprintCandidates
             ->where('algorithm', $fingerprint->algorithm)
             ->whereKeyNot($fingerprint->getKey())
             ->whereBetween('duration_seconds', [
-                $fingerprint->duration_seconds - $window,
-                $fingerprint->duration_seconds + $window,
+                // Clamped, so the lower bound is never a negative number
+                // compared against an unsigned column.
+                max(0, $duration - $window),
+                $duration + $window,
             ])
             // Closest first: if the list is truncated, what survives is what
             // was most likely to match.
-            ->orderByRaw('ABS(duration_seconds - ?)', [$fingerprint->duration_seconds])
+            //
+            // Written as a CASE rather than the obvious `ABS(duration - ?)`
+            // because `duration_seconds` is an *unsigned* column. MySQL and
+            // MariaDB evaluate unsigned minus unsigned as unsigned, so a
+            // candidate shorter than the target underflows and the engine
+            // aborts the whole query with SQLSTATE[22003] before `ABS` is ever
+            // reached. SQLite has no unsigned arithmetic and quietly returns a
+            // negative number, which is why the obvious version passed on
+            // SQLite and failed on every other engine in the matrix.
+            //
+            // Both branches subtract the smaller value from the larger one, so
+            // the result is non-negative on every engine and no cast is needed.
+            ->orderByRaw(
+                'CASE WHEN duration_seconds >= ? THEN duration_seconds - ? ELSE ? - duration_seconds END',
+                [$duration, $duration, $duration],
+            )
+            // A deterministic tiebreak. Two candidates equidistant from the
+            // target — 199 and 201 against 200 — are otherwise ordered by
+            // whatever the engine happens to return, which decides which one
+            // survives the cap. Truncation must not be a coin toss.
+            ->orderBy('id')
             ->limit($limit)
             ->get();
     }
