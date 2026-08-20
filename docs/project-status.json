@@ -361,8 +361,10 @@
       "note": "Track credits and readiness behind can.role:catalogue. Also fixed the stale-cache defect: DeploymentTest left the application cached, which can make a removed authorization guard look enforced."
     },
     "REL-003": {
-      "status": "merged into CAT-002",
-      "note": "Track::readinessProblems() answers in issues. Folded in because without it the new track screen would render English into six locales."
+      "status": "in review",
+      "branch": "claude/sanitube-autonomous-v1-5pycx0",
+      "pr": null,
+      "ci": "pending"
     },
     "ING-002": {
       "status": "merged",
@@ -692,9 +694,9 @@
     "since": "UI-001",
     "note": "Nine tickets (ING/MED/CAT/AI/GEN/REL/DIST/SEC-001 and PR #12) were merged under an earlier autonomous-chaining instruction that bypassed review. A retroactive audit is under way; they stay in main and any correction becomes a follow-up ticket, not a revert. BULK-001b, UI-004 and UI-005 were merged under the session's explicit merge policy for read-only UI, ingestion tooling and documentation: none changes authentication, authorization, rights, money, identifier lifecycle, destructive storage behaviour or any external action."
   },
-  "main_sha": "d44a7df",
-  "current_ticket": null,
-  "tests": "1646 passed, 1 skipped, 14530 assertions",
+  "main_sha": "749ed30",
+  "current_ticket": "REL-003",
+  "tests": "1657 passed, 1 skipped, 14629 assertions",
   "phpstan": {
     "level": 6,
     "baseline": false,
@@ -710,7 +712,7 @@
   },
   "next_action": {
     "$comment": "Read this first. In order. Item 1 is where the current Phase 2 order resumes; 2-5 are the standing items an earlier session left, none of them done.",
-    "1": "Item 15 of the Phase 2 order: release preparation — packaging a validated release for a distributor. Internal work with no external dependency, which is where effort belongs while every provider-facing item waits on an account.",
+    "1": "Item 16 of the Phase 2 order: distribution research, then DDEX. REL-003 built the release package they both consume — nothing calls it in production yet, deliberately, so that the DDEX document and the first distributor adapter share one input rather than each walking the aggregate.",
     "2": "REVIEW: ADR-0015 (BULK-001c amendment). Pick an option, then implement it — the baseline test fails when it lands, which is how the change announces itself.",
     "3": "Accessibility, the part jsdom cannot reach: per-screen keyboard walkthroughs on real assistive technology, and responsive/long-content behaviour at four breakpoints across six locales. Needs a rendered browser.",
     "4": "AUDIT-002 — an honest actor identity for src/Api. A shared token names no person; recording those calls as guest misleads and as a user is false.",
