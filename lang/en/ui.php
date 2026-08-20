@@ -127,6 +127,7 @@ return [
             'DISABLED' => 'Disabled',
         ],
         'occasion' => [
+            'UNKNOWN_RESULT' => 'Result lost',
             'PENDING' => 'Waiting',
             'CLAIMED' => 'In flight',
             'COMPLETED' => 'Done',
@@ -696,6 +697,8 @@ return [
             'AUTONOMOUS_RELEASE' => 'May release on its own (not available)',
         ],
         'reason' => [
+            'WORKER_LOST' => 'The worker that took this occasion never came back. A supplier had already been asked, so nobody knows what came of it — check the supplier\'s own record before deciding.',
+            'UNKNOWN_RESULT' => 'A supplier was asked and the answer was lost. This is not a failure and is deliberately not retried: retrying risks paying twice.',
             'NO_ATTRIBUTION' => 'Cannot tell what this plan already has: its editorial profile names no artist.',
             'NO_TARGET' => 'The plan has no target, so there is no number to work towards.',
             'TARGET_REACHED' => 'The plan already has what it set out to make.',

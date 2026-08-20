@@ -127,6 +127,7 @@ return [
             'DISABLED' => 'Desativado',
         ],
         'occasion' => [
+            'UNKNOWN_RESULT' => 'Resultado perdido',
             'PENDING' => 'À espera',
             'CLAIMED' => 'Em curso',
             'COMPLETED' => 'Concluída',
@@ -696,6 +697,8 @@ return [
             'AUTONOMOUS_RELEASE' => 'Pode publicar sozinho (indisponível)',
         ],
         'reason' => [
+            'WORKER_LOST' => 'O worker que assumiu esta ocasião nunca voltou. Um fornecedor já tinha sido consultado, portanto ninguém sabe o que sucedeu — verifique o registo do fornecedor antes de decidir.',
+            'UNKNOWN_RESULT' => 'Um fornecedor foi consultado e a resposta perdeu-se. Não é uma falha e deliberadamente não é repetido: repetir arrisca pagar duas vezes.',
             'NO_ATTRIBUTION' => 'Não é possível saber o que este plano já tem: o seu perfil editorial não nomeia qualquer artista.',
             'NO_TARGET' => 'O plano não tem objetivo, portanto não há número a atingir.',
             'TARGET_REACHED' => 'O plano já tem o que se propunha fazer.',

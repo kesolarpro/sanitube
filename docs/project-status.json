@@ -1,8 +1,8 @@
 {
     "$comment": "Machine-readable project state. Any new session reads this first, then verifies it against GitHub before trusting it. Written at the end of each ticket, so a stale entry means a session ended mid-ticket — check the branch and CI rather than the status field.",
     "updated_at": "2026-08-21",
-    "current_phase": "Phase 2. PROD-004 relie le moteur de production a la generation ; PROD-UI-001 lui donne enfin un ecran. Jusqu'ici la seule facon de voir ou d'arreter la partie de SaniTube qui agit sans personne etait un shell. Aucun identifiant de job fournisseur ni prompt n'atteint le navigateur. Toujours aucun fournisseur de musique reel : CODE READY.",
-    "last_completed_ticket": "PROD-UI-001",
+    "current_phase": "Phase 2. PROD-005 ferme la lacune que PROD-004 avait nommee : une occasion reclamee par un worker mort restait CLAIMED pour toujours. La question n'est pas « cette reclamation est-elle vieille » mais « quelqu'un a-t-il ete sollicite » — d'ou UNKNOWN_RESULT, distinct de FAILED et jamais rejoue. Prochain : contrat de generation V2 (synchrone + asynchrone).",
+    "last_completed_ticket": "PROD-005",
     "default_branch": "main — confirmed by API this session. The EXTERNAL_ADMIN_ACTION_REQUIRED blocker is cleared.",
     "tickets": {
         "ARCH-001": {
@@ -671,12 +671,21 @@
             "note": "Le pont occasion -> generation -> reconciliation. sanitube:production:run, non planifie par defaut."
         },
         "PROD-UI-001": {
+            "status": "merged",
+            "branch": "claude/sanitube-autonomous-v1-5pycx0",
+            "pr": 106,
+            "ci": "green (10/10)",
+            "report": "docs/reports/PROD-UI-001.md",
+            "merge_commit": "ea7a5af",
+            "note": "Ecrans de production. 16 mutations, 16 tuees ; harnais de mutation corrige (texte via fichiers + garde NO_TESTS_RAN)."
+        },
+        "PROD-005": {
             "status": "open",
             "branch": "claude/sanitube-autonomous-v1-5pycx0",
             "pr": null,
             "ci": "pending",
-            "report": "docs/reports/PROD-UI-001.md",
-            "note": "Ecrans de production : plans, occasions, pause/reprise/autonomie/annulation. 16 mutations, 16 tuees ; le harnais de mutation corrige (texte via fichiers + garde NO_TESTS_RAN)."
+            "report": "docs/reports/PROD-005.md",
+            "note": "Reaper de reclamations expirees. Nouvel etat UNKNOWN_RESULT. 12 mutations, 10 tuees, 2 equivalentes (prouvees : les gardes qu'elles masquent sont tuees separement)."
         }
     },
     "architecture_amendments": [

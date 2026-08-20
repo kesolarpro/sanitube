@@ -70,6 +70,12 @@ const TONES: Record<string, Tone> = {
     // Somebody stopped it on purpose. Not danger -- nothing went wrong -- and
     // not neutral, because a paused plan is a plan somebody has to restart.
     PAUSED: 'warning',
+    // PROD-005: a supplier was asked and the answer was lost. Warning rather
+    // than danger, because nothing is known to have gone wrong -- and firmly
+    // not neutral, because somebody may have been charged. Deliberately a
+    // different key from the `UNKNOWN` commercial rights use, where "not yet
+    // determined" is the ordinary starting state.
+    UNKNOWN_RESULT: 'warning',
 
     // It went wrong, or somebody said no.
     FAILED: 'danger',

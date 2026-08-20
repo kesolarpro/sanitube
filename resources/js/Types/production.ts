@@ -24,6 +24,8 @@ export interface OccasionCounts {
     CANCELLED: number;
     SKIPPED: number;
     FAILED: number;
+    /** A supplier was asked and the answer was lost. Never a retry. */
+    UNKNOWN_RESULT: number;
 }
 
 export interface ProductionPlanRow {
