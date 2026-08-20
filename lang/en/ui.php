@@ -51,6 +51,7 @@ return [
         'compositions' => 'Works',
         'artists' => 'Artists',
         'assets' => 'Files',
+        'duplicates' => 'Duplicates',
         'releases' => 'Releases',
         'distribution' => 'Distribution',
         'rights' => 'Rights',
@@ -1007,4 +1008,75 @@ return [
             'PROGRAMMER' => 'Programmer',
         ],
     ],
+
+    'duplicates' => [
+        'title' => 'Duplicates',
+        'description' => 'Files that may hold the same recording. Nothing here is decided until you decide it, and nothing is deleted.',
+        'empty' => 'No duplicates found',
+        'empty_description' => 'Nothing in the library matches anything else closely enough to be worth a look.',
+        'measured' => 'Identical bytes',
+        'proposed' => 'Proposed by comparison',
+        'in_trash' => 'In the trash. The file is still stored and can be brought back.',
+
+        'column' => [
+            'decision' => 'Decision',
+            'level' => 'Finding',
+            'basis' => 'Based on',
+            'agreement' => 'Agreement',
+            'checksum' => 'Checksum',
+            'type' => 'Type',
+            'size' => 'Size',
+            'duration' => 'Length',
+            'added' => 'Added',
+            'found' => 'Found',
+            'answered' => 'Answered',
+            'reason' => 'Reason',
+        ],
+
+        'level' => [
+            'EXACT_DUPLICATE' => 'The same bytes',
+            'SAME_RECORDING' => 'The same recording',
+            'POSSIBLE_RELATION' => 'Worth a look',
+        ],
+
+        'basis' => [
+            'CHECKSUM' => 'Checksum',
+            'FINGERPRINT' => 'Audio comparison',
+        ],
+
+        'decision' => [
+            'PROPOSED' => 'Unanswered',
+            'CONFIRMED' => 'Confirmed',
+            'REJECTED' => 'Rejected',
+        ],
+
+        'reason' => [
+            'DUPLICATE' => 'Duplicate',
+            'SUPERSEDED' => 'Replaced by a newer file',
+            'WRONG_UPLOAD' => 'Uploaded by mistake',
+            'UNUSABLE_AUDIO' => 'Unusable audio',
+            'OTHER' => 'Other',
+        ],
+
+        'action' => [
+            'confirm' => 'Confirm',
+            'reject' => 'Not a duplicate',
+            'trash' => 'Move to trash',
+            'restore' => 'Restore',
+        ],
+
+        'filter' => [
+            'any_decision' => 'Any decision',
+            'any_level' => 'Any finding',
+        ],
+
+        'error' => [
+            'DUPLICATE_ALREADY_DECIDED' => 'That finding already has this answer.',
+            'ASSET_IN_USE' => 'The catalogue still uses this file. Remove it from the track or release first.',
+            'ASSET_ALREADY_TRASHED' => 'That file is already in the trash.',
+            'ASSET_NOT_TRASHED' => 'That file is not in the trash.',
+            'ASSET_NOT_SETTLED' => 'That upload has not finished. Wait for it to settle first.',
+        ],
+    ],
+
 ];

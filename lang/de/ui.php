@@ -51,6 +51,7 @@ return [
         'compositions' => 'Werke',
         'artists' => 'Künstler',
         'assets' => 'Dateien',
+        'duplicates' => 'Duplikate',
         'releases' => 'Veröffentlichungen',
         'distribution' => 'Vertrieb',
         'rights' => 'Rechte',
@@ -1007,4 +1008,75 @@ return [
             'PROGRAMMER' => 'Programmierung',
         ],
     ],
+
+    'duplicates' => [
+        'title' => 'Duplikate',
+        'description' => 'Dateien, die dieselbe Aufnahme enthalten könnten. Nichts wird entschieden, bis Sie entscheiden, und nichts wird gelöscht.',
+        'empty' => 'Keine Duplikate gefunden',
+        'empty_description' => 'Nichts in der Bibliothek ähnelt etwas anderem genug, um es zu prüfen.',
+        'measured' => 'Identische Bytes',
+        'proposed' => 'Durch Vergleich vorgeschlagen',
+        'in_trash' => 'Im Papierkorb. Die Datei ist weiterhin gespeichert und kann wiederhergestellt werden.',
+
+        'column' => [
+            'decision' => 'Entscheidung',
+            'level' => 'Befund',
+            'basis' => 'Grundlage',
+            'agreement' => 'Übereinstimmung',
+            'checksum' => 'Prüfsumme',
+            'type' => 'Typ',
+            'size' => 'Größe',
+            'duration' => 'Länge',
+            'added' => 'Hinzugefügt',
+            'found' => 'Gefunden',
+            'answered' => 'Beantwortet',
+            'reason' => 'Grund',
+        ],
+
+        'level' => [
+            'EXACT_DUPLICATE' => 'Dieselben Bytes',
+            'SAME_RECORDING' => 'Dieselbe Aufnahme',
+            'POSSIBLE_RELATION' => 'Prüfenswert',
+        ],
+
+        'basis' => [
+            'CHECKSUM' => 'Prüfsumme',
+            'FINGERPRINT' => 'Audiovergleich',
+        ],
+
+        'decision' => [
+            'PROPOSED' => 'Unbeantwortet',
+            'CONFIRMED' => 'Bestätigt',
+            'REJECTED' => 'Abgelehnt',
+        ],
+
+        'reason' => [
+            'DUPLICATE' => 'Duplikat',
+            'SUPERSEDED' => 'Durch eine neuere Datei ersetzt',
+            'WRONG_UPLOAD' => 'Versehentlich hochgeladen',
+            'UNUSABLE_AUDIO' => 'Unbrauchbares Audio',
+            'OTHER' => 'Sonstiges',
+        ],
+
+        'action' => [
+            'confirm' => 'Bestätigen',
+            'reject' => 'Kein Duplikat',
+            'trash' => 'In den Papierkorb',
+            'restore' => 'Wiederherstellen',
+        ],
+
+        'filter' => [
+            'any_decision' => 'Beliebige Entscheidung',
+            'any_level' => 'Beliebiger Befund',
+        ],
+
+        'error' => [
+            'DUPLICATE_ALREADY_DECIDED' => 'Dieser Befund hat diese Antwort bereits.',
+            'ASSET_IN_USE' => 'Der Katalog verwendet diese Datei noch. Entfernen Sie sie zuerst aus dem Titel oder der Veröffentlichung.',
+            'ASSET_ALREADY_TRASHED' => 'Diese Datei ist bereits im Papierkorb.',
+            'ASSET_NOT_TRASHED' => 'Diese Datei ist nicht im Papierkorb.',
+            'ASSET_NOT_SETTLED' => 'Dieser Upload ist nicht abgeschlossen. Warten Sie, bis er fertig ist.',
+        ],
+    ],
+
 ];

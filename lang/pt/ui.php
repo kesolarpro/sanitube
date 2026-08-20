@@ -51,6 +51,7 @@ return [
         'compositions' => 'Obras',
         'artists' => 'Artistas',
         'assets' => 'Ficheiros',
+        'duplicates' => 'Duplicados',
         'releases' => 'Lançamentos',
         'distribution' => 'Distribuição',
         'rights' => 'Direitos',
@@ -1007,4 +1008,75 @@ return [
             'PROGRAMMER' => 'Programação',
         ],
     ],
+
+    'duplicates' => [
+        'title' => 'Duplicados',
+        'description' => 'Ficheiros que podem conter a mesma gravação. Nada é decidido até que o decida, e nada é eliminado.',
+        'empty' => 'Nenhum duplicado encontrado',
+        'empty_description' => 'Nada na biblioteca se parece o suficiente com outra coisa para justificar uma revisão.',
+        'measured' => 'Bytes idênticos',
+        'proposed' => 'Proposto por comparação',
+        'in_trash' => 'No lixo. O ficheiro continua armazenado e pode ser restaurado.',
+
+        'column' => [
+            'decision' => 'Decisão',
+            'level' => 'Constatação',
+            'basis' => 'Baseado em',
+            'agreement' => 'Correspondência',
+            'checksum' => 'Soma de verificação',
+            'type' => 'Tipo',
+            'size' => 'Tamanho',
+            'duration' => 'Duração',
+            'added' => 'Adicionado',
+            'found' => 'Detetado',
+            'answered' => 'Respondido',
+            'reason' => 'Motivo',
+        ],
+
+        'level' => [
+            'EXACT_DUPLICATE' => 'Os mesmos bytes',
+            'SAME_RECORDING' => 'A mesma gravação',
+            'POSSIBLE_RELATION' => 'Merece revisão',
+        ],
+
+        'basis' => [
+            'CHECKSUM' => 'Soma de verificação',
+            'FINGERPRINT' => 'Comparação de áudio',
+        ],
+
+        'decision' => [
+            'PROPOSED' => 'Sem resposta',
+            'CONFIRMED' => 'Confirmado',
+            'REJECTED' => 'Rejeitado',
+        ],
+
+        'reason' => [
+            'DUPLICATE' => 'Duplicado',
+            'SUPERSEDED' => 'Substituído por um ficheiro mais recente',
+            'WRONG_UPLOAD' => 'Enviado por engano',
+            'UNUSABLE_AUDIO' => 'Áudio inutilizável',
+            'OTHER' => 'Outro',
+        ],
+
+        'action' => [
+            'confirm' => 'Confirmar',
+            'reject' => 'Não é um duplicado',
+            'trash' => 'Mover para o lixo',
+            'restore' => 'Restaurar',
+        ],
+
+        'filter' => [
+            'any_decision' => 'Qualquer decisão',
+            'any_level' => 'Qualquer constatação',
+        ],
+
+        'error' => [
+            'DUPLICATE_ALREADY_DECIDED' => 'Essa constatação já tem esta resposta.',
+            'ASSET_IN_USE' => 'O catálogo ainda usa este ficheiro. Remova-o primeiro da faixa ou do lançamento.',
+            'ASSET_ALREADY_TRASHED' => 'Esse ficheiro já está no lixo.',
+            'ASSET_NOT_TRASHED' => 'Esse ficheiro não está no lixo.',
+            'ASSET_NOT_SETTLED' => 'Esse envio não terminou. Aguarde a conclusão.',
+        ],
+    ],
+
 ];
