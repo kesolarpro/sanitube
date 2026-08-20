@@ -1,983 +1,984 @@
 {
-  "$comment": "Machine-readable project state. Any new session reads this first, then verifies it against GitHub before trusting it. Written at the end of each ticket, so a stale entry means a session ended mid-ticket — check the branch and CI rather than the status field.",
-  "updated_at": "2026-08-20",
-  "current_phase": "Product usability. Audit du parcours produit fait ; le chemin critique est UPL-001 (dépôt navigateur), UPL-002 (transcription + enrichissement déclenchables), REL-004 (package de release depuis l'UI).",
-  "last_completed_ticket": "UPL-001",
-  "default_branch": "main (locally and for every merge). GitHub's configured default branch is still \"claude/verifier-repertoire-git-k29ft2\" — see EXTERNAL_ADMIN_ACTION_REQUIRED.",
-  "tickets": {
-    "ARCH-001": {
-      "status": "merged",
-      "branch": "claude/arch-001-hardening",
-      "pr": 1,
-      "ci": "green"
-    },
-    "ARCH-002": {
-      "status": "merged",
-      "branch": "claude/arch-002-domain-model",
-      "pr": 2,
-      "ci": "green"
-    },
-    "ARCH-003": {
-      "status": "merged",
-      "branch": "claude/arch-003-portability-guardrails",
-      "pr": 3,
-      "ci": "green"
-    },
-    "AST-001": {
-      "status": "merged",
-      "branch": "claude/ast-001-asset-registry-storage",
-      "pr": 4,
-      "ci": "green"
-    },
-    "ING-001": {
-      "status": "merged",
-      "branch": "claude/ing-001-ingestion-pipeline",
-      "pr": 5,
-      "ci": "green",
-      "report": "docs/reports/ING-001.md",
-      "merge_commit": "8ff35e4"
-    },
-    "MED-001": {
-      "status": "merged",
-      "branch": "claude/med-001-audio-analysis",
-      "pr": 6,
-      "ci": "green",
-      "report": "docs/reports/MED-001.md",
-      "merge_commit": "4c1f6c6"
-    },
-    "CAT-001": {
-      "status": "merged",
-      "branch": "claude/cat-001-candidate-promotion",
-      "pr": 7,
-      "ci": "green 10/10 (run 31875231715)",
-      "report": "docs/reports/CAT-001.md",
-      "merge_commit": "ee050fa"
-    },
-    "AI-001": {
-      "status": "merged",
-      "branch": "claude/ai-001-provider-foundation",
-      "pr": 8,
-      "ci": "green 10/10 (run 31875419818)",
-      "report": "docs/reports/AI-001.md",
-      "merge_commit": "6e5928b"
-    },
-    "GEN-001": {
-      "status": "merged",
-      "branch": "claude/gen-001-music-generation",
-      "pr": 9,
-      "ci": "green 10/10 (run 31876315279)",
-      "report": "docs/reports/GEN-001.md",
-      "merge_commit": "aca7d2b"
-    },
-    "UI-001": {
-      "status": "merged",
-      "branch": "claude/ui-001-design-system",
-      "pr": 14,
-      "ci": "10/10 green",
-      "report": "docs/reports/UI-001.md",
-      "note": "Design system, shell, one showcase screen. Review corrections C1-C4 applied: shared useModalSurface (focus trap, Escape, focus restore, counted scroll lock, inert background) for both AppModal and the mobile drawer; router.on unsubscribe on unmount; Vitest + jsdom component suite wired into the frontend CI job.",
-      "pr_url": "https://github.com/kesolarpro/sanitube/pull/14",
-      "ci_url": "https://github.com/kesolarpro/sanitube/actions/runs/31883493171",
-      "merge_commit": "9d2a4ac",
-      "review": "CORRECTIONS REQUIRED (C1-C4) -> applied -> authorised to merge"
-    },
-    "INS-001": {
-      "status": "merged",
-      "branch": "claude/ins-001-installer",
-      "pr": 31,
-      "pr_url": "https://github.com/kesolarpro/sanitube/pull/31",
-      "ci": "10/10 green — run 31919074646",
-      "report": "docs/reports/INS-001.md",
-      "merge_commit": "e44a1cf",
-      "note": "php artisan sanitube:install — seven idempotent stages in the Installer module slot reserved since ARCH-001. The service is the installer so INS-002 can reuse it. Never overwrites .env, never replaces APP_KEY, always backs up at 0600, never takes a password as an option. Three defects found while building: preflight would have refused every first install on the scheduler capability, --skip-owner always exited non-zero, and .gitignore did not cover .env.backup-*."
-    },
-    "REL-001": {
-      "status": "merged",
-      "branch": "claude/rel-001-release-workflow",
-      "pr": 10,
-      "ci": "green 10/10 (run 31876446920)",
-      "report": "docs/reports/REL-001.md",
-      "merge_commit": "06a91c6"
-    },
-    "DIST-001": {
-      "status": "merged",
-      "branch": "claude/dist-001-distribution-core",
-      "pr": 11,
-      "ci": "green 10/10 (run 31876804282)",
-      "report": "docs/reports/DIST-001.md",
-      "merge_commit": "6acfe26"
-    },
-    "DEP-001": {
-      "status": "merged",
-      "branch": "claude/dep-001-deploy-script",
-      "pr": 37,
-      "ci": "green 10/10"
-    },
-    "SEC-001": {
-      "status": "merged",
-      "branch": "claude/sec-001-identity-auth",
-      "pr": 13,
-      "ci": "green 10/10 (run 31881814037)",
-      "report": "docs/reports/SEC-001.md",
-      "merge_commit": "d9db6af"
-    },
-    "UI-002": {
-      "status": "merged",
-      "branch": "claude/ui-002-dashboard",
-      "pr": 15,
-      "ci": "10/10 green",
-      "report": "docs/reports/UI-002.md",
-      "note": "Dashboard on real data. C1: operational probing moved out of the request cycle into sanitube:health:refresh + OperationalHealthStore; the dashboard reads FRESH/STALE/UNKNOWN and blanks every verdict when stale.",
-      "pr_url": "https://github.com/kesolarpro/sanitube/pull/15",
-      "ci_url": "https://github.com/kesolarpro/sanitube/actions/runs/31888600654",
-      "merge_commit": "16d37c2",
-      "review": "CORRECTION C1 REQUIRED -> applied -> merged"
-    },
-    "UI-003": {
-      "status": "not_started",
-      "branch": null,
-      "pr": null,
-      "ci": null
-    },
-    "UI-004": {
-      "status": "merged",
-      "branch": "claude/ui-004-ingestion",
-      "pr": 25,
-      "pr_url": "https://github.com/kesolarpro/sanitube/pull/25",
-      "ci": "10/10 green — run 31912476942",
-      "report": "docs/reports/UI-004.md",
-      "merge_commit": "8c1d64d",
-      "note": "Four read-only ingestion screens. The candidate detail keeps four kinds of evidence apart: measured, claimed, noticed, decided. No object key, no disk, no bucket, and neither the storage driver's nor the analyser's failure message. Counts for a page come from one grouped query, asserted by a query count. Six regressions injected, every one turned a test red."
-    },
-    "UI-005": {
-      "status": "merged",
-      "branch": "claude/ui-005-studio",
-      "pr": 26,
-      "pr_url": "https://github.com/kesolarpro/sanitube/pull/26",
-      "ci": "10/10 green — run 31912942178",
-      "report": "docs/reports/UI-005.md",
-      "merge_commit": "1b98ade",
-      "note": "Five read-only studio screens. Three provider states kept distinct — not configured is not a problem. Commercial rights UNKNOWN counted on the front page because nothing ever infers it away. No provider job id and no audio reference reach the browser; has_audio replaces the reference. Five regressions injected, every one turned a test red."
-    },
-    "UI-006": {
-      "status": "not_started",
-      "branch": null,
-      "pr": null,
-      "ci": null
-    },
-    "UI-007": {
-      "status": "not_started",
-      "branch": null,
-      "pr": null,
-      "ci": null
-    },
-    "SYS-001": {
-      "status": "merged",
-      "branch": "claude/sys-001-operations",
-      "pr": 30,
-      "pr_url": "https://github.com/kesolarpro/sanitube/pull/30",
-      "ci": "10/10 green — run 31918605326",
-      "report": "docs/reports/SYS-001.md",
-      "merge_commit": "c56c812",
-      "note": "Operations and jobs screens behind can.role:administer. A GET probes nothing — proved by forgetting the snapshot, loading the page, and asserting it is still absent. No job payload and no stack trace reaches the browser; only the exception's first line, truncated. Unknown is not zero: an installation on Redis has no jobs table and the counts read null."
-    },
-    "INS-002": {
-      "status": "merged",
-      "branch": "claude/audit-001-operational-log",
-      "pr": 51,
-      "ci": "green — run 31979... (PR 51)",
-      "note": "Web installer over the SAME InstallationService. Filesystem token, two guards, permanent lock. Found that SESSION_DRIVER=database makes the install page unable to hold a CSRF token before migrations, and that db_password was being flashed into the session by Laravel validation redirects."
-    },
-    "DEP-002": {
-      "status": "not_started",
-      "branch": null,
-      "pr": null,
-      "ci": null
-    },
-    "DEP-003": {
-      "status": "not_started",
-      "branch": null,
-      "pr": null,
-      "ci": null
-    },
-    "UI-003a": {
-      "status": "merged",
-      "branch": "claude/ui-003-catalogue",
-      "pr": 16,
-      "ci": "10/10 green — run 31903739028",
-      "report": "docs/reports/UI-003a.md",
-      "note": "Tracks index + detail. C1 active identifiers only (scoped at the read-model boundary, not a global scope). C2 invalid filters answer 422 and the form renders canonical values. C3 search documentation corrected to contains-search. C4 malformed cursor refused deterministically instead of 500.",
-      "pr_url": "https://github.com/kesolarpro/sanitube/pull/16",
-      "ci_url": "https://github.com/kesolarpro/sanitube/actions/runs/31902837883",
-      "merge_commit": "0554d28",
-      "review": "CORRECTIONS REQUIRED (C1-C4) -> applied -> authorised to merge"
-    },
-    "UI-003b": {
-      "status": "merged",
-      "branch": "claude/ui-003b-catalogue",
-      "pr": 17,
-      "ci": "10/10 green — run 31904518659",
-      "report": "docs/reports/UI-003b.md",
-      "note": "Artists index + detail. C1 tracks_shown reports what was returned, not the cap. C2 the capped selection is ordered by track title then track uuid, so it is stable across loads and across the four engines. C3 the truncation test was strengthened, which caught a fixture of mine that made the determinism assertion pass against a deliberately broken ordering.",
-      "merge_commit": "54e72bb",
-      "review": "CORRECTIONS REQUIRED (C1-C3) -> applied -> merged"
-    },
-    "UI-003c": {
-      "status": "merged",
-      "merge_commit": "8b0dc10",
-      "pr": 19,
-      "ci": "10/10 green — run 31906393614",
-      "note": "Contributors + Compositions index and detail. Credit shares travel as credited_share and a test asserts neither a bare `share` key nor the words ownership/royalty/entitlement appear in any payload — the rights domain does not exist yet. Legal name and display name kept as separate labelled facts. CursorShape extracted and shared by four lists."
-    },
-    "UI-003d": {
-      "status": "merged",
-      "branch": "claude/ui-003d-assets",
-      "pr": 20,
-      "pr_url": "https://github.com/kesolarpro/sanitube/pull/20",
-      "ci": "10/10 green — run 31908779292",
-      "report": "docs/reports/UI-003d.md",
-      "review_required_because": "Introduces the capability to hand out time-limited access to stored objects including masters.",
-      "note": "Assets + signed preview. C1 was a real defect: default provider resolved instead of the one the asset records. Both call sites now use provider($asset->disk), no fallback. C2 60/min per-user mint budget. C3 no-store on success and refusal alike.",
-      "corrections": "C1 storage provenance, C2 mint throttle, C3 uncacheable credential — applied",
-      "merge_commit": "1ae9bb0",
-      "review": "CORRECTIONS REQUIRED (C1-C3) -> applied -> merged"
-    },
-    "BULK-001a": {
-      "status": "merged",
-      "branch": "claude/bulk-001-import",
-      "pr": 22,
-      "ci": "10/10 green — run 31909186089",
-      "report": "docs/reports/BULK-001a.md",
-      "note": "Batch progress derived from the items, never stored beside them. One grouped count per batch, asserted. No percentage and no ETA — both would be invented.",
-      "merge_commit": "74b7299"
-    },
-    "BULK-001b": {
-      "status": "merged",
-      "branch": "claude/bulk-001b-manifest",
-      "pr": 24,
-      "pr_url": "https://github.com/kesolarpro/sanitube/pull/24",
-      "ci": "10/10 green — run 31911354233",
-      "report": "docs/reports/BULK-001b.md",
-      "merge_commit": "c05c5b4",
-      "note": "CSV manifest import + sanitube:import. A manifest is evidence, never authority: after importing 900 files naming 900 ISRCs, tracks and external_identifiers are both still empty. A bad row is refused with its line number; a bad file is fatal. An ISRC already active on another track holds the candidate NEEDS_REVIEW. Eight regressions injected, every one turned a test red."
-    },
-    "UI-004b": {
-      "status": "merged",
-      "branch": "claude/ui-004b-candidate-actions",
-      "pr": 28,
-      "pr_url": "https://github.com/kesolarpro/sanitube/pull/28",
-      "ci": "10/10 green — run 31917687455",
-      "report": "docs/reports/UI-004b.md",
-      "merge_commit": "4b50591",
-      "note": "Promote, decline, correct the title — each calling the CAT-001 service that owns it, none writing a status. can.role:catalogue on the route; a MEMBER may read the queue and decide nothing in it. The actions block in the payload is presentation only, proved by posting past a hidden button. The reviewer is now recorded, where the API's call leaves it null. Six regressions injected, every one turned a test red."
-    },
-    "BULK-001c": {
-      "status": "merged — REVIEW_REQUIRED for the amendment",
-      "branch": "claude/bulk-001c-content-identity",
-      "pr": 52,
-      "ci": "green 10/10 — run 31979442196",
-      "note": "Identity is already content-based and all four cases pass; the forbidden key shortcut is absent. What remains is an amplification factor of 2, now asserted as a baseline. Removing the second copy contradicts an AST-001 invariant and a merged assertion, so ADR-0015 records three options and recommends one rather than changing the storage core."
-    },
-    "SYS-001b": {
-      "status": "merged",
-      "branch": "claude/sys-001b-failed-jobs",
-      "pr": 49,
-      "ci": "green — run 31972577593",
-      "merge_commit": "4e17ab3",
-      "note": "Failed-job retry and record removal behind can.role:administer. Retryability is declared by the job through the SafelyRetryable marker — opt in, never opt out — so the one operation that must never happen twice (ImportGenerationResultJob, SubmitMusicGenerationJob) is never offered a retry button. No payload or stack trace ever leaves QueueQuery."
-    },
-    "UI-005b": {
-      "status": "merged",
-      "branch": "claude/ui-005b-studio-actions",
-      "pr": 29,
-      "pr_url": "https://github.com/kesolarpro/sanitube/pull/29",
-      "ci": "10/10 green — run 31918186417",
-      "report": "docs/reports/UI-005b.md",
-      "merge_commit": "ebd558d",
-      "note": "Create a campaign, start a generation, cancel one, select a result. Selecting never creates a Track — proved by mutation. Two behaviours extracted from API controllers into services because a second controller copy is the one that drifts; all 49 pre-existing generation tests passed unmodified after the move."
-    },
-    "REL-UI-001": {
-      "status": "merged",
-      "branch": "claude/rel-ui-001-release-builder",
-      "pr": 33,
-      "ci": "green 10/10"
-    },
-    "ROY-001": {
-      "status": "OUT_OF_SCOPE_V1",
-      "reason": "Royalty engine. Removed from V1 by the scope correction: SaniTube performs no financial calculation."
-    },
-    "RIGHTS-001": {
-      "status": "OUT_OF_SCOPE_V1",
-      "reason": "Rights management. Removed from V1 in its financial form. Credit and ownership metadata needed for distribution stays, and is delivered as catalogue metadata under the REL and CAT tickets."
-    },
-    "PUB-001": {
-      "status": "OUT_OF_SCOPE_V1",
-      "reason": "Publishing administration. Its purpose is collection and distribution of publishing income, which the scope correction removes from V1. Composition and writer metadata already exists in CAT-002 and stays."
-    },
-    "REL-002": {
-      "status": "merged",
-      "branch": "claude/rel-002-structured-validation",
-      "pr": 42,
-      "ci": "green 10/10",
-      "note": "Validation answers in ReleaseValidationIssue codes rather than English. Closed the bug where SubmitDelivery decided unreachability by substring-matching a message."
-    },
-    "DIST-UI-001": {
-      "status": "merged",
-      "branch": "claude/dist-ui-001-distribution-operations",
-      "pr": 34,
-      "ci": "green 10/10"
-    },
-    "SET-001": {
-      "status": "merged",
-      "branch": "claude/set-001-settings-shell",
-      "pr": 36,
-      "ci": "green 10/10"
-    },
-    "SET-002": {
-      "status": "merged",
-      "branch": "claude/audit-001-operational-log",
-      "pr": 51,
-      "ci": "green — run 31979... (PR 51)",
-      "note": "Settings write path. Allowlist of thirteen variables; APP_KEY, APP_DEBUG and DB_* deliberately absent. Blank never clears. One write over a backup, config cache rebuilt or the file restored. Not REVIEW_REQUIRED: no new secrets architecture, it writes through the installer EnvironmentFile."
-    },
-    "DEP-002-003": {
-      "status": "merged",
-      "branch": "claude/dep-002-003-host-guides",
-      "pr": 39,
-      "ci": "green 10/10"
-    },
-    "E2E-001": {
-      "status": "merged",
-      "branch": "claude/e2e-001-acceptance-walk",
-      "pr": 43,
-      "ci": "green 10/10",
-      "note": "The V1 definition of done as a walk. Found and fixed a restore that could not restore (alphabetical dump order broke foreign keys) and found the catalogue write gap CAT-002 closes."
-    },
-    "CAT-002": {
-      "status": "merged",
-      "branch": "claude/cat-002-track-releasable",
-      "pr": 44,
-      "ci": "green 10/10",
-      "note": "Track credits and readiness behind can.role:catalogue. Also fixed the stale-cache defect: DeploymentTest left the application cached, which can make a removed authorization guard look enforced."
-    },
-    "REL-003": {
-      "status": "merged",
-      "branch": "claude/sanitube-autonomous-v1-5pycx0",
-      "pr": 86,
-      "ci": "green"
-    },
-    "ING-002": {
-      "status": "merged",
-      "branch": "claude/ing-002-start-import",
-      "pr": 45,
-      "ci": "green 10/10",
-      "note": "Starting an import from the interface. Gave IngestionException a reason distinct from its persisted failure code, refused an ambiguous folder+list selection that used to drop the list silently, and stopped the stylesheet being built from the compiled-view cache."
-    },
-    "DIST-001-H1": {
-      "status": "merged",
-      "branch": "claude/dist-001-h1-unknown-outcome",
-      "pr": 35,
-      "ci": "green 10/10",
-      "note": "Unknown submission outcome, merged after the three approved corrections: findSubmission() moved to a SupportsSubmissionLookup capability, external references carry provenance (PROVIDER_RESPONSE/PROVIDER_LOOKUP/MANUAL_OPERATOR), and decided_by carries a RESTRICT foreign key."
-    },
-    "PROD-001": {
-      "status": "merged",
-      "branch": "claude/sanitube-autonomous-v1-5pycx0",
-      "pr": 75,
-      "ci": "green 10/10 (run 32366040815)",
-      "report": "docs/reports/PROD-001.md",
-      "merge_commit": "f262487",
-      "notes": "ProductionPlan and the autonomy ladder. AUTONOMOUS_RELEASE locked in code."
-    },
-    "AUTH-002": {
-      "status": "merged",
-      "branch": "claude/auth-002-password-reset",
-      "pr": 50,
-      "ci": "green — run 31972896475",
-      "merge_commit": "d37c11d",
-      "note": "Password reset over Laravel's broker. The request never says whether an address is known — same status, same Location, same empty error bag — and a deactivated account cannot reset its way back in, including one deactivated after the link was sent. Reset rotates remember_token and logs out other devices."
-    },
-    "AUDIT-001": {
-      "status": "merged",
-      "branch": "claude/audit-001-operational-log",
-      "pr": 51,
-      "ci": "green — run 31979... (PR 51)",
-      "note": "Operational audit log: 24 named actions, append-only and enforced, structural redaction, retention prune. Explicit call sites rather than model hooks -- bulk writes and refusals fire no model event. ADR-0014."
-    },
-    "A11Y-001": {
-      "status": "merged",
-      "branch": "claude/a11y-audit-v1",
-      "pr": 53,
-      "ci": "green 10/10 — run 31979953742",
-      "note": "61 of 65 form fields rendered a label pointing at nothing. FormField now provides its wiring and the controls inject it; all call sites fixed without editing one. A second bug found while fixing it: Vue casts absent Boolean props to false, so the nullish coalescing never fell through and aria-invalid would have been absent everywhere."
-    },
-    "STO-003": {
-      "status": "merged",
-      "branch": "claude/sto-003-direct-uploads",
-      "pr": 58,
-      "ci": "green 10/10",
-      "report": "docs/reports/STO-003.md",
-      "merge_commit": "3a107fb"
-    },
-    "MED-003": {
-      "status": "merged",
-      "branch": "claude/media-worker-contract",
-      "pr": 59,
-      "ci": "green 10/10 (run 32324889572)",
-      "report": "docs/reports/MED-003.md",
-      "merge_commit": "6869592",
-      "note": "Shipped ordering by ABS(unsigned - ?), which aborts on MySQL and MariaDB and only works on SQLite. Caught by the engine matrix and fixed before merge; see ADR-0017."
-    },
-    "DEDUP-001": {
-      "status": "merged",
-      "branch": "claude/sanitube-autonomous-v1-5pycx0",
-      "pr": 61,
-      "ci": "green 10/10 (run 32326329882)",
-      "report": "docs/reports/DEDUP-001.md",
-      "merge_commit": "7fd25b2",
-      "note": "Fingerprint comparison with alignment search; three duplicate levels; findings PROPOSED only. Chromaprint switched to raw output (VERSION 2). ADR-0016, ADR-0017."
-    },
-    "DEDUP-002": {
-      "status": "merged",
-      "branch": "claude/sanitube-autonomous-v1-5pycx0",
-      "pr": 62,
-      "ci": "green 10/10 (run 32327046573)",
-      "report": "docs/reports/DEDUP-002.md",
-      "merge_commit": "b564956",
-      "note": "DecideDuplicate and TrashAsset. Logical trash as three nullable columns, never a status and never a deletion. Permanent deletion deliberately not implemented."
-    },
-    "DEDUP-003": {
-      "status": "merged",
-      "branch": "claude/sanitube-autonomous-v1-5pycx0",
-      "pr": 63,
-      "ci": "green 10/10 (run 32327898260)",
-      "report": "docs/reports/DEDUP-003.md",
-      "merge_commit": "7bcf3d9",
-      "note": "The duplicate queue. Deciding and trashing stay separate routes. Fixed a defective leak assertion and a payload widening AssetIndexQuery's no-filename boundary."
-    },
-    "TRN-001": {
-      "status": "merged",
-      "branch": "claude/sanitube-autonomous-v1-5pycx0",
-      "pr": 64,
-      "ci": "green 10/10 (run 32329024561)",
-      "report": "docs/reports/TRN-001.md",
-      "merge_commit": "ca2abf2",
-      "note": "Transcription contract, transcripts + transcript_segments, TranscribeAsset. A transcript is SUGGESTED and reaches nothing in the catalogue. No vendor adapter ships — deliberate."
-    },
-    "OPS-001": {
-      "status": "merged",
-      "branch": "claude/ops-001-backup-restore",
-      "pr": 41,
-      "ci": "green 10/10"
-    },
-    "OPS-002": {
-      "status": "merged",
-      "branch": "claude/sanitube-autonomous-v1-5pycx0",
-      "pr": 65,
-      "ci": "green 10/10 (run 32330043916)",
-      "report": "docs/reports/OPS-002.md",
-      "merge_commit": "29d1694",
-      "note": "Global stop as a database row plus a backlog ceiling that refuses whole requests."
-    },
-    "PIPE-001": {
-      "status": "in_review",
-      "branch": "claude/sanitube-autonomous-v1-5pycx0",
-      "ci": "pending",
-      "report": "docs/reports/PIPE-001.md",
-      "note": "Found that nothing in the application called EvaluateAssetDuplicates, FingerprintAsset or TranscribeAsset — four merged tickets whose output would have been permanently empty. Wires fingerprinting and evaluation via events, adds the backfill command behind the OPS-002 gates. Transcription stays disconnected until an adapter ships."
-    },
-    "TRN-002": {
-      "status": "merged",
-      "branch": "claude/sanitube-autonomous-v1-5pycx0",
-      "pr": 67,
-      "ci": "green 10/10 (run 32358991892)",
-      "report": "docs/reports/TRN-002.md",
-      "merge_commit": "ae84db4",
-      "notes": "OpenAI /audio/transcriptions adapter. Provider certification CONFIGURED_UNCERTIFIED: no real credential has ever been used from this installation. Mutation table amended by TRN-003 after a harness defect was found."
-    },
-    "TRN-003": {
-      "status": "merged",
-      "branch": "claude/sanitube-autonomous-v1-5pycx0",
-      "pr": 68,
-      "ci": "green 10/10 (run 32360255311)",
-      "report": "docs/reports/TRN-003.md",
-      "merge_commit": "2cb2d9c",
-      "notes": "Transcription production wiring. Automatic transcription is OFF by default; it is the only enrichment that costs money per file."
-    },
-    "ENR-001": {
-      "status": "merged",
-      "branch": "claude/sanitube-autonomous-v1-5pycx0",
-      "pr": 69,
-      "ci": "green 10/10 (run 32361222556)",
-      "report": "docs/reports/ENR-001.md",
-      "merge_commit": "62c977d",
-      "notes": "Schema-required structured output at both vendors. Also found that repeated Http::fake() for one URL does not replace the first stub."
-    },
-    "ENR-002": {
-      "status": "merged",
-      "branch": "claude/sanitube-autonomous-v1-5pycx0",
-      "pr": 70,
-      "ci": "green 10/10 (run 32362113332)",
-      "report": "docs/reports/ENR-002.md",
-      "merge_commit": "fe76d80",
-      "notes": "First real AI task. Suggestions are always PROPOSED. Automatic enrichment OFF by default. No review screen yet."
-    },
-    "ENR-003": {
-      "status": "merged",
-      "branch": "claude/sanitube-autonomous-v1-5pycx0",
-      "pr": 71,
-      "ci": "green 10/10 (run 32362761168)",
-      "report": "docs/reports/ENR-003.md",
-      "merge_commit": "23d4301",
-      "notes": "Call ceilings and a ledger-derived circuit breaker. Counts calls, never money. Transcription spend is NOT covered."
-    },
-    "ENR-004": {
-      "status": "merged",
-      "branch": "claude/sanitube-autonomous-v1-5pycx0",
-      "pr": 72,
-      "ci": "green 10/10 (run 32363909815)",
-      "report": "docs/reports/ENR-004.md",
-      "merge_commit": "0b2078e",
-      "notes": "Accept / edit-before-accept / reject / regenerate through SetTrackMetadata. Found that the audit scrubber silently drops list-valued context."
-    },
-    "ENR-005": {
-      "status": "merged",
-      "branch": "claude/sanitube-autonomous-v1-5pycx0",
-      "pr": 73,
-      "ci": "green 10/10 (run 32364854708)",
-      "report": "docs/reports/ENR-005.md",
-      "merge_commit": "855df6c",
-      "notes": "The review screen. Four levels as four server-named objects. Refusal codes are not translated on the screen yet and there is no bulk action."
-    },
-    "EDI-001": {
-      "status": "merged",
-      "branch": "claude/sanitube-autonomous-v1-5pycx0",
-      "pr": 74,
-      "ci": "green 10/10 (run 32365472712)",
-      "report": "docs/reports/EDI-001.md",
-      "merge_commit": "6540061",
-      "notes": "EditorialProfile: an imprint is a row, not code. No caller yet."
-    },
-    "PROD-002": {
-      "status": "merged",
-      "branch": "claude/sanitube-autonomous-v1-5pycx0",
-      "pr": 76,
-      "ci": "green 10/10 (run 32366843743)",
-      "report": "docs/reports/PROD-002.md",
-      "merge_commit": "27b7e7f",
-      "notes": "ProductionSlot. The scheduler opens rows and never generates. Found a SQLite date-format caveat on the unique key."
-    },
-    "PROD-003": {
-      "status": "merged",
-      "branch": "claude/sanitube-autonomous-v1-5pycx0",
-      "pr": 77,
-      "ci": "green 10/10 (run 32367592546)",
-      "report": "docs/reports/PROD-003.md",
-      "merge_commit": "479fb44",
-      "notes": "Inventory before generation. NO_ATTRIBUTION rather than zero when stock cannot be counted. Two plans on one imprint share stock -- known limitation."
-    },
-    "GEN-003": {
-      "status": "merged",
-      "branch": "claude/sanitube-autonomous-v1-5pycx0",
-      "pr": 80,
-      "ci": "green"
-    },
-    "GEN-004": {
-      "status": "merged",
-      "branch": "claude/sanitube-autonomous-v1-5pycx0",
-      "pr": 81,
-      "ci": "green"
-    },
-    "GEN-005": {
-      "status": "merged",
-      "branch": "claude/sanitube-autonomous-v1-5pycx0",
-      "pr": 82,
-      "ci": "green"
-    },
-    "ART-001": {
-      "status": "merged",
-      "branch": "claude/sanitube-autonomous-v1-5pycx0",
-      "pr": 83,
-      "ci": "green"
-    },
-    "ART-002": {
-      "status": "merged",
-      "branch": "claude/sanitube-autonomous-v1-5pycx0",
-      "pr": 84,
-      "ci": "green"
-    },
-    "DIST-003": {
-      "status": "merged",
-      "branch": "claude/sanitube-autonomous-v1-5pycx0",
-      "pr": 87,
-      "ci": "green"
-    },
-    "OPS-003": {
-      "status": "merged",
-      "branch": "claude/sanitube-autonomous-v1-5pycx0",
-      "pr": 88,
-      "ci": "green"
-    },
-    "ENR-006": {
-      "status": "merged",
-      "branch": "claude/sanitube-autonomous-v1-5pycx0",
-      "pr": 89,
-      "ci": "green"
-    },
-    "UPL-001": {
-      "status": "merged",
-      "branch": "claude/sanitube-autonomous-v1-5pycx0",
-      "pr": 92,
-      "ci": "green"
-    },
-    "UPL-002": {
-      "status": "in review",
-      "branch": "claude/sanitube-autonomous-v1-5pycx0",
-      "pr": null,
-      "ci": "pending"
-    }
-  },
-  "architecture_amendments": [
-    {
-      "ticket": "AST-001",
-      "change": "assets.sha256, byte_size and mime_type nullable; invariant I10 added",
-      "status": "approved",
-      "recorded_in": "docs/adr/ADR-0012-asset-storage-compensation.md"
-    },
-    {
-      "ticket": "MED-001",
-      "change": "TrackCandidate is created PENDING instead of READY; SettleCandidateAfterAnalysis moves it to READY, NEEDS_REVIEW or WAITING_CAPABILITY",
-      "status": "validated by review; merged",
-      "note": "Pre-announced in ING-001's report. No schema change: both statuses were declared in TrackCandidateStatus by ING-001 for this purpose.",
-      "recorded_in": "docs/reports/MED-001.md"
-    }
-  ],
-  "external_blockers": [
-    {
-      "id": "STO-002",
-      "summary": "No validation against a real S3-compatible endpoint. Contract is proved by two independent implementations and the multi-engine matrix, but no real bucket has been exercised.",
-      "blocking": "production staging, not ING-001",
-      "status": "deferred by review"
-    },
-    {
-      "id": "AI-002",
-      "summary": "No validation against a real OpenAI or Anthropic endpoint. Both adapters are proved against captured response shapes with stray requests blocked; no key was available or requested. Wire formats are the documented public ones.",
-      "blocking": "relying on an AI-assisted feature in production, nothing before then",
-      "status": "open"
-    },
-    {
-      "id": "GEN-002",
-      "summary": "Suno (or any real music generation provider) unavailable, and GEN-005 established why: as of August 2026 Suno publishes no API contract at all — no console, no documentation, no request or response shapes. A developer API is being explored with curated partners, with no timeline. Reverse-engineered wrappers are permanently excluded by ADR-0018. Output commercial terms are unverified against a primary source. The fake provider exercises every path without a network.",
-      "blocking": "AI-generated catalogue in production, nothing in development",
-      "status": "open",
-      "unblocked_by": "A published API contract, obtainable without reverse engineering, with stated output terms and any retrieval cap. See ADR-0018."
-    },
-    {
-      "id": "DIST-002",
-      "summary": "Too Lost (or any real distributor) credentials unavailable: no adapter, no delivery ever made. The fake distributor exercises validate/prepare/submit/poll/takedown without a network.",
-      "blocking": "actually delivering a release, nothing in development",
-      "status": "open"
-    },
-    {
-      "id": "EXTERNAL_ADMIN_ACTION_REQUIRED",
-      "summary": "The GitHub repository default branch is still 'claude/verifier-repertoire-git-k29ft2'; it should be 'main'. No tool in this environment can change repository settings — the GitHub MCP server exposes no repository-update tool and there is no gh CLI.",
-      "action": "A human with admin access: Settings -> General -> Default branch -> main.",
-      "blocking": "nothing in development; all work is on main and never returns to the old branch",
-      "status": "open"
-    },
-    {
-      "id": "ENVIRONMENT_EGRESS",
-      "summary": "Every distributor and DDEX host is refused by this execution environment's network egress policy (403 at the proxy). raw.githubusercontent.com is reachable, which is how the OpenAI specification could be read in full for ART-002. Verified by direct probe with a control; the evidence table is in docs/research/distribution-2026-08.md.",
-      "blocking": "Items 17 and 18 of the Phase 2 order — DDEX and a first distributor adapter. Not certification, which DIST-002 covers separately.",
-      "unblocked_by": "An environment whose egress allows ddex.net, kb.ddex.net and the chosen distributor's developer host; or the ERN schemas and the distributor's OpenAPI document committed into docs/.",
-      "status": "open"
-    }
-  ],
-  "notes": {
-    "portability": "$table->json() is forbidden platform-wide. MariaDB's json is an alias for longtext/utf8mb4_bin while MySQL 8's is a native binary type, so one migration yields two types with two comparison semantics. Use ->longText() with an Eloquent array cast. Enforced by PortabilityTest::no_engine_specific_construct_is_used_in_any_migration.",
-    "capabilities": "FFmpeg is a capability, never a dependency. SANITUBE_MEDIA_ANALYSIS_REQUIRED defaults to false so a cPanel host without ffprobe still produces promotable candidates.",
-    "catalogue_writes": "Promotion is the only v1 write that creates a Track. It always creates it DRAFT, mints no ISRC, and is refusable for six reasons each carrying a machine-readable code. One-master-one-track is enforced in PromoteTrackCandidate rather than by a unique index, because tracks is ARCH-002's validated schema.",
-    "ci_triggers": "The workflow only built pull requests whose base was main, so a PR stacked on another claude/** branch showed zero checks — indistinguishable from a repo with no CI. The pull_request branch filter now includes 'claude/**'. Fixed on the CAT-001 branch; it reaches main when that branch merges.",
-    "migration_rollback": "MySQL and MariaDB drop the index they generate for a foreign key once a user-created index can serve it. A migration that adds a unique index on an FK column must therefore drop the foreign key before dropping that index in down(), then restore it. SQLite enforces none of this, so a local rollback check on SQLite proves nothing about the server engines. Enforced by PortabilityTest::an_index_added_over_a_foreign_key_column_is_undone_in_the_right_order.",
-    "ai_disabled_provider": "The disabled AI provider is named 'none', never 'null'. Laravel's Env::get() turns the literal string null in a .env file into PHP null, so SANITUBE_AI_PROVIDER=null yields an empty provider name and the env() default never applies. Empty/absent/null configuration normalises to 'none' at AiManager::normaliseProviderName(); an unknown non-empty name is an error.",
-    "no_hosts_in_php": "PortabilityTest rejects any absolute http(s) host in PHP, config included. Vendor endpoints come from the environment with no PHP default; .env.example ships the public URLs.",
-    "generation": "Generation never creates a Track: a selected result becomes a VERIFIED asset and a TrackCandidate with source GENERATED, which CAT-001 reviews. commercial_rights_status defaults UNKNOWN and is never inferred from a successful generation. Polling is bounded twice — the job re-dispatches only while pollable, and the service fails the generation at max_polls.",
-    "release_mutation": "ReleaseMutationPolicy is the single place that says which edits a status permits. DRAFT allows everything; READY allows nothing structural but can be reopened to DRAFT; SUBMITTED/DELIVERED/LIVE/TAKEN_DOWN allow nothing and cannot be reopened. I4 is called, never reimplemented or relaxed.",
-    "track_numbering": "release_tracks carries UNIQUE(release_id, disc_number, track_number). Renumbering must be two-phase — park every row above the occupied range, then write final numbers — because a row-by-row update collides the moment a track moves into a slot another has not yet left.",
-    "distribution": "Submission is the one irreversible act. Three guards against a duplicate delivery: UNIQUE(release_id, provider), a guarded status UPDATE, and a derived (not random) idempotency key sha256(release uuid|distributor). Outage != rejection: unreachable and unconfigured both produce validation errors, an outage during submit leaves the delivery FAILED and retryable. DIST-001 never mints an ISRC or UPC — a missing one is a validation error.",
-    "identity": "Session auth on Laravel's users table. Three roles (OWNER/ADMIN/MEMBER). role and is_active are NOT mass-assignable — set them with forceFill. Wrong password, unknown email and deactivated account answer identically to prevent account enumeration. Throttling is per email AND per IP. No self-registration: accounts come from sanitube:user:create.",
-    "translation_gate": "tests/Feature/Localization walks EVERY file in lang/en and checks all configured locales both directions. Any new UI string needs en/fr/es/it/pt/de or CI fails.",
-    "design_system": "Semantic tokens only (--color-surface, never --color-zinc-900). Status colour is decided in StatusBadge alone; labels always come from translations. Navigation is built server-side and unbuilt sections show as disabled — 'available' is presentation, never authorisation. MetricCard takes number|null and renders null as an em dash, never 0.",
-    "frontend_toolchain": "@vitejs/plugin-vue@5 peers Vite ^5||^6; the project is on Vite 7. Resolved with plugin-vue@6 (which supports Vite 7), NOT --force or --legacy-peer-deps: a peer conflict is compatibility information, and overriding it keeps the incompatibility. Same for vue-tsc@3. npm run types runs in CI."
-  },
-  "open_pull_requests": [],
-  "next_session": {
-    "start_with": "AUDIT-001 — operational audit log. Branch from main.",
-    "then": [
-      "INS-002 — web installer over the same InstallationService",
-      "SET-002 — settings write path (REVIEW_REQUIRED)",
-      "BULK-001c — re-import storage amplification",
-      "Accessibility audit; security audit sweep; performance pass"
+    "$comment": "Machine-readable project state. Any new session reads this first, then verifies it against GitHub before trusting it. Written at the end of each ticket, so a stale entry means a session ended mid-ticket — check the branch and CI rather than the status field.",
+    "updated_at": "2026-08-20",
+    "current_phase": "Product usability. Audit du parcours produit fait. UPL-001 (dépôt navigateur) et UPL-002 (transcription + enrichissement déclenchables) sont fusionnés ; REL-004 (package de release depuis l'UI) est le ticket en cours.",
+    "last_completed_ticket": "UPL-002",
+    "default_branch": "main (locally and for every merge). GitHub's configured default branch is still \"claude/verifier-repertoire-git-k29ft2\" — see EXTERNAL_ADMIN_ACTION_REQUIRED.",
+    "tickets": {
+        "ARCH-001": {
+            "status": "merged",
+            "branch": "claude/arch-001-hardening",
+            "pr": 1,
+            "ci": "green"
+        },
+        "ARCH-002": {
+            "status": "merged",
+            "branch": "claude/arch-002-domain-model",
+            "pr": 2,
+            "ci": "green"
+        },
+        "ARCH-003": {
+            "status": "merged",
+            "branch": "claude/arch-003-portability-guardrails",
+            "pr": 3,
+            "ci": "green"
+        },
+        "AST-001": {
+            "status": "merged",
+            "branch": "claude/ast-001-asset-registry-storage",
+            "pr": 4,
+            "ci": "green"
+        },
+        "ING-001": {
+            "status": "merged",
+            "branch": "claude/ing-001-ingestion-pipeline",
+            "pr": 5,
+            "ci": "green",
+            "report": "docs/reports/ING-001.md",
+            "merge_commit": "8ff35e4"
+        },
+        "MED-001": {
+            "status": "merged",
+            "branch": "claude/med-001-audio-analysis",
+            "pr": 6,
+            "ci": "green",
+            "report": "docs/reports/MED-001.md",
+            "merge_commit": "4c1f6c6"
+        },
+        "CAT-001": {
+            "status": "merged",
+            "branch": "claude/cat-001-candidate-promotion",
+            "pr": 7,
+            "ci": "green 10/10 (run 31875231715)",
+            "report": "docs/reports/CAT-001.md",
+            "merge_commit": "ee050fa"
+        },
+        "AI-001": {
+            "status": "merged",
+            "branch": "claude/ai-001-provider-foundation",
+            "pr": 8,
+            "ci": "green 10/10 (run 31875419818)",
+            "report": "docs/reports/AI-001.md",
+            "merge_commit": "6e5928b"
+        },
+        "GEN-001": {
+            "status": "merged",
+            "branch": "claude/gen-001-music-generation",
+            "pr": 9,
+            "ci": "green 10/10 (run 31876315279)",
+            "report": "docs/reports/GEN-001.md",
+            "merge_commit": "aca7d2b"
+        },
+        "UI-001": {
+            "status": "merged",
+            "branch": "claude/ui-001-design-system",
+            "pr": 14,
+            "ci": "10/10 green",
+            "report": "docs/reports/UI-001.md",
+            "note": "Design system, shell, one showcase screen. Review corrections C1-C4 applied: shared useModalSurface (focus trap, Escape, focus restore, counted scroll lock, inert background) for both AppModal and the mobile drawer; router.on unsubscribe on unmount; Vitest + jsdom component suite wired into the frontend CI job.",
+            "pr_url": "https://github.com/kesolarpro/sanitube/pull/14",
+            "ci_url": "https://github.com/kesolarpro/sanitube/actions/runs/31883493171",
+            "merge_commit": "9d2a4ac",
+            "review": "CORRECTIONS REQUIRED (C1-C4) -> applied -> authorised to merge"
+        },
+        "INS-001": {
+            "status": "merged",
+            "branch": "claude/ins-001-installer",
+            "pr": 31,
+            "pr_url": "https://github.com/kesolarpro/sanitube/pull/31",
+            "ci": "10/10 green — run 31919074646",
+            "report": "docs/reports/INS-001.md",
+            "merge_commit": "e44a1cf",
+            "note": "php artisan sanitube:install — seven idempotent stages in the Installer module slot reserved since ARCH-001. The service is the installer so INS-002 can reuse it. Never overwrites .env, never replaces APP_KEY, always backs up at 0600, never takes a password as an option. Three defects found while building: preflight would have refused every first install on the scheduler capability, --skip-owner always exited non-zero, and .gitignore did not cover .env.backup-*."
+        },
+        "REL-001": {
+            "status": "merged",
+            "branch": "claude/rel-001-release-workflow",
+            "pr": 10,
+            "ci": "green 10/10 (run 31876446920)",
+            "report": "docs/reports/REL-001.md",
+            "merge_commit": "06a91c6"
+        },
+        "DIST-001": {
+            "status": "merged",
+            "branch": "claude/dist-001-distribution-core",
+            "pr": 11,
+            "ci": "green 10/10 (run 31876804282)",
+            "report": "docs/reports/DIST-001.md",
+            "merge_commit": "6acfe26"
+        },
+        "DEP-001": {
+            "status": "merged",
+            "branch": "claude/dep-001-deploy-script",
+            "pr": 37,
+            "ci": "green 10/10"
+        },
+        "SEC-001": {
+            "status": "merged",
+            "branch": "claude/sec-001-identity-auth",
+            "pr": 13,
+            "ci": "green 10/10 (run 31881814037)",
+            "report": "docs/reports/SEC-001.md",
+            "merge_commit": "d9db6af"
+        },
+        "UI-002": {
+            "status": "merged",
+            "branch": "claude/ui-002-dashboard",
+            "pr": 15,
+            "ci": "10/10 green",
+            "report": "docs/reports/UI-002.md",
+            "note": "Dashboard on real data. C1: operational probing moved out of the request cycle into sanitube:health:refresh + OperationalHealthStore; the dashboard reads FRESH/STALE/UNKNOWN and blanks every verdict when stale.",
+            "pr_url": "https://github.com/kesolarpro/sanitube/pull/15",
+            "ci_url": "https://github.com/kesolarpro/sanitube/actions/runs/31888600654",
+            "merge_commit": "16d37c2",
+            "review": "CORRECTION C1 REQUIRED -> applied -> merged"
+        },
+        "UI-003": {
+            "status": "not_started",
+            "branch": null,
+            "pr": null,
+            "ci": null
+        },
+        "UI-004": {
+            "status": "merged",
+            "branch": "claude/ui-004-ingestion",
+            "pr": 25,
+            "pr_url": "https://github.com/kesolarpro/sanitube/pull/25",
+            "ci": "10/10 green — run 31912476942",
+            "report": "docs/reports/UI-004.md",
+            "merge_commit": "8c1d64d",
+            "note": "Four read-only ingestion screens. The candidate detail keeps four kinds of evidence apart: measured, claimed, noticed, decided. No object key, no disk, no bucket, and neither the storage driver's nor the analyser's failure message. Counts for a page come from one grouped query, asserted by a query count. Six regressions injected, every one turned a test red."
+        },
+        "UI-005": {
+            "status": "merged",
+            "branch": "claude/ui-005-studio",
+            "pr": 26,
+            "pr_url": "https://github.com/kesolarpro/sanitube/pull/26",
+            "ci": "10/10 green — run 31912942178",
+            "report": "docs/reports/UI-005.md",
+            "merge_commit": "1b98ade",
+            "note": "Five read-only studio screens. Three provider states kept distinct — not configured is not a problem. Commercial rights UNKNOWN counted on the front page because nothing ever infers it away. No provider job id and no audio reference reach the browser; has_audio replaces the reference. Five regressions injected, every one turned a test red."
+        },
+        "UI-006": {
+            "status": "not_started",
+            "branch": null,
+            "pr": null,
+            "ci": null
+        },
+        "UI-007": {
+            "status": "not_started",
+            "branch": null,
+            "pr": null,
+            "ci": null
+        },
+        "SYS-001": {
+            "status": "merged",
+            "branch": "claude/sys-001-operations",
+            "pr": 30,
+            "pr_url": "https://github.com/kesolarpro/sanitube/pull/30",
+            "ci": "10/10 green — run 31918605326",
+            "report": "docs/reports/SYS-001.md",
+            "merge_commit": "c56c812",
+            "note": "Operations and jobs screens behind can.role:administer. A GET probes nothing — proved by forgetting the snapshot, loading the page, and asserting it is still absent. No job payload and no stack trace reaches the browser; only the exception's first line, truncated. Unknown is not zero: an installation on Redis has no jobs table and the counts read null."
+        },
+        "INS-002": {
+            "status": "merged",
+            "branch": "claude/audit-001-operational-log",
+            "pr": 51,
+            "ci": "green — run 31979... (PR 51)",
+            "note": "Web installer over the SAME InstallationService. Filesystem token, two guards, permanent lock. Found that SESSION_DRIVER=database makes the install page unable to hold a CSRF token before migrations, and that db_password was being flashed into the session by Laravel validation redirects."
+        },
+        "DEP-002": {
+            "status": "not_started",
+            "branch": null,
+            "pr": null,
+            "ci": null
+        },
+        "DEP-003": {
+            "status": "not_started",
+            "branch": null,
+            "pr": null,
+            "ci": null
+        },
+        "UI-003a": {
+            "status": "merged",
+            "branch": "claude/ui-003-catalogue",
+            "pr": 16,
+            "ci": "10/10 green — run 31903739028",
+            "report": "docs/reports/UI-003a.md",
+            "note": "Tracks index + detail. C1 active identifiers only (scoped at the read-model boundary, not a global scope). C2 invalid filters answer 422 and the form renders canonical values. C3 search documentation corrected to contains-search. C4 malformed cursor refused deterministically instead of 500.",
+            "pr_url": "https://github.com/kesolarpro/sanitube/pull/16",
+            "ci_url": "https://github.com/kesolarpro/sanitube/actions/runs/31902837883",
+            "merge_commit": "0554d28",
+            "review": "CORRECTIONS REQUIRED (C1-C4) -> applied -> authorised to merge"
+        },
+        "UI-003b": {
+            "status": "merged",
+            "branch": "claude/ui-003b-catalogue",
+            "pr": 17,
+            "ci": "10/10 green — run 31904518659",
+            "report": "docs/reports/UI-003b.md",
+            "note": "Artists index + detail. C1 tracks_shown reports what was returned, not the cap. C2 the capped selection is ordered by track title then track uuid, so it is stable across loads and across the four engines. C3 the truncation test was strengthened, which caught a fixture of mine that made the determinism assertion pass against a deliberately broken ordering.",
+            "merge_commit": "54e72bb",
+            "review": "CORRECTIONS REQUIRED (C1-C3) -> applied -> merged"
+        },
+        "UI-003c": {
+            "status": "merged",
+            "merge_commit": "8b0dc10",
+            "pr": 19,
+            "ci": "10/10 green — run 31906393614",
+            "note": "Contributors + Compositions index and detail. Credit shares travel as credited_share and a test asserts neither a bare `share` key nor the words ownership/royalty/entitlement appear in any payload — the rights domain does not exist yet. Legal name and display name kept as separate labelled facts. CursorShape extracted and shared by four lists."
+        },
+        "UI-003d": {
+            "status": "merged",
+            "branch": "claude/ui-003d-assets",
+            "pr": 20,
+            "pr_url": "https://github.com/kesolarpro/sanitube/pull/20",
+            "ci": "10/10 green — run 31908779292",
+            "report": "docs/reports/UI-003d.md",
+            "review_required_because": "Introduces the capability to hand out time-limited access to stored objects including masters.",
+            "note": "Assets + signed preview. C1 was a real defect: default provider resolved instead of the one the asset records. Both call sites now use provider($asset->disk), no fallback. C2 60/min per-user mint budget. C3 no-store on success and refusal alike.",
+            "corrections": "C1 storage provenance, C2 mint throttle, C3 uncacheable credential — applied",
+            "merge_commit": "1ae9bb0",
+            "review": "CORRECTIONS REQUIRED (C1-C3) -> applied -> merged"
+        },
+        "BULK-001a": {
+            "status": "merged",
+            "branch": "claude/bulk-001-import",
+            "pr": 22,
+            "ci": "10/10 green — run 31909186089",
+            "report": "docs/reports/BULK-001a.md",
+            "note": "Batch progress derived from the items, never stored beside them. One grouped count per batch, asserted. No percentage and no ETA — both would be invented.",
+            "merge_commit": "74b7299"
+        },
+        "BULK-001b": {
+            "status": "merged",
+            "branch": "claude/bulk-001b-manifest",
+            "pr": 24,
+            "pr_url": "https://github.com/kesolarpro/sanitube/pull/24",
+            "ci": "10/10 green — run 31911354233",
+            "report": "docs/reports/BULK-001b.md",
+            "merge_commit": "c05c5b4",
+            "note": "CSV manifest import + sanitube:import. A manifest is evidence, never authority: after importing 900 files naming 900 ISRCs, tracks and external_identifiers are both still empty. A bad row is refused with its line number; a bad file is fatal. An ISRC already active on another track holds the candidate NEEDS_REVIEW. Eight regressions injected, every one turned a test red."
+        },
+        "UI-004b": {
+            "status": "merged",
+            "branch": "claude/ui-004b-candidate-actions",
+            "pr": 28,
+            "pr_url": "https://github.com/kesolarpro/sanitube/pull/28",
+            "ci": "10/10 green — run 31917687455",
+            "report": "docs/reports/UI-004b.md",
+            "merge_commit": "4b50591",
+            "note": "Promote, decline, correct the title — each calling the CAT-001 service that owns it, none writing a status. can.role:catalogue on the route; a MEMBER may read the queue and decide nothing in it. The actions block in the payload is presentation only, proved by posting past a hidden button. The reviewer is now recorded, where the API's call leaves it null. Six regressions injected, every one turned a test red."
+        },
+        "BULK-001c": {
+            "status": "merged — REVIEW_REQUIRED for the amendment",
+            "branch": "claude/bulk-001c-content-identity",
+            "pr": 52,
+            "ci": "green 10/10 — run 31979442196",
+            "note": "Identity is already content-based and all four cases pass; the forbidden key shortcut is absent. What remains is an amplification factor of 2, now asserted as a baseline. Removing the second copy contradicts an AST-001 invariant and a merged assertion, so ADR-0015 records three options and recommends one rather than changing the storage core."
+        },
+        "SYS-001b": {
+            "status": "merged",
+            "branch": "claude/sys-001b-failed-jobs",
+            "pr": 49,
+            "ci": "green — run 31972577593",
+            "merge_commit": "4e17ab3",
+            "note": "Failed-job retry and record removal behind can.role:administer. Retryability is declared by the job through the SafelyRetryable marker — opt in, never opt out — so the one operation that must never happen twice (ImportGenerationResultJob, SubmitMusicGenerationJob) is never offered a retry button. No payload or stack trace ever leaves QueueQuery."
+        },
+        "UI-005b": {
+            "status": "merged",
+            "branch": "claude/ui-005b-studio-actions",
+            "pr": 29,
+            "pr_url": "https://github.com/kesolarpro/sanitube/pull/29",
+            "ci": "10/10 green — run 31918186417",
+            "report": "docs/reports/UI-005b.md",
+            "merge_commit": "ebd558d",
+            "note": "Create a campaign, start a generation, cancel one, select a result. Selecting never creates a Track — proved by mutation. Two behaviours extracted from API controllers into services because a second controller copy is the one that drifts; all 49 pre-existing generation tests passed unmodified after the move."
+        },
+        "REL-UI-001": {
+            "status": "merged",
+            "branch": "claude/rel-ui-001-release-builder",
+            "pr": 33,
+            "ci": "green 10/10"
+        },
+        "ROY-001": {
+            "status": "OUT_OF_SCOPE_V1",
+            "reason": "Royalty engine. Removed from V1 by the scope correction: SaniTube performs no financial calculation."
+        },
+        "RIGHTS-001": {
+            "status": "OUT_OF_SCOPE_V1",
+            "reason": "Rights management. Removed from V1 in its financial form. Credit and ownership metadata needed for distribution stays, and is delivered as catalogue metadata under the REL and CAT tickets."
+        },
+        "PUB-001": {
+            "status": "OUT_OF_SCOPE_V1",
+            "reason": "Publishing administration. Its purpose is collection and distribution of publishing income, which the scope correction removes from V1. Composition and writer metadata already exists in CAT-002 and stays."
+        },
+        "REL-002": {
+            "status": "merged",
+            "branch": "claude/rel-002-structured-validation",
+            "pr": 42,
+            "ci": "green 10/10",
+            "note": "Validation answers in ReleaseValidationIssue codes rather than English. Closed the bug where SubmitDelivery decided unreachability by substring-matching a message."
+        },
+        "DIST-UI-001": {
+            "status": "merged",
+            "branch": "claude/dist-ui-001-distribution-operations",
+            "pr": 34,
+            "ci": "green 10/10"
+        },
+        "SET-001": {
+            "status": "merged",
+            "branch": "claude/set-001-settings-shell",
+            "pr": 36,
+            "ci": "green 10/10"
+        },
+        "SET-002": {
+            "status": "merged",
+            "branch": "claude/audit-001-operational-log",
+            "pr": 51,
+            "ci": "green — run 31979... (PR 51)",
+            "note": "Settings write path. Allowlist of thirteen variables; APP_KEY, APP_DEBUG and DB_* deliberately absent. Blank never clears. One write over a backup, config cache rebuilt or the file restored. Not REVIEW_REQUIRED: no new secrets architecture, it writes through the installer EnvironmentFile."
+        },
+        "DEP-002-003": {
+            "status": "merged",
+            "branch": "claude/dep-002-003-host-guides",
+            "pr": 39,
+            "ci": "green 10/10"
+        },
+        "E2E-001": {
+            "status": "merged",
+            "branch": "claude/e2e-001-acceptance-walk",
+            "pr": 43,
+            "ci": "green 10/10",
+            "note": "The V1 definition of done as a walk. Found and fixed a restore that could not restore (alphabetical dump order broke foreign keys) and found the catalogue write gap CAT-002 closes."
+        },
+        "CAT-002": {
+            "status": "merged",
+            "branch": "claude/cat-002-track-releasable",
+            "pr": 44,
+            "ci": "green 10/10",
+            "note": "Track credits and readiness behind can.role:catalogue. Also fixed the stale-cache defect: DeploymentTest left the application cached, which can make a removed authorization guard look enforced."
+        },
+        "REL-003": {
+            "status": "merged",
+            "branch": "claude/sanitube-autonomous-v1-5pycx0",
+            "pr": 86,
+            "ci": "green"
+        },
+        "ING-002": {
+            "status": "merged",
+            "branch": "claude/ing-002-start-import",
+            "pr": 45,
+            "ci": "green 10/10",
+            "note": "Starting an import from the interface. Gave IngestionException a reason distinct from its persisted failure code, refused an ambiguous folder+list selection that used to drop the list silently, and stopped the stylesheet being built from the compiled-view cache."
+        },
+        "DIST-001-H1": {
+            "status": "merged",
+            "branch": "claude/dist-001-h1-unknown-outcome",
+            "pr": 35,
+            "ci": "green 10/10",
+            "note": "Unknown submission outcome, merged after the three approved corrections: findSubmission() moved to a SupportsSubmissionLookup capability, external references carry provenance (PROVIDER_RESPONSE/PROVIDER_LOOKUP/MANUAL_OPERATOR), and decided_by carries a RESTRICT foreign key."
+        },
+        "PROD-001": {
+            "status": "merged",
+            "branch": "claude/sanitube-autonomous-v1-5pycx0",
+            "pr": 75,
+            "ci": "green 10/10 (run 32366040815)",
+            "report": "docs/reports/PROD-001.md",
+            "merge_commit": "f262487",
+            "notes": "ProductionPlan and the autonomy ladder. AUTONOMOUS_RELEASE locked in code."
+        },
+        "AUTH-002": {
+            "status": "merged",
+            "branch": "claude/auth-002-password-reset",
+            "pr": 50,
+            "ci": "green — run 31972896475",
+            "merge_commit": "d37c11d",
+            "note": "Password reset over Laravel's broker. The request never says whether an address is known — same status, same Location, same empty error bag — and a deactivated account cannot reset its way back in, including one deactivated after the link was sent. Reset rotates remember_token and logs out other devices."
+        },
+        "AUDIT-001": {
+            "status": "merged",
+            "branch": "claude/audit-001-operational-log",
+            "pr": 51,
+            "ci": "green — run 31979... (PR 51)",
+            "note": "Operational audit log: 24 named actions, append-only and enforced, structural redaction, retention prune. Explicit call sites rather than model hooks -- bulk writes and refusals fire no model event. ADR-0014."
+        },
+        "A11Y-001": {
+            "status": "merged",
+            "branch": "claude/a11y-audit-v1",
+            "pr": 53,
+            "ci": "green 10/10 — run 31979953742",
+            "note": "61 of 65 form fields rendered a label pointing at nothing. FormField now provides its wiring and the controls inject it; all call sites fixed without editing one. A second bug found while fixing it: Vue casts absent Boolean props to false, so the nullish coalescing never fell through and aria-invalid would have been absent everywhere."
+        },
+        "STO-003": {
+            "status": "merged",
+            "branch": "claude/sto-003-direct-uploads",
+            "pr": 58,
+            "ci": "green 10/10",
+            "report": "docs/reports/STO-003.md",
+            "merge_commit": "3a107fb"
+        },
+        "MED-003": {
+            "status": "merged",
+            "branch": "claude/media-worker-contract",
+            "pr": 59,
+            "ci": "green 10/10 (run 32324889572)",
+            "report": "docs/reports/MED-003.md",
+            "merge_commit": "6869592",
+            "note": "Shipped ordering by ABS(unsigned - ?), which aborts on MySQL and MariaDB and only works on SQLite. Caught by the engine matrix and fixed before merge; see ADR-0017."
+        },
+        "DEDUP-001": {
+            "status": "merged",
+            "branch": "claude/sanitube-autonomous-v1-5pycx0",
+            "pr": 61,
+            "ci": "green 10/10 (run 32326329882)",
+            "report": "docs/reports/DEDUP-001.md",
+            "merge_commit": "7fd25b2",
+            "note": "Fingerprint comparison with alignment search; three duplicate levels; findings PROPOSED only. Chromaprint switched to raw output (VERSION 2). ADR-0016, ADR-0017."
+        },
+        "DEDUP-002": {
+            "status": "merged",
+            "branch": "claude/sanitube-autonomous-v1-5pycx0",
+            "pr": 62,
+            "ci": "green 10/10 (run 32327046573)",
+            "report": "docs/reports/DEDUP-002.md",
+            "merge_commit": "b564956",
+            "note": "DecideDuplicate and TrashAsset. Logical trash as three nullable columns, never a status and never a deletion. Permanent deletion deliberately not implemented."
+        },
+        "DEDUP-003": {
+            "status": "merged",
+            "branch": "claude/sanitube-autonomous-v1-5pycx0",
+            "pr": 63,
+            "ci": "green 10/10 (run 32327898260)",
+            "report": "docs/reports/DEDUP-003.md",
+            "merge_commit": "7bcf3d9",
+            "note": "The duplicate queue. Deciding and trashing stay separate routes. Fixed a defective leak assertion and a payload widening AssetIndexQuery's no-filename boundary."
+        },
+        "TRN-001": {
+            "status": "merged",
+            "branch": "claude/sanitube-autonomous-v1-5pycx0",
+            "pr": 64,
+            "ci": "green 10/10 (run 32329024561)",
+            "report": "docs/reports/TRN-001.md",
+            "merge_commit": "ca2abf2",
+            "note": "Transcription contract, transcripts + transcript_segments, TranscribeAsset. A transcript is SUGGESTED and reaches nothing in the catalogue. No vendor adapter ships — deliberate."
+        },
+        "OPS-001": {
+            "status": "merged",
+            "branch": "claude/ops-001-backup-restore",
+            "pr": 41,
+            "ci": "green 10/10"
+        },
+        "OPS-002": {
+            "status": "merged",
+            "branch": "claude/sanitube-autonomous-v1-5pycx0",
+            "pr": 65,
+            "ci": "green 10/10 (run 32330043916)",
+            "report": "docs/reports/OPS-002.md",
+            "merge_commit": "29d1694",
+            "note": "Global stop as a database row plus a backlog ceiling that refuses whole requests."
+        },
+        "PIPE-001": {
+            "status": "in_review",
+            "branch": "claude/sanitube-autonomous-v1-5pycx0",
+            "ci": "pending",
+            "report": "docs/reports/PIPE-001.md",
+            "note": "Found that nothing in the application called EvaluateAssetDuplicates, FingerprintAsset or TranscribeAsset — four merged tickets whose output would have been permanently empty. Wires fingerprinting and evaluation via events, adds the backfill command behind the OPS-002 gates. Transcription stays disconnected until an adapter ships."
+        },
+        "TRN-002": {
+            "status": "merged",
+            "branch": "claude/sanitube-autonomous-v1-5pycx0",
+            "pr": 67,
+            "ci": "green 10/10 (run 32358991892)",
+            "report": "docs/reports/TRN-002.md",
+            "merge_commit": "ae84db4",
+            "notes": "OpenAI /audio/transcriptions adapter. Provider certification CONFIGURED_UNCERTIFIED: no real credential has ever been used from this installation. Mutation table amended by TRN-003 after a harness defect was found."
+        },
+        "TRN-003": {
+            "status": "merged",
+            "branch": "claude/sanitube-autonomous-v1-5pycx0",
+            "pr": 68,
+            "ci": "green 10/10 (run 32360255311)",
+            "report": "docs/reports/TRN-003.md",
+            "merge_commit": "2cb2d9c",
+            "notes": "Transcription production wiring. Automatic transcription is OFF by default; it is the only enrichment that costs money per file."
+        },
+        "ENR-001": {
+            "status": "merged",
+            "branch": "claude/sanitube-autonomous-v1-5pycx0",
+            "pr": 69,
+            "ci": "green 10/10 (run 32361222556)",
+            "report": "docs/reports/ENR-001.md",
+            "merge_commit": "62c977d",
+            "notes": "Schema-required structured output at both vendors. Also found that repeated Http::fake() for one URL does not replace the first stub."
+        },
+        "ENR-002": {
+            "status": "merged",
+            "branch": "claude/sanitube-autonomous-v1-5pycx0",
+            "pr": 70,
+            "ci": "green 10/10 (run 32362113332)",
+            "report": "docs/reports/ENR-002.md",
+            "merge_commit": "fe76d80",
+            "notes": "First real AI task. Suggestions are always PROPOSED. Automatic enrichment OFF by default. No review screen yet."
+        },
+        "ENR-003": {
+            "status": "merged",
+            "branch": "claude/sanitube-autonomous-v1-5pycx0",
+            "pr": 71,
+            "ci": "green 10/10 (run 32362761168)",
+            "report": "docs/reports/ENR-003.md",
+            "merge_commit": "23d4301",
+            "notes": "Call ceilings and a ledger-derived circuit breaker. Counts calls, never money. Transcription spend is NOT covered."
+        },
+        "ENR-004": {
+            "status": "merged",
+            "branch": "claude/sanitube-autonomous-v1-5pycx0",
+            "pr": 72,
+            "ci": "green 10/10 (run 32363909815)",
+            "report": "docs/reports/ENR-004.md",
+            "merge_commit": "0b2078e",
+            "notes": "Accept / edit-before-accept / reject / regenerate through SetTrackMetadata. Found that the audit scrubber silently drops list-valued context."
+        },
+        "ENR-005": {
+            "status": "merged",
+            "branch": "claude/sanitube-autonomous-v1-5pycx0",
+            "pr": 73,
+            "ci": "green 10/10 (run 32364854708)",
+            "report": "docs/reports/ENR-005.md",
+            "merge_commit": "855df6c",
+            "notes": "The review screen. Four levels as four server-named objects. Refusal codes are not translated on the screen yet and there is no bulk action."
+        },
+        "EDI-001": {
+            "status": "merged",
+            "branch": "claude/sanitube-autonomous-v1-5pycx0",
+            "pr": 74,
+            "ci": "green 10/10 (run 32365472712)",
+            "report": "docs/reports/EDI-001.md",
+            "merge_commit": "6540061",
+            "notes": "EditorialProfile: an imprint is a row, not code. No caller yet."
+        },
+        "PROD-002": {
+            "status": "merged",
+            "branch": "claude/sanitube-autonomous-v1-5pycx0",
+            "pr": 76,
+            "ci": "green 10/10 (run 32366843743)",
+            "report": "docs/reports/PROD-002.md",
+            "merge_commit": "27b7e7f",
+            "notes": "ProductionSlot. The scheduler opens rows and never generates. Found a SQLite date-format caveat on the unique key."
+        },
+        "PROD-003": {
+            "status": "merged",
+            "branch": "claude/sanitube-autonomous-v1-5pycx0",
+            "pr": 77,
+            "ci": "green 10/10 (run 32367592546)",
+            "report": "docs/reports/PROD-003.md",
+            "merge_commit": "479fb44",
+            "notes": "Inventory before generation. NO_ATTRIBUTION rather than zero when stock cannot be counted. Two plans on one imprint share stock -- known limitation."
+        },
+        "GEN-003": {
+            "status": "merged",
+            "branch": "claude/sanitube-autonomous-v1-5pycx0",
+            "pr": 80,
+            "ci": "green"
+        },
+        "GEN-004": {
+            "status": "merged",
+            "branch": "claude/sanitube-autonomous-v1-5pycx0",
+            "pr": 81,
+            "ci": "green"
+        },
+        "GEN-005": {
+            "status": "merged",
+            "branch": "claude/sanitube-autonomous-v1-5pycx0",
+            "pr": 82,
+            "ci": "green"
+        },
+        "ART-001": {
+            "status": "merged",
+            "branch": "claude/sanitube-autonomous-v1-5pycx0",
+            "pr": 83,
+            "ci": "green"
+        },
+        "ART-002": {
+            "status": "merged",
+            "branch": "claude/sanitube-autonomous-v1-5pycx0",
+            "pr": 84,
+            "ci": "green"
+        },
+        "DIST-003": {
+            "status": "merged",
+            "branch": "claude/sanitube-autonomous-v1-5pycx0",
+            "pr": 87,
+            "ci": "green"
+        },
+        "OPS-003": {
+            "status": "merged",
+            "branch": "claude/sanitube-autonomous-v1-5pycx0",
+            "pr": 88,
+            "ci": "green"
+        },
+        "ENR-006": {
+            "status": "merged",
+            "branch": "claude/sanitube-autonomous-v1-5pycx0",
+            "pr": 89,
+            "ci": "green"
+        },
+        "UPL-001": {
+            "status": "merged",
+            "branch": "claude/sanitube-autonomous-v1-5pycx0",
+            "pr": 92,
+            "ci": "green"
+        },
+        "UPL-002": {
+            "status": "in review",
+            "branch": "claude/sanitube-autonomous-v1-5pycx0",
+            "pr": null,
+            "ci": "pending"
+        },
+        "REL-004": "Préparer le package de distribution depuis l'écran de release, et montrer ce qui bloque toute livraison. PackageRelease (REL-003) avait zéro appelant de production. Extrait ValidateReleaseIdentifiers de ValidateDelivery : sans distributeur configuré — le défaut livré — une sortie sans aucun ISRC passait la validation, devenait READY et ne disait rien. 12 tests / 53 assertions ; 9 mutations, 0 survivante."
+    },
+    "architecture_amendments": [
+        {
+            "ticket": "AST-001",
+            "change": "assets.sha256, byte_size and mime_type nullable; invariant I10 added",
+            "status": "approved",
+            "recorded_in": "docs/adr/ADR-0012-asset-storage-compensation.md"
+        },
+        {
+            "ticket": "MED-001",
+            "change": "TrackCandidate is created PENDING instead of READY; SettleCandidateAfterAnalysis moves it to READY, NEEDS_REVIEW or WAITING_CAPABILITY",
+            "status": "validated by review; merged",
+            "note": "Pre-announced in ING-001's report. No schema change: both statuses were declared in TrackCandidateStatus by ING-001 for this purpose.",
+            "recorded_in": "docs/reports/MED-001.md"
+        }
     ],
-    "awaiting_review": [],
-    "do_not_build": [
-      "ROY-001, RIGHTS-001 (financial), PUB-001 — all OUT_OF_SCOPE_V1",
-      "Any Revenue/Royalty/Payout/Ledger/Balance surface. See scope_correction_v1."
-    ]
-  },
-  "review_policy": {
-    "active": true,
-    "rule": "Implement, get CI green, open the PR, write the report — then STOP. Do not merge. The owner sends the report to architectural review and reports the verdict; only then merge.",
-    "since": "UI-001",
-    "note": "Nine tickets (ING/MED/CAT/AI/GEN/REL/DIST/SEC-001 and PR #12) were merged under an earlier autonomous-chaining instruction that bypassed review. A retroactive audit is under way; they stay in main and any correction becomes a follow-up ticket, not a revert. BULK-001b, UI-004 and UI-005 were merged under the session's explicit merge policy for read-only UI, ingestion tooling and documentation: none changes authentication, authorization, rights, money, identifier lifecycle, destructive storage behaviour or any external action."
-  },
-  "main_sha": "3bf6b12",
-  "current_ticket": "UPL-002",
-  "tests": "1700 passed, 1 skipped, 14913 assertions",
-  "phpstan": {
-    "level": 6,
-    "baseline": false,
-    "ignore_errors": false,
-    "status": "clean"
-  },
-  "frontend": {
-    "stack": "Vue 3 + TypeScript strict + Inertia 2 + Tailwind 4 + Vite 7",
-    "type_check": "vue-tsc clean",
-    "component_tests": "vitest + jsdom, 16 passing",
-    "build": "clean",
-    "note": "PHP suite stubs Vite when no manifest exists; the frontend CI job renders against a real one."
-  },
-  "next_action": {
-    "$comment": "Read this first. In order. Every item of the Phase 2 order is merged except 17 and 18, which are blocked by ENVIRONMENT_EGRESS. What remains below are standing items an earlier session left.",
-    "1": "REL-004 : préparer le package de distribution depuis l'écran de release, et montrer ce qui bloque. PackageRelease (REL-003) n'a toujours aucun appelant de production.",
-    "2": "Accessibility, the part jsdom cannot reach: per-screen keyboard walkthroughs on real assistive technology, and responsive/long-content behaviour at four breakpoints across six locales. Needs a rendered browser.",
-    "3": "AUDIT-002 — an honest actor identity for src/Api. A shared token names no person; recording those calls as guest misleads and as a user is false.",
-    "4": "Real-host certification: CPANEL_CERTIFICATION and VPS_CERTIFICATION, including the settings config-cache rebuild branch that no suite can reach.",
-    "5": "POST_V1_STORAGE_OPTIMIZATION — the ADR-0015 amendment. NOT a review: the decision was taken and accepted, the amplification factor is measured at 2 and pinned by a test, and every option that removes the second copy breaks AST-001's UUID-derived key or loses the record that a second import happened. A future session takes this only as deliberate post-V1 work."
-  },
-  "session_boundary": {
-    "reason": "Phase 2 order exhausted for this environment: eighteen of twenty items merged, and the remaining two are blocked by ENVIRONMENT_EGRESS rather than unstarted. Twenty-one functional tickets, twenty-three pull requests, all merged at 10/10.",
-    "repository_state": "green at 83aeece; no open PRs",
-    "main_sha": "25565b4e46f282733faa1b85f3339c98163c8ca8",
-    "note": "Merged this session: PROD-001, docs checkpoint, SYS-001b, AUTH-002, AUDIT-001, INS-002, SET-002, BULK-001c, A11Y-001. Resume from next_action; item 1 needs a human decision before code."
-  },
-  "v1_progress_percent": {
-    "value": 66,
-    "method": "weighted by block, production-ready not implemented-only; reweighted by the 2026-08-16 scope correction",
-    "breakdown": {
-      "core_domain": {
-        "weight": 10,
-        "implemented": 90,
-        "production_ready": 68
-      },
-      "assets_catalogue_import": {
-        "weight": 15,
-        "implemented": 100,
-        "production_ready": 84
-      },
-      "ai_generation": {
-        "weight": 10,
-        "implemented": 75,
-        "production_ready": 25
-      },
-      "release_builder": {
-        "weight": 15,
-        "implemented": 85,
-        "production_ready": 70
-      },
-      "distribution": {
-        "weight": 15,
-        "implemented": 70,
-        "production_ready": 35
-      },
-      "ui_ux": {
-        "weight": 10,
-        "implemented": 85,
-        "production_ready": 72
-      },
-      "security_api": {
-        "weight": 5,
-        "implemented": 55,
-        "production_ready": 40
-      },
-      "installer_deployment_backup": {
-        "weight": 15,
-        "implemented": 65,
-        "production_ready": 30
-      },
-      "qa_e2e_hardening": {
-        "weight": 5,
-        "implemented": 40,
-        "production_ready": 25
-      }
-    },
-    "note": "64 -> 66. Install, deploy and both host guides are done. What is left in the largest block is one thing: OPS-001, backup and restore. There is no backup command, the VPS guide currently tells operators they are on their own for it, and nothing in this block has ever been run against a real shared host or VPS — both guides say so in their first paragraph and a test enforces that they keep saying it."
-  },
-  "decisions": {
-    "asset_preview_url": {
-      "status": "arbitrated by review, binding for UI-003b",
-      "rule": "No signed URL is ever included in the Asset detail payload at page load.",
-      "why": "A signed URL is a temporary bearer credential. Minting one on every detail view needlessly widens its lifetime and its exposure surface.",
-      "flow": "Asset detail -> user clicks Preview -> authorised UI action -> backend verifies permission and asset kind/status -> mints short-lived signed URL -> browser receives it",
-      "ttl_seconds": 900,
-      "ttl_range": "300-900, 900 default, consistent with AST-001",
-      "constraints": [
-        "never a permanent master URL",
-        "never disk, path, bucket or credentials",
-        "previewable asset kinds only",
-        "VERIFIED required for an audio master",
-        "minted on demand, never on the detail GET",
-        "URL never persisted in the database",
-        "full URL never written to logs",
-        "SEC-001 permission checked before minting",
-        "if the provider cannot issue temporary URLs: show Preview unavailable, never make the object public"
-      ]
-    }
-  },
-  "process": {
-    "no_direct_push_to_main": true,
-    "rule": "Every change, docs included, goes through a branch and a PR. No exceptions from here.",
-    "session_note_2026_08_16": "One docs commit (82e8d63) was pushed directly to main rather than through a pull request. Docs-only and main stayed green, but it broke the branch-and-PR rule; recorded rather than rewritten."
-  },
-  "known_limitations": [
-    {
-      "id": "filter-422-json",
-      "where": "All five catalogue index filter forms",
-      "what": "A refused filter answers 422 with a JSON body rather than an error rendered inside the form.",
-      "why_not_fixed": "Refusing loudly is what must not regress; presenting it nicely needs inline error display.",
-      "severity": "cosmetic",
-      "priority_note": "Now applies to five lists rather than two, which raises it."
-    },
-    {
-      "id": "list-ordering-index",
-      "where": "All catalogue list orderings",
-      "what": "Orderings are (natural key, uuid) with no composite index over the pair.",
-      "why_not_fixed": "Not measurable at target catalogue sizes; a migration belongs in a CAT ticket with a measurement behind it.",
-      "severity": "none observed"
-    },
-    {
-      "id": "bulk_reimport_storage_cost",
-      "where": "ProcessIngestionItem / AssetStorageService",
-      "what": "Re-importing the same reference writes a second asset row and a second stored object, which the checksum then resolves to the first. Nothing reaches the catalogue — no Track, no identifier, and the candidate is DUPLICATE — but re-running a 900-file manifest stores 900 objects twice.",
-      "why_not_fixed": "The current behaviour is defensible: ING-001 re-reads the source rather than assuming a reference imported yesterday still holds the same bytes today, and an object genuinely can be replaced under its key. Skipping on the ingestion key alone would silently miss that replacement — a data-loss trade in the opposite direction.",
-      "severity": "cost, not correctness",
-      "ticket": "BULK-001c",
-      "pinned_by": "two tests in ManifestImportTest pin the current behaviour, so whichever way it is later decided the change is visible"
-    },
-    {
-      "id": "install-not-exercised-on-a-real-shared-host",
-      "where": "Installer",
-      "what": "sanitube:install is covered by 21 tests against a temporary .env and was smoke-run in the development container, but has never been run on a real cPanel account against a real MySQL database.",
-      "why_not_fixed": "No such account is available to this project. The stages that would differ are the ones that touch the host: directory permissions, the PHP binary path in the cron line, and the account-prefixed database names.",
-      "severity": "blocks calling installation production-ready, nothing before then",
-      "ticket": "INS-003 (certification on a real host)"
-    },
-    {
-      "id": "release-validation-not-localisable",
-      "where": "ValidateRelease, Release::readinessProblems(), the release builder screen",
-      "what": "Validation errors and warnings are English sentences, not codes, so they render untranslated on the five non-English locales while the rest of the screen is translated.",
-      "why_not_fixed": "The same strings are imploded into delivery-attempt records and matched on by SubmitDelivery::wasUnreachable(). Turning them into codes changes delivery semantics, which is a domain ticket (REL-002), not something a UI ticket does quietly.",
-      "severity": "real, visible to non-English users",
-      "ticket": "REL-002"
-    },
-    {
-      "id": "delivery-validation-not-localisable",
-      "where": "The distribution send screen’s preflight",
-      "what": "The preflight’s errors and warnings are the same untranslated domain sentences the release builder shows.",
-      "why_not_fixed": "ValidateDelivery merges ValidateRelease’s output with its own and SubmitDelivery::wasUnreachable() matches on the text. Same root cause, same ticket.",
-      "severity": "real, visible to non-English users",
-      "ticket": "REL-002"
-    }
-  ],
-  "findings": {
-    "bulk_001_scope": {
-      "severity": "prevents a wasted ticket",
-      "finding": "BULK-001 is much smaller than its ticket assumes. ING-001 already provides batches, per-item state, idempotent retry via UNIQUE(ingestion_key, active_marker), attempt_count, per-item failure codes, CompletedWithErrors as a first-class outcome, the processing and finalising jobs, StartIngestionBatch::handle() taking a prefix or explicit references, and CloudImportReader.",
-      "instruction": "DO NOT create a BulkImportBatch table or any parallel import path. Two mechanisms both claiming to prevent duplicate imports is worse than one — the second is the one nobody tests against a real retry.",
-      "remaining": [
-        "DONE — CSV manifest import (BULK-001b)",
-        "DONE — an interface entry point to start a batch from a prefix or a manifest (BULK-001b, sanitube:import)",
-        "DONE — UI-004, which renders this progress read model"
-      ]
-    },
-    "preflight_vs_history": {
-      "severity": "would have refused every first install",
-      "finding": "The scheduler capability reports unavailable until a cron entry has fired at least once. Preflight blocking on it meant a first install could never pass, because the condition cannot be true before the installation exists.",
-      "instruction": "A preflight check asks whether the machine CAN run SaniTube. A health check asks whether this installation IS running. The same detectors serve both, but a capability describing the installation's history is not a prerequisite. InstallationService::NOT_PREREQUISITES names the two exclusions with their reasons; keep the list short, because a preflight that skips checks stops meaning anything."
-    },
-    "guard_covered_at_only_one_level": {
-      "severity": "a defective test that read as a passing one",
-      "finding": "The mutation removing the overwrite guard from EnvironmentFile::createFromExample() stayed green, because InstallationService checks exists() before ever calling it. The service-level test covered the behaviour; nothing covered the guard.",
-      "instruction": "When two layers both guard the same thing, the mutation must be run against the inner one. INS-002's web installer reaches EnvironmentFile without the service's outer check, so the inner guard is the one that will matter. A direct test now covers it."
-    }
-  },
-  "scope_correction_v1": {
-    "decided": "2026-08-16",
-    "statement": "SaniTube is a music catalogue and distribution platform. It is NOT a financial platform.",
-    "out_of_scope_v1": [
-      "royalties",
-      "revenue",
-      "balances",
-      "payments",
-      "payouts",
-      "revenue sharing",
-      "financial splits",
-      "accounting",
-      "ledger",
-      "invoicing",
-      "currency conversion",
-      "financial reporting",
-      "earnings calculation",
-      "revenue distribution between artists",
-      "financial collection",
-      "monetisation engine"
+    "external_blockers": [
+        {
+            "id": "STO-002",
+            "summary": "No validation against a real S3-compatible endpoint. Contract is proved by two independent implementations and the multi-engine matrix, but no real bucket has been exercised.",
+            "blocking": "production staging, not ING-001",
+            "status": "deferred by review"
+        },
+        {
+            "id": "AI-002",
+            "summary": "No validation against a real OpenAI or Anthropic endpoint. Both adapters are proved against captured response shapes with stray requests blocked; no key was available or requested. Wire formats are the documented public ones.",
+            "blocking": "relying on an AI-assisted feature in production, nothing before then",
+            "status": "open"
+        },
+        {
+            "id": "GEN-002",
+            "summary": "Suno (or any real music generation provider) unavailable, and GEN-005 established why: as of August 2026 Suno publishes no API contract at all — no console, no documentation, no request or response shapes. A developer API is being explored with curated partners, with no timeline. Reverse-engineered wrappers are permanently excluded by ADR-0018. Output commercial terms are unverified against a primary source. The fake provider exercises every path without a network.",
+            "blocking": "AI-generated catalogue in production, nothing in development",
+            "status": "open",
+            "unblocked_by": "A published API contract, obtainable without reverse engineering, with stated output terms and any retrieval cap. See ADR-0018."
+        },
+        {
+            "id": "DIST-002",
+            "summary": "Too Lost (or any real distributor) credentials unavailable: no adapter, no delivery ever made. The fake distributor exercises validate/prepare/submit/poll/takedown without a network.",
+            "blocking": "actually delivering a release, nothing in development",
+            "status": "open"
+        },
+        {
+            "id": "EXTERNAL_ADMIN_ACTION_REQUIRED",
+            "summary": "The GitHub repository default branch is still 'claude/verifier-repertoire-git-k29ft2'; it should be 'main'. No tool in this environment can change repository settings — the GitHub MCP server exposes no repository-update tool and there is no gh CLI.",
+            "action": "A human with admin access: Settings -> General -> Default branch -> main.",
+            "blocking": "nothing in development; all work is on main and never returns to the old branch",
+            "status": "open"
+        },
+        {
+            "id": "ENVIRONMENT_EGRESS",
+            "summary": "Every distributor and DDEX host is refused by this execution environment's network egress policy (403 at the proxy). raw.githubusercontent.com is reachable, which is how the OpenAI specification could be read in full for ART-002. Verified by direct probe with a control; the evidence table is in docs/research/distribution-2026-08.md.",
+            "blocking": "Items 17 and 18 of the Phase 2 order — DDEX and a first distributor adapter. Not certification, which DIST-002 covers separately.",
+            "unblocked_by": "An environment whose egress allows ddex.net, kb.ddex.net and the chosen distributor's developer host; or the ERN schemas and the distributor's OpenAPI document committed into docs/.",
+            "status": "open"
+        }
     ],
-    "still_in_scope": "Rights and credit information strictly necessary for distribution, as catalogue metadata only: author, composer, publisher (as metadata), copyright, the P and C notices, declarative master ownership, contributor roles, ISRC, UPC/EAN, territories, explicit content, language, credits. None of it may trigger a financial calculation.",
-    "existing_code": "Not deleted. No Revenue/Royalty/Payout/Ledger module was ever built, so nothing has to be removed; the tickets are reclassified instead.",
-    "multi_distributor": "The domain must contain no logic specific to TuneCore, Too Lost, DistroKid, CD Baby or Ditto. Provider specifics live in adapters. No TuneCore API is assumed to exist, and scraping is never an API substitute.",
-    "navigation": "`publishing` and `royalties` removed from the sidebar in DIST-UI-001, with their translation keys and icons. Both were placeholders for financial administration. `rights` stays, unavailable: credit and ownership metadata is required for distribution and is not a right to money."
-  },
-  "progress": {
-    "$comment": "Nine fixed blocks. The denominator does not change. PRODUCTION_READY is the figure that matters.",
-    "blocks": {
-      "core_domain": {
-        "implemented": 95,
-        "production_ready": 90
-      },
-      "assets_catalogue_import": {
-        "implemented": 90,
-        "production_ready": 85
-      },
-      "generation_ai": {
-        "implemented": 70,
-        "production_ready": 55
-      },
-      "release_management": {
-        "implemented": 95,
-        "production_ready": 90
-      },
-      "distribution": {
-        "implemented": 80,
-        "production_ready": 55
-      },
-      "ui_ux": {
-        "implemented": 85,
-        "production_ready": 80
-      },
-      "security_identity": {
-        "implemented": 85,
-        "production_ready": 80
-      },
-      "installation_deployment": {
-        "implemented": 85,
-        "production_ready": 80
-      },
-      "operations_backup_observability": {
-        "implemented": 85,
-        "production_ready": 80
-      }
+    "notes": {
+        "portability": "$table->json() is forbidden platform-wide. MariaDB's json is an alias for longtext/utf8mb4_bin while MySQL 8's is a native binary type, so one migration yields two types with two comparison semantics. Use ->longText() with an Eloquent array cast. Enforced by PortabilityTest::no_engine_specific_construct_is_used_in_any_migration.",
+        "capabilities": "FFmpeg is a capability, never a dependency. SANITUBE_MEDIA_ANALYSIS_REQUIRED defaults to false so a cPanel host without ffprobe still produces promotable candidates.",
+        "catalogue_writes": "Promotion is the only v1 write that creates a Track. It always creates it DRAFT, mints no ISRC, and is refusable for six reasons each carrying a machine-readable code. One-master-one-track is enforced in PromoteTrackCandidate rather than by a unique index, because tracks is ARCH-002's validated schema.",
+        "ci_triggers": "The workflow only built pull requests whose base was main, so a PR stacked on another claude/** branch showed zero checks — indistinguishable from a repo with no CI. The pull_request branch filter now includes 'claude/**'. Fixed on the CAT-001 branch; it reaches main when that branch merges.",
+        "migration_rollback": "MySQL and MariaDB drop the index they generate for a foreign key once a user-created index can serve it. A migration that adds a unique index on an FK column must therefore drop the foreign key before dropping that index in down(), then restore it. SQLite enforces none of this, so a local rollback check on SQLite proves nothing about the server engines. Enforced by PortabilityTest::an_index_added_over_a_foreign_key_column_is_undone_in_the_right_order.",
+        "ai_disabled_provider": "The disabled AI provider is named 'none', never 'null'. Laravel's Env::get() turns the literal string null in a .env file into PHP null, so SANITUBE_AI_PROVIDER=null yields an empty provider name and the env() default never applies. Empty/absent/null configuration normalises to 'none' at AiManager::normaliseProviderName(); an unknown non-empty name is an error.",
+        "no_hosts_in_php": "PortabilityTest rejects any absolute http(s) host in PHP, config included. Vendor endpoints come from the environment with no PHP default; .env.example ships the public URLs.",
+        "generation": "Generation never creates a Track: a selected result becomes a VERIFIED asset and a TrackCandidate with source GENERATED, which CAT-001 reviews. commercial_rights_status defaults UNKNOWN and is never inferred from a successful generation. Polling is bounded twice — the job re-dispatches only while pollable, and the service fails the generation at max_polls.",
+        "release_mutation": "ReleaseMutationPolicy is the single place that says which edits a status permits. DRAFT allows everything; READY allows nothing structural but can be reopened to DRAFT; SUBMITTED/DELIVERED/LIVE/TAKEN_DOWN allow nothing and cannot be reopened. I4 is called, never reimplemented or relaxed.",
+        "track_numbering": "release_tracks carries UNIQUE(release_id, disc_number, track_number). Renumbering must be two-phase — park every row above the occupied range, then write final numbers — because a row-by-row update collides the moment a track moves into a slot another has not yet left.",
+        "distribution": "Submission is the one irreversible act. Three guards against a duplicate delivery: UNIQUE(release_id, provider), a guarded status UPDATE, and a derived (not random) idempotency key sha256(release uuid|distributor). Outage != rejection: unreachable and unconfigured both produce validation errors, an outage during submit leaves the delivery FAILED and retryable. DIST-001 never mints an ISRC or UPC — a missing one is a validation error.",
+        "identity": "Session auth on Laravel's users table. Three roles (OWNER/ADMIN/MEMBER). role and is_active are NOT mass-assignable — set them with forceFill. Wrong password, unknown email and deactivated account answer identically to prevent account enumeration. Throttling is per email AND per IP. No self-registration: accounts come from sanitube:user:create.",
+        "translation_gate": "tests/Feature/Localization walks EVERY file in lang/en and checks all configured locales both directions. Any new UI string needs en/fr/es/it/pt/de or CI fails.",
+        "design_system": "Semantic tokens only (--color-surface, never --color-zinc-900). Status colour is decided in StatusBadge alone; labels always come from translations. Navigation is built server-side and unbuilt sections show as disabled — 'available' is presentation, never authorisation. MetricCard takes number|null and renders null as an em dash, never 0.",
+        "frontend_toolchain": "@vitejs/plugin-vue@5 peers Vite ^5||^6; the project is on Vite 7. Resolved with plugin-vue@6 (which supports Vite 7), NOT --force or --legacy-peer-deps: a peer conflict is compatibility information, and overriding it keeps the incompatibility. Same for vue-tsc@3. npm run types runs in CI."
     },
-    "implemented_percent": 86,
-    "production_ready_percent": 77
-  }
+    "open_pull_requests": [],
+    "next_session": {
+        "start_with": "AUDIT-001 — operational audit log. Branch from main.",
+        "then": [
+            "INS-002 — web installer over the same InstallationService",
+            "SET-002 — settings write path (REVIEW_REQUIRED)",
+            "BULK-001c — re-import storage amplification",
+            "Accessibility audit; security audit sweep; performance pass"
+        ],
+        "awaiting_review": [],
+        "do_not_build": [
+            "ROY-001, RIGHTS-001 (financial), PUB-001 — all OUT_OF_SCOPE_V1",
+            "Any Revenue/Royalty/Payout/Ledger/Balance surface. See scope_correction_v1."
+        ]
+    },
+    "review_policy": {
+        "active": true,
+        "rule": "Implement, get CI green, open the PR, write the report — then STOP. Do not merge. The owner sends the report to architectural review and reports the verdict; only then merge.",
+        "since": "UI-001",
+        "note": "Nine tickets (ING/MED/CAT/AI/GEN/REL/DIST/SEC-001 and PR #12) were merged under an earlier autonomous-chaining instruction that bypassed review. A retroactive audit is under way; they stay in main and any correction becomes a follow-up ticket, not a revert. BULK-001b, UI-004 and UI-005 were merged under the session's explicit merge policy for read-only UI, ingestion tooling and documentation: none changes authentication, authorization, rights, money, identifier lifecycle, destructive storage behaviour or any external action."
+    },
+    "main_sha": "198d60d",
+    "current_ticket": "REL-004",
+    "tests": "1713 passed, 1 skipped, 15009 assertions",
+    "phpstan": {
+        "level": 6,
+        "baseline": false,
+        "ignore_errors": false,
+        "status": "clean"
+    },
+    "frontend": {
+        "stack": "Vue 3 + TypeScript strict + Inertia 2 + Tailwind 4 + Vite 7",
+        "type_check": "vue-tsc clean",
+        "component_tests": "vitest + jsdom, 16 passing",
+        "build": "clean",
+        "note": "PHP suite stubs Vite when no manifest exists; the frontend CI job renders against a real one."
+    },
+    "next_action": {
+        "$comment": "Read this first. In order. Every item of the Phase 2 order is merged except 17 and 18, which are blocked by ENVIRONMENT_EGRESS. What remains below are standing items an earlier session left.",
+        "1": "Le parcours §31 du mandat : un fichier audio réel, du navigateur jusqu'à une release validée. Restent à câbler côté produit — création/association d'un morceau depuis un asset déposé, et attribution d'identifiants (UPC/ISRC) depuis l'écran, que REL-004 rend enfin visibles comme bloquants mais ne permet pas encore de poser.",
+        "2": "Accessibility, the part jsdom cannot reach: per-screen keyboard walkthroughs on real assistive technology, and responsive/long-content behaviour at four breakpoints across six locales. Needs a rendered browser.",
+        "3": "AUDIT-002 — an honest actor identity for src/Api. A shared token names no person; recording those calls as guest misleads and as a user is false.",
+        "4": "Real-host certification: CPANEL_CERTIFICATION and VPS_CERTIFICATION, including the settings config-cache rebuild branch that no suite can reach.",
+        "5": "POST_V1_STORAGE_OPTIMIZATION — the ADR-0015 amendment. NOT a review: the decision was taken and accepted, the amplification factor is measured at 2 and pinned by a test, and every option that removes the second copy breaks AST-001's UUID-derived key or loses the record that a second import happened. A future session takes this only as deliberate post-V1 work."
+    },
+    "session_boundary": {
+        "reason": "Phase 2 order exhausted for this environment: eighteen of twenty items merged, and the remaining two are blocked by ENVIRONMENT_EGRESS rather than unstarted. Twenty-one functional tickets, twenty-three pull requests, all merged at 10/10.",
+        "repository_state": "green at 83aeece; no open PRs",
+        "main_sha": "25565b4e46f282733faa1b85f3339c98163c8ca8",
+        "note": "Merged this session: PROD-001, docs checkpoint, SYS-001b, AUTH-002, AUDIT-001, INS-002, SET-002, BULK-001c, A11Y-001. Resume from next_action; item 1 needs a human decision before code."
+    },
+    "v1_progress_percent": {
+        "value": 66,
+        "method": "weighted by block, production-ready not implemented-only; reweighted by the 2026-08-16 scope correction",
+        "breakdown": {
+            "core_domain": {
+                "weight": 10,
+                "implemented": 90,
+                "production_ready": 68
+            },
+            "assets_catalogue_import": {
+                "weight": 15,
+                "implemented": 100,
+                "production_ready": 84
+            },
+            "ai_generation": {
+                "weight": 10,
+                "implemented": 75,
+                "production_ready": 25
+            },
+            "release_builder": {
+                "weight": 15,
+                "implemented": 85,
+                "production_ready": 70
+            },
+            "distribution": {
+                "weight": 15,
+                "implemented": 70,
+                "production_ready": 35
+            },
+            "ui_ux": {
+                "weight": 10,
+                "implemented": 85,
+                "production_ready": 72
+            },
+            "security_api": {
+                "weight": 5,
+                "implemented": 55,
+                "production_ready": 40
+            },
+            "installer_deployment_backup": {
+                "weight": 15,
+                "implemented": 65,
+                "production_ready": 30
+            },
+            "qa_e2e_hardening": {
+                "weight": 5,
+                "implemented": 40,
+                "production_ready": 25
+            }
+        },
+        "note": "64 -> 66. Install, deploy and both host guides are done. What is left in the largest block is one thing: OPS-001, backup and restore. There is no backup command, the VPS guide currently tells operators they are on their own for it, and nothing in this block has ever been run against a real shared host or VPS — both guides say so in their first paragraph and a test enforces that they keep saying it."
+    },
+    "decisions": {
+        "asset_preview_url": {
+            "status": "arbitrated by review, binding for UI-003b",
+            "rule": "No signed URL is ever included in the Asset detail payload at page load.",
+            "why": "A signed URL is a temporary bearer credential. Minting one on every detail view needlessly widens its lifetime and its exposure surface.",
+            "flow": "Asset detail -> user clicks Preview -> authorised UI action -> backend verifies permission and asset kind/status -> mints short-lived signed URL -> browser receives it",
+            "ttl_seconds": 900,
+            "ttl_range": "300-900, 900 default, consistent with AST-001",
+            "constraints": [
+                "never a permanent master URL",
+                "never disk, path, bucket or credentials",
+                "previewable asset kinds only",
+                "VERIFIED required for an audio master",
+                "minted on demand, never on the detail GET",
+                "URL never persisted in the database",
+                "full URL never written to logs",
+                "SEC-001 permission checked before minting",
+                "if the provider cannot issue temporary URLs: show Preview unavailable, never make the object public"
+            ]
+        }
+    },
+    "process": {
+        "no_direct_push_to_main": true,
+        "rule": "Every change, docs included, goes through a branch and a PR. No exceptions from here.",
+        "session_note_2026_08_16": "One docs commit (82e8d63) was pushed directly to main rather than through a pull request. Docs-only and main stayed green, but it broke the branch-and-PR rule; recorded rather than rewritten."
+    },
+    "known_limitations": [
+        {
+            "id": "filter-422-json",
+            "where": "All five catalogue index filter forms",
+            "what": "A refused filter answers 422 with a JSON body rather than an error rendered inside the form.",
+            "why_not_fixed": "Refusing loudly is what must not regress; presenting it nicely needs inline error display.",
+            "severity": "cosmetic",
+            "priority_note": "Now applies to five lists rather than two, which raises it."
+        },
+        {
+            "id": "list-ordering-index",
+            "where": "All catalogue list orderings",
+            "what": "Orderings are (natural key, uuid) with no composite index over the pair.",
+            "why_not_fixed": "Not measurable at target catalogue sizes; a migration belongs in a CAT ticket with a measurement behind it.",
+            "severity": "none observed"
+        },
+        {
+            "id": "bulk_reimport_storage_cost",
+            "where": "ProcessIngestionItem / AssetStorageService",
+            "what": "Re-importing the same reference writes a second asset row and a second stored object, which the checksum then resolves to the first. Nothing reaches the catalogue — no Track, no identifier, and the candidate is DUPLICATE — but re-running a 900-file manifest stores 900 objects twice.",
+            "why_not_fixed": "The current behaviour is defensible: ING-001 re-reads the source rather than assuming a reference imported yesterday still holds the same bytes today, and an object genuinely can be replaced under its key. Skipping on the ingestion key alone would silently miss that replacement — a data-loss trade in the opposite direction.",
+            "severity": "cost, not correctness",
+            "ticket": "BULK-001c",
+            "pinned_by": "two tests in ManifestImportTest pin the current behaviour, so whichever way it is later decided the change is visible"
+        },
+        {
+            "id": "install-not-exercised-on-a-real-shared-host",
+            "where": "Installer",
+            "what": "sanitube:install is covered by 21 tests against a temporary .env and was smoke-run in the development container, but has never been run on a real cPanel account against a real MySQL database.",
+            "why_not_fixed": "No such account is available to this project. The stages that would differ are the ones that touch the host: directory permissions, the PHP binary path in the cron line, and the account-prefixed database names.",
+            "severity": "blocks calling installation production-ready, nothing before then",
+            "ticket": "INS-003 (certification on a real host)"
+        },
+        {
+            "id": "release-validation-not-localisable",
+            "where": "ValidateRelease, Release::readinessProblems(), the release builder screen",
+            "what": "Validation errors and warnings are English sentences, not codes, so they render untranslated on the five non-English locales while the rest of the screen is translated.",
+            "why_not_fixed": "The same strings are imploded into delivery-attempt records and matched on by SubmitDelivery::wasUnreachable(). Turning them into codes changes delivery semantics, which is a domain ticket (REL-002), not something a UI ticket does quietly.",
+            "severity": "real, visible to non-English users",
+            "ticket": "REL-002"
+        },
+        {
+            "id": "delivery-validation-not-localisable",
+            "where": "The distribution send screen’s preflight",
+            "what": "The preflight’s errors and warnings are the same untranslated domain sentences the release builder shows.",
+            "why_not_fixed": "ValidateDelivery merges ValidateRelease’s output with its own and SubmitDelivery::wasUnreachable() matches on the text. Same root cause, same ticket.",
+            "severity": "real, visible to non-English users",
+            "ticket": "REL-002"
+        }
+    ],
+    "findings": {
+        "bulk_001_scope": {
+            "severity": "prevents a wasted ticket",
+            "finding": "BULK-001 is much smaller than its ticket assumes. ING-001 already provides batches, per-item state, idempotent retry via UNIQUE(ingestion_key, active_marker), attempt_count, per-item failure codes, CompletedWithErrors as a first-class outcome, the processing and finalising jobs, StartIngestionBatch::handle() taking a prefix or explicit references, and CloudImportReader.",
+            "instruction": "DO NOT create a BulkImportBatch table or any parallel import path. Two mechanisms both claiming to prevent duplicate imports is worse than one — the second is the one nobody tests against a real retry.",
+            "remaining": [
+                "DONE — CSV manifest import (BULK-001b)",
+                "DONE — an interface entry point to start a batch from a prefix or a manifest (BULK-001b, sanitube:import)",
+                "DONE — UI-004, which renders this progress read model"
+            ]
+        },
+        "preflight_vs_history": {
+            "severity": "would have refused every first install",
+            "finding": "The scheduler capability reports unavailable until a cron entry has fired at least once. Preflight blocking on it meant a first install could never pass, because the condition cannot be true before the installation exists.",
+            "instruction": "A preflight check asks whether the machine CAN run SaniTube. A health check asks whether this installation IS running. The same detectors serve both, but a capability describing the installation's history is not a prerequisite. InstallationService::NOT_PREREQUISITES names the two exclusions with their reasons; keep the list short, because a preflight that skips checks stops meaning anything."
+        },
+        "guard_covered_at_only_one_level": {
+            "severity": "a defective test that read as a passing one",
+            "finding": "The mutation removing the overwrite guard from EnvironmentFile::createFromExample() stayed green, because InstallationService checks exists() before ever calling it. The service-level test covered the behaviour; nothing covered the guard.",
+            "instruction": "When two layers both guard the same thing, the mutation must be run against the inner one. INS-002's web installer reaches EnvironmentFile without the service's outer check, so the inner guard is the one that will matter. A direct test now covers it."
+        }
+    },
+    "scope_correction_v1": {
+        "decided": "2026-08-16",
+        "statement": "SaniTube is a music catalogue and distribution platform. It is NOT a financial platform.",
+        "out_of_scope_v1": [
+            "royalties",
+            "revenue",
+            "balances",
+            "payments",
+            "payouts",
+            "revenue sharing",
+            "financial splits",
+            "accounting",
+            "ledger",
+            "invoicing",
+            "currency conversion",
+            "financial reporting",
+            "earnings calculation",
+            "revenue distribution between artists",
+            "financial collection",
+            "monetisation engine"
+        ],
+        "still_in_scope": "Rights and credit information strictly necessary for distribution, as catalogue metadata only: author, composer, publisher (as metadata), copyright, the P and C notices, declarative master ownership, contributor roles, ISRC, UPC/EAN, territories, explicit content, language, credits. None of it may trigger a financial calculation.",
+        "existing_code": "Not deleted. No Revenue/Royalty/Payout/Ledger module was ever built, so nothing has to be removed; the tickets are reclassified instead.",
+        "multi_distributor": "The domain must contain no logic specific to TuneCore, Too Lost, DistroKid, CD Baby or Ditto. Provider specifics live in adapters. No TuneCore API is assumed to exist, and scraping is never an API substitute.",
+        "navigation": "`publishing` and `royalties` removed from the sidebar in DIST-UI-001, with their translation keys and icons. Both were placeholders for financial administration. `rights` stays, unavailable: credit and ownership metadata is required for distribution and is not a right to money."
+    },
+    "progress": {
+        "$comment": "Nine fixed blocks. The denominator does not change. PRODUCTION_READY is the figure that matters.",
+        "blocks": {
+            "core_domain": {
+                "implemented": 95,
+                "production_ready": 90
+            },
+            "assets_catalogue_import": {
+                "implemented": 90,
+                "production_ready": 85
+            },
+            "generation_ai": {
+                "implemented": 70,
+                "production_ready": 55
+            },
+            "release_management": {
+                "implemented": 95,
+                "production_ready": 90
+            },
+            "distribution": {
+                "implemented": 80,
+                "production_ready": 55
+            },
+            "ui_ux": {
+                "implemented": 85,
+                "production_ready": 80
+            },
+            "security_identity": {
+                "implemented": 85,
+                "production_ready": 80
+            },
+            "installation_deployment": {
+                "implemented": 85,
+                "production_ready": 80
+            },
+            "operations_backup_observability": {
+                "implemented": 85,
+                "production_ready": 80
+            }
+        },
+        "implemented_percent": 86,
+        "production_ready_percent": 77
+    }
 }

@@ -19,7 +19,12 @@ import TextInput from '@/Components/Ui/TextInput.vue';
 import { bytes, duration } from '@/Support/format';
 import { trans } from '@/Support/i18n';
 import type { SharedProps } from '@/Types/inertia';
-import type { ReleaseArtistCredit, ReleaseDetail, ReleaseTrackRow } from '@/Types/releases';
+import type {
+    ReleaseArtistCredit,
+    ReleaseDetail,
+    ReleasePackagePreparation,
+    ReleaseTrackRow,
+} from '@/Types/releases';
 
 /**
  * The release builder.
@@ -308,6 +313,66 @@ function setCover(row: Record<string, unknown>): void {
         },
     );
 }
+
+/* ---------------------------------------------------------------- package */
+
+/**
+ * REL-004. What would actually cross to a distributor.
+ *
+ * Fetched on demand rather than shipped with the page: packaging walks every
+ * track, credit and identifier on the release, and a label keeps this screen
+ * open while editing. Most renders do not need the answer.
+ *
+ * **Three things are shown, and they are not the same thing.** The package
+ * either assembled or was refused. The identifier requirements — a UPC, an ISRC
+ * per track — block every delivery to every distributor and are reported even
+ * when the package assembles perfectly. And if this installation has no
+ * distributor configured, that is said plainly, because it is the one blocker
+ * no amount of editing the release will clear.
+ */
+const preparation = ref<ReleasePackagePreparation | null>(null);
+const preparing = ref(false);
+const preparationFailed = ref(false);
+
+async function prepare(): Promise<void> {
+    preparing.value = true;
+    preparationFailed.value = false;
+
+    try {
+        const response = await fetch(`/releases/${props.release.uuid}/package`, {
+            headers: { Accept: 'application/json' },
+        });
+
+        if (!response.ok) {
+            preparationFailed.value = true;
+            preparation.value = null;
+
+            return;
+        }
+
+        preparation.value = (await response.json()) as ReleasePackagePreparation;
+    } catch {
+        // The request never arrived. Distinct from a refusal, and shown as
+        // such: "we could not ask" and "it said no" are opposite answers.
+        preparationFailed.value = true;
+        preparation.value = null;
+    } finally {
+        preparing.value = false;
+    }
+}
+
+/**
+ * Cleared when the release changes underneath it. A package assembled before an
+ * edit describes a release that no longer exists, and leaving it on screen
+ * beside the new tracklist is how somebody delivers from a stale reading.
+ */
+watch(
+    () => props.release,
+    () => {
+        preparation.value = null;
+        preparationFailed.value = false;
+    },
+);
 
 /* -------------------------------------------------------------- readiness */
 
@@ -666,6 +731,118 @@ const editable = computed(() => props.release.actions.can_edit_details);
                         {{ trans(`ui.issue.${warning.code}`, warning.context) }}
                     </li>
                 </ul>
+            </div>
+        </AppCard>
+
+        <!-- REL-004. The distribution package, prepared on demand.
+             Between validation and the readiness decision, because it is the
+             last thing a label looks at before deciding — and because it is
+             the only place the content that leaves this platform is visible. -->
+        <AppCard>
+            <template #header>{{ trans('ui.releases.section.package') }}</template>
+            <template #description>{{ trans('ui.releases.package_description') }}</template>
+
+            <div class="flex flex-wrap items-center gap-2">
+                <AppButton variant="secondary" :loading="preparing" @click="prepare">
+                    {{ trans('ui.releases.prepare_package') }}
+                </AppButton>
+            </div>
+
+            <AppAlert
+                v-if="preparationFailed"
+                tone="danger"
+                class="mt-3"
+                :title="trans('ui.releases.package_unreachable')"
+            />
+
+            <div v-if="preparation !== null" class="mt-4 space-y-4">
+                <!-- Did it assemble. A code, translated here; the server's own
+                     sentence names internal concepts and stays in the log. -->
+                <AppAlert
+                    v-if="!preparation.prepared"
+                    tone="danger"
+                    :title="trans(`ui.releases.package_refusal.${preparation.refusal}`)"
+                >
+                    <!-- Only the uuids, and only for the one refusal whose
+                         context is uuids. RELEASE_NOT_VALID carries validation
+                         codes, and those are already listed — translated, with
+                         their paths — in the section directly above; repeating
+                         them here would say the same thing twice under two
+                         different headings. -->
+                    <ul
+                        v-if="preparation.refusal === 'TRACK_WITHOUT_MASTER'"
+                        class="mt-1 space-y-1"
+                    >
+                        <li v-for="uuid in preparation.refusal_context" :key="uuid">
+                            <CodeValue :value="uuid" />
+                        </li>
+                    </ul>
+                </AppAlert>
+
+                <AppAlert v-else tone="success" :title="trans('ui.releases.package_prepared')">
+                    <p>
+                        {{
+                            trans('ui.releases.package_summary', {
+                                tracks: String(preparation.package?.tracks.length ?? 0),
+                                artists: String(preparation.package?.artists.length ?? 0),
+                            })
+                        }}
+                    </p>
+                </AppAlert>
+
+                <!-- Blocking whatever the package did, and whoever it goes to.
+                     Reported even beside a package that assembled perfectly:
+                     packaging asks REL-001's validator, delivery also asks
+                     these, and conflating the two would call a release ready
+                     that no store can identify. -->
+                <div v-if="preparation.blocking_identifiers.length > 0" class="space-y-2">
+                    <p class="text-caption text-danger">{{ trans('ui.releases.package_blocking') }}</p>
+                    <ul class="list-disc space-y-1 pl-5 text-small text-foreground">
+                        <li
+                            v-for="issue in preparation.blocking_identifiers"
+                            :key="issue.code + issue.path"
+                        >
+                            {{ trans(`ui.issue.${issue.code}`, issue.context) }}
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- The blocker no amount of editing the release will clear. -->
+                <AppAlert
+                    v-if="preparation.destinations_configured === 0"
+                    tone="warning"
+                    :title="trans('ui.releases.package_no_destination')"
+                />
+
+                <!-- What would actually cross over. The tracklist as the
+                     distributor receives it, not as the builder shows it:
+                     ordered by (disc, track), each with the identifier that
+                     names the recording and the master that carries it. -->
+                <DataTable
+                    v-if="preparation.package !== null"
+                    :caption="trans('ui.releases.package_tracklist')"
+                >
+                    <template #head>
+                        <TableHeaderCell>{{ trans('ui.releases.position') }}</TableHeaderCell>
+                        <TableHeaderCell>{{ trans('ui.catalog.column.title') }}</TableHeaderCell>
+                        <TableHeaderCell>{{ trans('ui.catalog.column.isrc') }}</TableHeaderCell>
+                        <TableHeaderCell>{{ trans('ui.releases.package_master') }}</TableHeaderCell>
+                        <TableHeaderCell>{{ trans('ui.releases.package_credits') }}</TableHeaderCell>
+                    </template>
+
+                    <tr v-for="row in preparation.package.tracks" :key="row.uuid" class="border-t border-border">
+                        <TableCell>{{ row.disc_number }}-{{ row.track_number }}</TableCell>
+                        <TableCell>{{ row.title }}</TableCell>
+                        <TableCell>
+                            <CodeValue v-if="row.isrc !== null" :value="row.isrc" />
+                            <span v-else class="text-small text-muted">{{ trans('ui.releases.package_no_isrc') }}</span>
+                        </TableCell>
+                        <!-- A uuid, never a path. The package names assets; only
+                             the storage service knows where anything lives. -->
+                        <TableCell><CodeValue :value="row.master_asset_uuid" /></TableCell>
+                        <TableCell>{{ row.artists.length + row.contributors.length }}</TableCell>
+                    </tr>
+                </DataTable>
             </div>
         </AppCard>
 

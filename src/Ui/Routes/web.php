@@ -38,6 +38,7 @@ use SaniTube\Ui\Http\Controllers\Ingestion\ImportActionController;
 use SaniTube\Ui\Http\Controllers\Releases\ReleaseActionController;
 use SaniTube\Ui\Http\Controllers\Releases\ReleaseBuilderController;
 use SaniTube\Ui\Http\Controllers\Releases\ReleaseIndexController;
+use SaniTube\Ui\Http\Controllers\Releases\ReleasePackageController;
 use SaniTube\Ui\Http\Controllers\Releases\ReleasePickerController;
 use SaniTube\Ui\Http\Controllers\Settings\SettingsController;
 use SaniTube\Ui\Http\Controllers\Settings\SettingsUpdateController;
@@ -375,6 +376,16 @@ Route::middleware(['web', HandleInertiaRequests::class, 'auth', 'active'])->grou
             ->name('releases.options.artwork');
         Route::get('releases/{release}/options/tracks', [ReleasePickerController::class, 'tracks'])
             ->name('releases.options.tracks');
+
+        /*
+         * REL-004. What would cross to a distributor, assembled on demand.
+         *
+         * A GET: it changes nothing, and a preparation that left a record
+         * behind would turn "let me look" into an intention. Behind the write
+         * role because the package carries contributors' legal names.
+         */
+        Route::get('releases/{release}/package', ReleasePackageController::class)
+            ->name('releases.package');
     });
 
     /*
