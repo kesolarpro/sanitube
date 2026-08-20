@@ -1,7 +1,15 @@
 # Session report — Phase 2 continuation, 2026-08-20
 
-Transcription → AI enrichment → editorial → production planning.
-Eleven tickets, eleven pull requests, all merged at 10/10.
+Transcription → AI enrichment → editorial → production planning → generation
+hardening → Suno research → artwork.
+Sixteen functional tickets across eighteen pull requests (#67–#84), all merged
+at 10/10.
+
+> **Extended in place, and said so rather than quietly rewritten.** This report
+> was first written at PROD-003 and covered eleven tickets. The session
+> continued past it, so the figures and the status fields below are the *final*
+> ones and the earlier numbers are gone. What is not gone is the reasoning: no
+> verdict that was true at PROD-003 has been upgraded here, only extended.
 
 ---
 
@@ -10,20 +18,21 @@ Eleven tickets, eleven pull requests, all merged at 10/10.
 | Field | Value |
 |---|---|
 | **START_MAIN_SHA** | `3c02d1bfbd84e23ad91aa3f38bfbf103f9a1e76f` |
-| **END_MAIN_SHA** | `faabb05503407a762ba8ad87dbceb6c9ae8749e4` |
-| **MERGED_TICKETS** | TRN-002 (#67), TRN-003 (#68), ENR-001 (#69), ENR-002 (#70), ENR-003 (#71), ENR-004 (#72), ENR-005 (#73), EDI-001 (#74), PROD-001 (#75), PROD-002 (#76), PROD-003 (#77), bookkeeping (#78) |
-| **OPEN_PRS** | none |
+| **END_MAIN_SHA** | `d44a7df1ff3fde4bcbe096f6e44f479184176edc` |
+| **MERGED_TICKETS** | TRN-002 (#67), TRN-003 (#68), ENR-001 (#69), ENR-002 (#70), ENR-003 (#71), ENR-004 (#72), ENR-005 (#73), EDI-001 (#74), PROD-001 (#75), PROD-002 (#76), PROD-003 (#77), bookkeeping (#78), session report (#79), GEN-003 (#80), GEN-004 (#81), GEN-005 (#82), ART-001 (#83), ART-002 (#84) |
+| **OPEN_PRS** | none. Every pull request opened this session was merged at 10/10. |
 | **REVIEW_REQUIRED** | none outstanding. Each PR was self-reviewed against §1 (component proof *and* production-path proof) and §2 (mutation discipline) before merge; the findings are in the per-ticket reports. |
-| **TESTS** | 1566 passed, 1 skipped |
-| **ASSERTIONS** | 8080 |
+| **TESTS** | 1646 passed, 1 skipped |
+| **ASSERTIONS** | 14530 |
 | **PHPSTAN** | `[OK] No errors` — level 6, no baseline |
 | **PINT** | `passed` |
 | **VUE_TSC** | exit 0 |
 | **VITEST** | 23 passed, 3 files |
 | **BUILD** | OK — 493.36 kB JS / 33.32 kB CSS, manifest written |
-| **DB_MATRIX** | 10/10 on every one of the twelve pull requests. SQLite, MySQL 8.0, MariaDB 10.6, MariaDB 11.4 × PHP 8.2/8.3/8.4, each migrating, testing, rolling back and migrating again. |
+| **DB_MATRIX** | 10/10 on every one of the eighteen pull requests. SQLite, MySQL 8.0, MariaDB 10.6, MariaDB 11.4 × PHP 8.2/8.3/8.4, each migrating, testing, rolling back and migrating again. |
 
-Verified on `faabb05` with a clean working tree, not quoted from a PR.
+Verified on a clean working tree by running the suite, not quoted from a pull
+request page.
 
 ---
 
@@ -45,9 +54,9 @@ Verified on `faabb05` with a clean working tree, not quoted from a PR.
 | **EDITORIAL_PROFILE_STATUS** | READY | EDI-001. One profile per imprint, guidance a prompt can carry, no half-made profile on refusal. |
 | **PRODUCTION_PLAN_STATUS** | READY | PROD-001. Autonomy is an enum with five members, one of which is locked. Plan status distinguishes what an operator paused from what the platform exhausted. |
 | **PRODUCTION_SLOT_STATUS** | READY | PROD-002. Unique index on (plan, occasion); a guarded `UPDATE` claim; a lost race is a success. |
-| **GENERATION_STATUS** | READY with the fake provider | PROD-003 added the inventory that precedes it: nothing is generated blindly, and no attribution is a refusal rather than a default. Real generation still has no provider. |
-| **SUNO_STATUS** | NOT_STARTED | Named in `config/generation.php` and ADR-0005 as the *intended* first adapter. No code, no research done this session. Per the standing constraint, no unofficial reverse-engineered wrapper will ever be integrated — an adapter waits on an official API. |
-| **ARTWORK_STATUS** | NOT_STARTED | No artwork module exists. No validator, no image provider. |
+| **GENERATION_STATUS** | READY with the fake provider, and hardened | PROD-003 added the inventory that precedes it. GEN-003 closed two defects in the existing path: the provider's exception message was being rendered in a browser — and on a query-string-authenticated provider that message *is* the credential — and a read-then-write idempotency check let two workers both pay for one generation. GEN-004 added a request ceiling and a circuit breaker, because PROD-001…003 built a planner whose purpose is to decide unattended that more music should exist. Real generation still has no provider. |
+| **SUNO_STATUS** | RESEARCHED, BLOCKED_EXTERNAL | GEN-005. As of August 2026 Suno publishes **no API contract at all** — no console, no documentation, no request or response shapes, no limits. A developer API is being explored with curated partners; no timeline. ADR-0018 records the four conditions that would unblock an adapter and excludes reverse-engineered wrappers permanently, with the reason stated rather than treated as a rule to obey. `ProviderProvenanceTest` enforces it in CI. The rights research is in `docs/research/suno-2026-08.md`, opening with the fact that egress blocked every primary source. |
+| **ARTWORK_STATUS** | READY internally / BLOCKED_EXTERNAL to certify | ART-001 built the measurer, the persisted measurement and the validator — a cover is now judged on what was measured, not on what its record says, with "unmeasured" a warning and never a pass. ART-002 added the image provider against the published OpenAI specification, and the feasibility check that refuses **before** spending. It found that this platform's default 3000px requirement and the specification's only square GPT-image size (1024) genuinely disagree, so generation refuses out of the box by design. Never certified against the real endpoint. |
 | **RELEASE_PREPARATION_STATUS** | PARTIAL | `ReleaseBuilder` and `ValidateRelease` exist and are READY from V1. The Phase 2 preparation work (packaging a validated release for a distributor) has not begun. |
 | **DISTRIBUTION_RESEARCH_STATUS** | NOT_STARTED | Not touched this session. |
 | **DDEX_STATUS** | NOT_STARTED | No DDEX code, config or document anywhere in the repository. |
@@ -55,29 +64,42 @@ Verified on `faabb05` with a clean working tree, not quoted from a PR.
 | **PORTABILITY_STATUS** | READY | ADR-0002 enforced by a migration-scanning test: `longText` + array cast, never `json()`, no database enums. ADR-0017's engine traps are covered — no unsigned subtraction in raw SQL, every non-nullable timestamp states its default, every comparison ordering has a deterministic tiebreak. |
 | **SECURITY_STATUS** | READY internally / BLOCKED_EXTERNAL for a real penetration test | No secret in any log, payload, test or diagnostic. Vendor error **bodies are dropped entirely** rather than redacted, because a vendor error quotes the request back and redaction cannot mask catalogue data. Prompt injection is bounded by a fixed instruction constant. Authorization lives on routes; hidden buttons are presentation. |
 | **SCALE_STATUS** | PARTIAL | Queueing properties asserted where they belong (900-file import). Re-import storage amplification (BULK-001c) still needs a measurement, not a guess. No backfill tooling for the new modules. |
-| **PRODUCTION_PATH_TEST_STATUS** | ENFORCED | §1 was applied to all eleven functional tickets: each has both a component proof and a production-path proof answering *who calls this in production*. TRN-003, ENR-002 and ENR-004 each gained a caller specifically because the service alone did not satisfy it. |
+| **PRODUCTION_PATH_TEST_STATUS** | ENFORCED, and it kept earning its place | §1 was applied to all sixteen functional tickets. TRN-003, ENR-002 and ENR-004 each gained a caller because the service alone did not satisfy it. Then GEN-004, GEN-005, ART-001 and ART-002 each had a *surviving mutation* on exactly this: a guard wired into a caller with no test behind it. Four tickets in a row. The rule stated in ART-002's report is the session's clearest finding — **wiring a service into a caller is a separate claim from the service working, and needs its own assertion.** |
 
 ---
 
 ## Progress
 
-**INTERNAL_PHASE2_PERCENT — 50%.**
-The §48 order has twenty items. Ten are merged (through PROD-003). Ten remain:
-generation hardening, Suno research, artwork validator, image provider, release
-preparation, distribution research, DDEX, first viable distributor adapter,
-scale/backfill/hardening, docs/doctor. Counted as items merged, not as lines
+**INTERNAL_PHASE2_PERCENT — 70%.**
+The §48 order has twenty items. Fourteen are merged: through PROD-003, then
+generation hardening (GEN-003, GEN-004), Suno research (GEN-005), the artwork
+validator (ART-001) and the image provider (ART-002). Six remain: release
+preparation, distribution research, DDEX, a first viable distributor adapter,
+scale/backfill/hardening, and docs/doctor. Counted as items merged, not as lines
 written.
 
-**PRODUCTION_PHASE2_PERCENT — 30%.**
-Lower than the internal figure, and the gap is the honest part. Of the ten
-merged items, the transcription and enrichment chain — six of them — cannot run
-on a real installation without an OpenAI or Anthropic key that nobody has
-supplied, and no adapter in this repository has spoken to a live endpoint.
-Editorial profiles, production plans and slots (three items, plus PROD-003's
-inventory) work today with no external dependency at all. So roughly a third of
-what was built this session is usable in production right now; the rest is
-finished code awaiting a certificate. Treating those as the same number is what
-this field exists to prevent.
+**PRODUCTION_PHASE2_PERCENT — 40%.**
+Lower than the internal figure, and the gap is the honest part rather than a
+hedge. Of the fourteen merged items, eight depend on an external account nobody
+has supplied: transcription and enrichment need an OpenAI or Anthropic key, the
+image provider needs one too, and no adapter in this repository has ever spoken
+to a live endpoint. Editorial profiles, production plans, slots, the
+pre-generation inventory, the generation hardening and the artwork *validator*
+work today with no external dependency at all — the validator in particular is
+fully usable on covers that were uploaded rather than generated.
+
+Two of those numbers deserve naming rather than averaging:
+
+- **GEN-005 lowered nothing and clarified everything.** Suno moved from "no
+  credentials" to "no published contract exists", which is a different and worse
+  blocker: nobody can hand over a key for an API that has not been released.
+- **ART-002 ships refusing.** The image provider is complete, tested and wired,
+  and on the shipped configuration it declines to generate, because the
+  platform's own 3000px artwork requirement and the specification's only square
+  GPT-image size do not agree. That is finished code behaving correctly, not
+  unfinished code — but it is not a working feature for an operator who changes
+  nothing, and counting it as one would be exactly the dishonesty this field
+  exists to prevent.
 
 ---
 
@@ -103,64 +125,83 @@ who clones.
 
 ## What went wrong, and what it cost
 
-**BUGS_FOUND — 12. BUGS_FIXED — 12.**
+**BUGS_FOUND — 20. BUGS_FIXED — 20.**
+
+Twelve were found through PROD-003 and are tabulated in the per-ticket reports.
+Eight more followed, and they are worth listing because three were **pre-existing
+defects in merged code**, not mistakes made while writing the ticket:
 
 | # | Defect | Where it came from |
 |---|---|---|
-| 1 | The mutation harness decided "killed" by grepping its own output for `fail`, and test *names* contain that word. Runs where everything passed printed it. | My harness. Every earlier verdict was suspect. |
-| 2 | `Http::fake()` called twice for the same URL does not replace the first stub, so a `foreach` re-faking per iteration tests its first case N times. | Already merged in TRN-002. |
-| 3 | The audit scrubber silently drops lists — integer keys fail its key pattern, so context arrives `[]`. | Pre-existing; no existing caller affected. |
-| 4 | `nothing_here_holds_money` failed on its own docblock promising there was no currency. | The test. |
-| 5 | PROD-002's "race" test returned before the insert — it was testing the cadence, not the race. | The test. |
-| 6 | The replacement race test passed while proving nothing: a raw `Y-m-d` insert and Eloquent's `Y-m-d H:i:s` differ under SQLite's dynamic typing, so the unique key never fired. | The test. |
-| 7 | ENR-005's leak test asserted on a column that does not exist, and its loop skipped non-strings — it silently checked fewer secrets than it claimed. | The test. |
-| 8 | A fixture applied overrides with `forceFill()` and no `save()`; the object said REJECTED and the table said PROPOSED. | The fixture, in two files. |
-| 9 | EDI-001: refactoring for PHPStan moved row creation before field validation, leaving a half-made profile holding the unique slug. | Written during the ticket. |
-| 10 | PROD-002 off-by-one: a one-day horizon opened every occasion a day early and shifted every subsequent date. | Written during the ticket. |
-| 11 | PROD-003 fixtures exercised neither filter they claimed to — the release test used an already-excluded released track, and every credit was primary. | The fixtures. |
-| 12 | Assorted PHPStan defects: `BelongsTo` generics, `nullsafe.neverNull`, `arrayValues.list`, `argument.type` on `create()`. | Written during the ticket. |
+| 13 | A provider's exception message was written into `failure_reason` and rendered on the Studio screen and the v1 API. A client exception quotes the request; on a query-string-authenticated provider **that message is the credential**. | Pre-existing (GEN-001). |
+| 14 | The submission idempotency check was a read-then-write on a column that is null for the whole duration of the call it guards, so two workers could both pay for one generation. | Pre-existing. |
+| 15 | `poll_count` incremented by reading and adding one, so two concurrent polls advanced the runaway-loop bound by one instead of two. | Pre-existing. |
+| 16 | **`assets.width` and `assets.height` are columns nothing has ever written.** Three screens read them, so they were blank on every production installation — and the suite never noticed because the asset factory sets `width => 3000`. | Pre-existing, masked by a fixture. |
+| 17 | A generated cover would never have been measured: `store()` leaves an asset at STORED and the measurement listener fires on verification. | Written during ART-002, caught by an assertion. |
+| 18 | A hardcoded `api.openai.com` default in `config/artwork.php`, against the standing "nothing hardcodes a domain" constraint. | Written during ART-002, caught by the portability guardrail. |
+| 19 | A method that redacted an exception message and then discarded it — dead code with a docblock explaining itself. | Written during ART-002, caught by PHPStan. |
+| 20 | `ValidateArtwork` passed a list into an audit context that keeps only string keys, so it would have arrived empty. | Written during ART-001, caught by PHPStan. |
 
-**TESTS_FOUND_DEFECTIVE — 9 tests, plus 1 defective harness.**
+**TESTS_FOUND_DEFECTIVE — 16 tests, plus 1 defective harness.**
 
-Derived, not rounded. Rows #2, #4, #5, #6, #7, #8 and #11 above are the test
-defects: two looped-fake tests (TRN-002 and TRN-003), the currency scanner that
-failed on its own docblock, PROD-002's cadence-test-named-race, its replacement
-that passed while proving nothing, ENR-005's leak test, one fixture defect
-counted once though it broke four tests across two files, and two PROD-003
-fixtures that exercised neither filter they named. Row #1 is the mutation
-harness itself — a tool rather than a test, counted separately because it made
-every prior verdict suspect rather than one assertion wrong.
+Nine through PROD-003, seven after: three surviving mutations in GEN-004 (a test
+that got the right answer for the wrong reason, a submit-path check with no test
+at all, and a fallback never exercised), two in GEN-005 (a scan that globbed with
+a doubled wildcard and, when it was found, covered **368 of the repository's
+then 634 source files** while passing, and an
+assertion that reported on the environment rather than the code and *could never
+have failed*), and one each in ART-001 and ART-002 of the same shape.
 
-The pattern is the finding. **Every single ticket this session had at least one
-defective test, and not one of them was found by reading the code.** Mutation
-testing found all of them: break the implementation, watch the test stay green,
-and the test was never testing what its name said. Reports #1 and #2 were
-amended in place after the fact rather than quietly corrected, because a report
-that was wrong and got edited without saying so is worse than one that was
-never written. Withdrawn mutations are recorded as withdrawn — TRN-002's M10
-genuinely survives its own file and is killed by TRN-001's, and the report says
-exactly that instead of claiming a kill.
+**Every single ticket in this session had at least one defective test, and not
+one of them was found by reading code.** Mutation testing found all of them. The
+harness itself was the first casualty: it decided "killed" by grepping its own
+output for `fail`, a word test *names* contain, so it reported kills on runs
+where everything passed. It now reads the runner's exit code, and every mutation
+in this session was re-run under it.
+
+Three mutations were **withdrawn** rather than forced: GEN-004's N3 and
+ART-001's A14 against genuinely redundant branches, and GEN-005's P5 because it
+mutated a test helper rather than an implementation, which is outside §2's
+discipline. Each is recorded with the evidence — including one case where the
+justification I expected to give (that the type system required the branch)
+turned out on checking to be false, and is not offered.
 
 ---
 
 ## NEXT_ACTION
 
-Item 11 of the §48 order: **generation hardening**, then Suno research (research
-only — an adapter waits on an official API, and no reverse-engineered wrapper
-will be integrated under any circumstances).
+Item 15 of the §48 order: **release preparation** — packaging a validated
+release for a distributor. It is internal work with no external dependency,
+which is the right place to spend effort while every provider-facing item waits
+on an account.
 
-`docs/project-status.json` had drifted — a `main_sha` of `25565b4`, a test count
-of `1002 / 4282`, and a `default_branch` of `main` when GitHub's default is still
-the verifier branch. Corrected in the same commit as this report, since the next
-session reads that file before anything else. Its four standing `next_action`
-items (ADR-0015, per-screen accessibility on real assistive technology,
-AUDIT-002's actor identity for `src/Api`, and real-host certification) are
-untouched and still open; the Phase 2 order was inserted ahead of them, not in
-place of them.
+Then: distribution research, DDEX, a first viable distributor adapter,
+scale/backfill/hardening, docs/doctor.
 
-`docs/production-readiness.md` gained the four modules built this session —
-transcription, AI enrichment, editorial and production planning — with the same
-four-value vocabulary and no upgraded verdicts elsewhere.
+Two smaller things named in ticket reports rather than left implicit, neither
+silently folded into a "done":
+
+- **No image spend ceiling.** GEN-004 built one for music generation. Images
+  need the same, against the asset ledger rather than `music_generations`.
+- **No screen or route for artwork generation.** A button that spends money
+  needs its own confirmation surface and its own authorization ticket.
+- **`DeliveryDetailQuery::reason()` truncates but does not redact.** The same
+  class of exposure GEN-003 closed for generation still exists in the
+  distribution module.
+
+`docs/project-status.json` was corrected during this session — a `main_sha` of
+`25565b4`, a test count of `1002 / 4282`, and a `default_branch` of `main` when
+GitHub's default is still the verifier branch — and is kept current per ticket.
+Its four standing `next_action` items (ADR-0015, per-screen accessibility on
+real assistive technology, AUDIT-002's actor identity for `src/Api`, and
+real-host certification) are untouched and still open; the Phase 2 order was
+inserted ahead of them, not in place of them.
+
+`docs/production-readiness.md` now covers all six modules built this session —
+transcription, AI enrichment, editorial, production planning, artwork and the
+generation hardening — under the same four-value vocabulary. One row is
+deliberately **NOT_READY**: image generation on the shipped configuration, for
+the reason ART-002 gives. No existing verdict elsewhere was upgraded.
 
 ---
 

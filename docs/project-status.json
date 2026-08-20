@@ -1,8 +1,8 @@
 {
   "$comment": "Machine-readable project state. Any new session reads this first, then verifies it against GitHub before trusting it. Written at the end of each ticket, so a stale entry means a session ended mid-ticket — check the branch and CI rather than the status field.",
   "updated_at": "2026-08-20",
-  "current_phase": "Phase 5 in progress: editorial profiles, production plans, slots and pre-generation inventory are merged. Ten of the twenty Phase 2 order items are done.",
-  "last_completed_ticket": "ART-001",
+  "current_phase": "Phase 2 order: fourteen of twenty items merged. Remaining: release preparation, distribution research, DDEX, a first viable distributor adapter, scale/backfill/hardening, docs/doctor.",
+  "last_completed_ticket": "ART-002",
   "default_branch": "main (locally and for every merge). GitHub's configured default branch is still \"claude/verifier-repertoire-git-k29ft2\" — see EXTERNAL_ADMIN_ACTION_REQUIRED.",
   "tickets": {
     "ARCH-001": {
@@ -599,10 +599,10 @@
       "ci": "green"
     },
     "ART-002": {
-      "status": "in review",
+      "status": "merged",
       "branch": "claude/sanitube-autonomous-v1-5pycx0",
-      "pr": null,
-      "ci": "pending"
+      "pr": 84,
+      "ci": "green"
     }
   },
   "architecture_amendments": [
@@ -692,8 +692,8 @@
     "since": "UI-001",
     "note": "Nine tickets (ING/MED/CAT/AI/GEN/REL/DIST/SEC-001 and PR #12) were merged under an earlier autonomous-chaining instruction that bypassed review. A retroactive audit is under way; they stay in main and any correction becomes a follow-up ticket, not a revert. BULK-001b, UI-004 and UI-005 were merged under the session's explicit merge policy for read-only UI, ingestion tooling and documentation: none changes authentication, authorization, rights, money, identifier lifecycle, destructive storage behaviour or any external action."
   },
-  "main_sha": "4f199fa",
-  "current_ticket": "ART-002",
+  "main_sha": "d44a7df",
+  "current_ticket": null,
   "tests": "1646 passed, 1 skipped, 14530 assertions",
   "phpstan": {
     "level": 6,
@@ -710,7 +710,7 @@
   },
   "next_action": {
     "$comment": "Read this first. In order. Item 1 is where the current Phase 2 order resumes; 2-5 are the standing items an earlier session left, none of them done.",
-    "1": "Item 11 of the Phase 2 order: generation hardening. Then Suno research — research only. No adapter without an official API, and never a reverse-engineered wrapper.",
+    "1": "Item 15 of the Phase 2 order: release preparation — packaging a validated release for a distributor. Internal work with no external dependency, which is where effort belongs while every provider-facing item waits on an account.",
     "2": "REVIEW: ADR-0015 (BULK-001c amendment). Pick an option, then implement it — the baseline test fails when it lands, which is how the change announces itself.",
     "3": "Accessibility, the part jsdom cannot reach: per-screen keyboard walkthroughs on real assistive technology, and responsive/long-content behaviour at four breakpoints across six locales. Needs a rendered browser.",
     "4": "AUDIT-002 — an honest actor identity for src/Api. A shared token names no person; recording those calls as guest misleads and as a user is false.",

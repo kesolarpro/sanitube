@@ -182,9 +182,9 @@ final class ProviderProvenanceTest extends TestCase
      * wildcard in the middle looks exhaustive and is not — PHP's is an ordinary
      * single wildcard, so such a pattern matches only files at exactly one
      * depth and silently skips module roots like
-     * `src/MusicGeneration/ProviderFailure.php`. It scanned 368 of this
-     * repository's 634 source files and reported a pass. A guardrail with a
-     * hole in its scan is worse than none.
+     * `src/MusicGeneration/ProviderFailure.php`. When GEN-005 found it, it was
+     * scanning 368 of the repository's 634 source files and reporting a pass.
+     * A guardrail with a hole in its scan is worse than none.
      *
      * @return list<string>
      */
