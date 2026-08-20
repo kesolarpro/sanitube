@@ -6,10 +6,10 @@ namespace SaniTube\MusicGeneration\Services;
 
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use SaniTube\MusicGeneration\Contracts\MusicGenerationProvider;
 use SaniTube\MusicGeneration\Enums\MusicGenerationStatus;
 use SaniTube\MusicGeneration\GenerationStatus;
 use SaniTube\MusicGeneration\Models\MusicGeneration;
-use SaniTube\MusicGeneration\Models\MusicGenerationResult;
 use SaniTube\MusicGeneration\MusicGenerationManager;
 use SaniTube\MusicGeneration\ProviderFailure;
 use SaniTube\MusicGeneration\ProviderResult;
@@ -35,7 +35,10 @@ use Throwable;
  */
 final readonly class PollMusicGeneration
 {
-    public function __construct(private MusicGenerationManager $providers) {}
+    public function __construct(
+        private MusicGenerationManager $providers,
+        private RecordGenerationResults $results,
+    ) {}
 
     public function handle(MusicGeneration $generation): MusicGeneration
     {
@@ -69,6 +72,20 @@ final readonly class PollMusicGeneration
 
         $provider = $this->providers->provider($generation->provider);
 
+        if (! $provider instanceof MusicGenerationProvider) {
+            // GEN-007 widened what a provider may be. Only an asynchronous one
+            // has a status to ask about; a synchronous generation never reaches
+            // here, because it is Completed before anything could poll it. This
+            // is the case where an installation swapped a provider name from an
+            // asynchronous supplier to a synchronous one while a generation was
+            // in flight -- rare, and better answered than crashed on.
+            return $this->fail($generation, sprintf(
+                'The [%s] provider no longer answers status questions, so this generation cannot be '
+                    .'collected. It was submitted to a provider of a different kind.',
+                $generation->provider,
+            ));
+        }
+
         try {
             $state = $provider->getGenerationStatus($generation->provider_job_id);
         } catch (Throwable $exception) {
@@ -95,20 +112,11 @@ final readonly class PollMusicGeneration
      */
     private function complete(MusicGeneration $generation, array $results): MusicGeneration
     {
-        foreach ($results as $result) {
-            MusicGenerationResult::query()->updateOrCreate(
-                [
-                    'generation_id' => $generation->id,
-                    'provider_result_id' => $result->providerResultId,
-                ],
-                [
-                    'source_reference' => $result->sourceReference,
-                    'title' => $result->title,
-                    'duration_ms' => $result->durationMs,
-                    'raw' => $result->raw === [] ? null : $result->raw,
-                ],
-            );
-        }
+        // GEN-007 moved the writing itself into a shared service, because a
+        // synchronous provider arrives at the same place by another road and
+        // two implementations of "a generation completed" would be two that
+        // quietly stop matching.
+        $this->results->handle($generation, $results);
 
         if ($results === []) {
             // A completed job with nothing to download is a provider fault,
@@ -117,12 +125,7 @@ final readonly class PollMusicGeneration
             return $this->fail($generation, 'The provider reported success but returned no audio.');
         }
 
-        $generation->forceFill([
-            'status' => MusicGenerationStatus::Completed,
-            'completed_at' => Carbon::now(),
-        ])->save();
-
-        return $generation->refresh();
+        return $this->results->complete($generation);
     }
 
     private function cancelled(MusicGeneration $generation): MusicGeneration

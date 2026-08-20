@@ -6,6 +6,7 @@ namespace SaniTube\MusicGeneration\Enums;
 
 use SaniTube\MusicGeneration\Contracts\DeclaresCapabilities;
 use SaniTube\MusicGeneration\Contracts\MusicGenerationProvider;
+use SaniTube\MusicGeneration\Contracts\SynchronousMusicGenerationProvider;
 use SaniTube\MusicGeneration\Services\ProviderCapabilities;
 use SaniTube\Observability\Capabilities;
 
@@ -31,11 +32,17 @@ use SaniTube\Observability\Capabilities;
  *
  * **A capability is declared or structurally implied, never guessed.** Two of
  * these — {@see self::TextToMusic} and {@see self::Cancel} — look like they
- * could be read off the base interface, and only one of them can. Every
- * provider implements `createGeneration()` against a prompt, so text-to-music
- * is structural. Every provider also implements `cancelGeneration()`, but the
- * contract explicitly allows it to return false for ever, so a provider that
- * merely has the method has told us nothing. That one must be declared.
+ * could be read off an interface, and only one of them can. Every provider is
+ * asked for music against a prompt, so text-to-music is structural. Every
+ * asynchronous provider also implements `cancelGeneration()`, but the contract
+ * explicitly allows it to return false for ever, so a provider that merely has
+ * the method has told us nothing. That one must be declared.
+ *
+ * {@see self::Synchronous} and {@see self::AsyncPolling} are the exception that
+ * proves the rule: they are structural, but of a *sub-contract*. Implementing
+ * {@see SynchronousMusicGenerationProvider}
+ * is not an opinion about what a supplier can do — it is a method that exists
+ * and can be called.
  *
  * Not an ADR-0016 truth level and not a {@see Capabilities}
  * detector. Those describe the environment SaniTube is running in; this
@@ -74,6 +81,23 @@ enum GenerationCapability: string
     case LyricsTimestamps = 'LYRICS_TIMESTAMPS';
 
     /**
+     * Ask, and the answer is the audio.
+     *
+     * Structural for a {@see SynchronousMusicGenerationProvider}:
+     * it is what implementing that interface means. A supplier may declare both
+     * this and {@see self::AsyncPolling} if it genuinely offers both, which is
+     * why they are separate capabilities rather than one either-or field.
+     */
+    case Synchronous = 'SYNCHRONOUS';
+
+    /**
+     * Ask, get a reference, come back for the result.
+     *
+     * Structural for a {@see MusicGenerationProvider}.
+     */
+    case AsyncPolling = 'ASYNC_POLLING';
+
+    /**
      * Cancellation reaches the provider and stops work.
      *
      * Declared, never inferred. `cancelGeneration()` is on the base contract
@@ -95,9 +119,15 @@ enum GenerationCapability: string
     case SelfHosted = 'SELF_HOSTED';
 
     /**
-     * The capabilities every provider has by virtue of implementing the
-     * contract at all. Exactly one, and the shortness is the point: everything
-     * else is a claim somebody has to make.
+     * The capabilities a provider has by virtue of implementing a contract at
+     * all — the ones read off the interface rather than claimed.
+     *
+     * Only ever `TEXT_TO_MUSIC`, because that is the one thing every
+     * sub-contract has in common: a prompt goes in and music comes out. The
+     * *execution* capabilities are structural too, but of a particular
+     * sub-contract rather than of providers in general, so
+     * {@see ProviderCapabilities} derives
+     * those from `instanceof` instead of from this list.
      *
      * @return list<self>
      */

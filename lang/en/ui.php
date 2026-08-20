@@ -831,6 +831,8 @@ return [
         'select_result_description' => 'The audio is fetched, stored and verified, then proposed for the catalogue. It does not become a track — somebody still has to listen and decide.',
         'select_result_confirm' => 'Take it into the review queue',
         'capability' => [
+            'SYNCHRONOUS' => 'Answers with the audio',
+            'ASYNC_POLLING' => 'Answers later, when asked',
             'TEXT_TO_MUSIC' => 'Music from a description',
             'LYRICS_TO_MUSIC' => 'Sings words you supply',
             'INSTRUMENTAL' => 'Instrumentals',

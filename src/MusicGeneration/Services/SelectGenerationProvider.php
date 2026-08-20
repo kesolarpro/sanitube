@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SaniTube\MusicGeneration\Services;
 
-use SaniTube\MusicGeneration\Contracts\MusicGenerationProvider;
+use SaniTube\MusicGeneration\Contracts\GenerationProvider;
 use SaniTube\MusicGeneration\Enums\GenerationCapability;
 use SaniTube\MusicGeneration\Exceptions\GenerationException;
 use SaniTube\MusicGeneration\Exceptions\UnknownGenerationProvider;
@@ -64,7 +64,7 @@ final readonly class SelectGenerationProvider
      * @throws GenerationException
      * @throws UnknownGenerationProvider when a named provider is not configured
      */
-    public function select(array $required = [], ?string $preferred = null, array $except = []): MusicGenerationProvider
+    public function select(array $required = [], ?string $preferred = null, array $except = []): GenerationProvider
     {
         if ($preferred !== null) {
             $provider = $this->providers->provider($preferred);
@@ -183,7 +183,7 @@ final readonly class SelectGenerationProvider
      *
      * @throws GenerationException
      */
-    public function assertUsable(MusicGenerationProvider $provider, array $required = []): void
+    public function assertUsable(GenerationProvider $provider, array $required = []): void
     {
         // Availability first. On a fresh install every provider is
         // unconfigured, and "generation is not set up" is a more useful thing

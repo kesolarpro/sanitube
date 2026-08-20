@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SaniTube\MusicGeneration\Services;
 
 use Illuminate\Support\Carbon;
+use SaniTube\MusicGeneration\Contracts\MusicGenerationProvider;
 use SaniTube\MusicGeneration\Enums\MusicGenerationStatus;
 use SaniTube\MusicGeneration\Exceptions\GenerationException;
 use SaniTube\MusicGeneration\Models\MusicGeneration;
@@ -65,9 +66,16 @@ final readonly class CancelMusicGeneration
     private function askProviderToStop(MusicGeneration $generation): void
     {
         try {
-            $this->providers
-                ->provider($generation->provider)
-                ->cancelGeneration((string) $generation->provider_job_id);
+            $provider = $this->providers->provider($generation->provider);
+
+            if (! $provider instanceof MusicGenerationProvider) {
+                // Nothing to stop. A synchronous supplier has already finished
+                // or already failed by the time anything can ask, which is why
+                // the contract has no cancellation on it at all.
+                return;
+            }
+
+            $provider->cancelGeneration((string) $generation->provider_job_id);
         } catch (Throwable) {
             // Intentionally ignored. See the class comment.
         }

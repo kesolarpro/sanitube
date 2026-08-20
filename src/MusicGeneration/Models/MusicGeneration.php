@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
 use SaniTube\Foundation\Concerns\HasPublicUuid;
 use SaniTube\MusicGeneration\Enums\CommercialRightsStatus;
+use SaniTube\MusicGeneration\Enums\ExecutionMode;
 use SaniTube\MusicGeneration\Enums\MusicGenerationStatus;
 
 /**
@@ -20,6 +21,7 @@ use SaniTube\MusicGeneration\Enums\MusicGenerationStatus;
  * @property int|null $project_id
  * @property string $provider
  * @property string|null $provider_job_id
+ * @property ExecutionMode|null $execution_mode
  * @property Carbon|null $submission_claimed_at
  * @property MusicGenerationStatus $status
  * @property string $prompt
@@ -55,6 +57,7 @@ final class MusicGeneration extends Model
     {
         return [
             'status' => MusicGenerationStatus::class,
+            'execution_mode' => ExecutionMode::class,
             'commercial_rights_status' => CommercialRightsStatus::class,
             'instrumental' => 'boolean',
             'parameters' => 'array',

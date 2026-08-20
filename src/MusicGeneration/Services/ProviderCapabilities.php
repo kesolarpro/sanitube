@@ -7,7 +7,9 @@ namespace SaniTube\MusicGeneration\Services;
 use SaniTube\MusicGeneration\Contracts\Capabilities\SupportsExtend;
 use SaniTube\MusicGeneration\Contracts\Capabilities\SupportsStems;
 use SaniTube\MusicGeneration\Contracts\DeclaresCapabilities;
+use SaniTube\MusicGeneration\Contracts\GenerationProvider;
 use SaniTube\MusicGeneration\Contracts\MusicGenerationProvider;
+use SaniTube\MusicGeneration\Contracts\SynchronousMusicGenerationProvider;
 use SaniTube\MusicGeneration\Enums\GenerationCapability;
 
 /**
@@ -60,7 +62,7 @@ final readonly class ProviderCapabilities
      *
      * @return list<GenerationCapability>
      */
-    public function for(MusicGenerationProvider $provider): array
+    public function for(GenerationProvider $provider): array
     {
         $declared = $provider instanceof DeclaresCapabilities ? $provider->capabilities() : null;
 
@@ -76,6 +78,18 @@ final readonly class ProviderCapabilities
 
         foreach (GenerationCapability::structural() as $capability) {
             $found[$capability->value] = true;
+        }
+
+        // Execution shape, read off the sub-contract. Not a claim: these are
+        // methods that exist and can be called, which is the strongest evidence
+        // available short of running them. A supplier that genuinely offers
+        // both gets both, which is why they are separate capabilities.
+        if ($provider instanceof MusicGenerationProvider) {
+            $found[GenerationCapability::AsyncPolling->value] = true;
+        }
+
+        if ($provider instanceof SynchronousMusicGenerationProvider) {
+            $found[GenerationCapability::Synchronous->value] = true;
         }
 
         if ($provider instanceof SupportsExtend) {
@@ -100,7 +114,7 @@ final readonly class ProviderCapabilities
         ));
     }
 
-    public function supports(MusicGenerationProvider $provider, GenerationCapability $capability): bool
+    public function supports(GenerationProvider $provider, GenerationCapability $capability): bool
     {
         return in_array($capability, $this->for($provider), true);
     }
@@ -108,7 +122,7 @@ final readonly class ProviderCapabilities
     /**
      * @param  list<GenerationCapability>  $required
      */
-    public function supportsAll(MusicGenerationProvider $provider, array $required): bool
+    public function supportsAll(GenerationProvider $provider, array $required): bool
     {
         return $this->missing($provider, $required) === [];
     }
@@ -123,7 +137,7 @@ final readonly class ProviderCapabilities
      * @param  list<GenerationCapability>  $required
      * @return list<GenerationCapability>
      */
-    public function missing(MusicGenerationProvider $provider, array $required): array
+    public function missing(GenerationProvider $provider, array $required): array
     {
         $has = $this->for($provider);
 

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace SaniTube\MusicGeneration;
 
 use SaniTube\AI\AiManager;
-use SaniTube\MusicGeneration\Contracts\MusicGenerationProvider;
+use SaniTube\MusicGeneration\Contracts\GenerationProvider;
 use SaniTube\MusicGeneration\Providers\FakeMusicGenerationProvider;
 use SaniTube\MusicGeneration\Providers\UnavailableMusicGenerationProvider;
 
@@ -20,12 +20,18 @@ use SaniTube\MusicGeneration\Providers\UnavailableMusicGenerationProvider;
  *
  * Configuration is read once, at construction. Registering a provider at
  * runtime works at any time and is how tests substitute the fake.
+ *
+ * Resolves {@see GenerationProvider}, not the asynchronous sub-contract: since
+ * GEN-007 a supplier may be synchronous, and a manager typed to the async shape
+ * would have made such an adapter unresolvable. Which shape a provider has is a
+ * question for the two services that actually run a generation, and for nobody
+ * else.
  */
 final class MusicGenerationManager
 {
     public const DISABLED = 'none';
 
-    /** @var array<string, MusicGenerationProvider> */
+    /** @var array<string, GenerationProvider> */
     private array $resolved = [];
 
     /**
@@ -53,7 +59,7 @@ final class MusicGenerationManager
         return $trimmed === '' || strtolower($trimmed) === 'null' ? self::DISABLED : $trimmed;
     }
 
-    public function default(): MusicGenerationProvider
+    public function default(): GenerationProvider
     {
         return $this->provider($this->defaultProvider);
     }
@@ -63,12 +69,12 @@ final class MusicGenerationManager
         return $this->defaultProvider;
     }
 
-    public function provider(string $name): MusicGenerationProvider
+    public function provider(string $name): GenerationProvider
     {
         return $this->resolved[$name] ??= $this->resolve($name);
     }
 
-    public function register(string $name, MusicGenerationProvider $provider): void
+    public function register(string $name, GenerationProvider $provider): void
     {
         $this->resolved[$name] = $provider;
     }
@@ -86,7 +92,7 @@ final class MusicGenerationManager
         return array_values(array_unique([...array_keys($this->providers), ...array_keys($this->resolved)]));
     }
 
-    private function resolve(string $name): MusicGenerationProvider
+    private function resolve(string $name): GenerationProvider
     {
         $configuration = $name === '' ? null : ($this->providers[$name] ?? null);
 

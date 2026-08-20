@@ -831,6 +831,8 @@ return [
         'select_result_description' => 'O áudio é obtido, guardado e verificado, e depois proposto para o catálogo. Não se torna uma faixa — alguém ainda tem de ouvir e decidir.',
         'select_result_confirm' => 'Enviá-lo para revisão',
         'capability' => [
+            'SYNCHRONOUS' => 'Responde com o áudio',
+            'ASYNC_POLLING' => 'Responde mais tarde, quando perguntado',
             'TEXT_TO_MUSIC' => 'Música a partir de uma descrição',
             'LYRICS_TO_MUSIC' => 'Canta a letra que você fornece',
             'INSTRUMENTAL' => 'Instrumentais',

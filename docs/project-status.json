@@ -1,8 +1,8 @@
 {
     "$comment": "Machine-readable project state. Any new session reads this first, then verifies it against GitHub before trusting it. Written at the end of each ticket, so a stale entry means a session ended mid-ticket — check the branch and CI rather than the status field.",
     "updated_at": "2026-08-21",
-    "current_phase": "Phase 2. PROD-005 ferme la lacune que PROD-004 avait nommee : une occasion reclamee par un worker mort restait CLAIMED pour toujours. La question n'est pas « cette reclamation est-elle vieille » mais « quelqu'un a-t-il ete sollicite » — d'ou UNKNOWN_RESULT, distinct de FAILED et jamais rejoue. Prochain : contrat de generation V2 (synchrone + asynchrone).",
-    "last_completed_ticket": "PROD-005",
+    "current_phase": "Phase 2. GEN-007 corrige une hypothese de GEN-001 : un fournisseur peut etre synchrone. ACE-Step repond avec l'audio ; l'ancien contrat aurait force un adaptateur a inventer un identifiant de job. Deux defauts trouves au passage : rien ne demarrait le polling, et l'idempotence etait indexee sur une colonne qu'un fournisseur synchrone ne remplit jamais. ADR-0019. REVIEW_REQUIRED.",
+    "last_completed_ticket": "GEN-007",
     "default_branch": "main — confirmed by API this session. The EXTERNAL_ADMIN_ACTION_REQUIRED blocker is cleared.",
     "tickets": {
         "ARCH-001": {
@@ -680,12 +680,23 @@
             "note": "Ecrans de production. 16 mutations, 16 tuees ; harnais de mutation corrige (texte via fichiers + garde NO_TESTS_RAN)."
         },
         "PROD-005": {
+            "status": "merged",
+            "branch": "claude/sanitube-autonomous-v1-5pycx0",
+            "pr": 107,
+            "ci": "green (10/10)",
+            "report": "docs/reports/PROD-005.md",
+            "merge_commit": "aaafe35",
+            "note": "Reaper de reclamations expirees. Nouvel etat UNKNOWN_RESULT, distinct de FAILED."
+        },
+        "GEN-007": {
             "status": "open",
             "branch": "claude/sanitube-autonomous-v1-5pycx0",
             "pr": null,
             "ci": "pending",
-            "report": "docs/reports/PROD-005.md",
-            "note": "Reaper de reclamations expirees. Nouvel etat UNKNOWN_RESULT. 12 mutations, 10 tuees, 2 equivalentes (prouvees : les gardes qu'elles masquent sont tuees separement)."
+            "report": "docs/reports/GEN-007.md",
+            "adr": "docs/adr/ADR-0019-a-provider-may-be-synchronous.md",
+            "review": "REVIEW_REQUIRED — change la forme du contrat fournisseur",
+            "note": "Contrat de generation V2 : modes d'execution synchrone et asynchrone. 10 mutations, 9 tuees, 1 equivalente."
         }
     },
     "architecture_amendments": [

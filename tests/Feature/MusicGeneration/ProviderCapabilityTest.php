@@ -14,16 +14,19 @@ use SaniTube\MusicGeneration\Contracts\Capabilities\SupportsStems;
 use SaniTube\MusicGeneration\Contracts\DeclaresCapabilities;
 use SaniTube\MusicGeneration\Contracts\GeneratedAudioReader;
 use SaniTube\MusicGeneration\Contracts\MusicGenerationProvider;
+use SaniTube\MusicGeneration\Contracts\SynchronousMusicGenerationProvider;
 use SaniTube\MusicGeneration\Enums\CommercialRightsStatus;
 use SaniTube\MusicGeneration\Enums\GenerationCapability;
 use SaniTube\MusicGeneration\Enums\MusicGenerationStatus;
 use SaniTube\MusicGeneration\Exceptions\GenerationException;
+use SaniTube\MusicGeneration\GenerationExecution;
 use SaniTube\MusicGeneration\GenerationRequest;
 use SaniTube\MusicGeneration\GenerationResult;
 use SaniTube\MusicGeneration\GenerationStatus;
 use SaniTube\MusicGeneration\Jobs\SubmitMusicGenerationJob;
 use SaniTube\MusicGeneration\Models\MusicGeneration;
 use SaniTube\MusicGeneration\MusicGenerationManager;
+use SaniTube\MusicGeneration\ProviderResult;
 use SaniTube\MusicGeneration\Providers\FakeMusicGenerationProvider;
 use SaniTube\MusicGeneration\Providers\UnavailableMusicGenerationProvider;
 use SaniTube\MusicGeneration\Services\ProviderCapabilities;
@@ -77,19 +80,28 @@ final class ProviderCapabilityTest extends TestCase
     // ------------------------------------------------------ what counts as evidence
 
     #[Test]
-    public function implementing_the_contract_proves_exactly_one_thing(): void
+    public function implementing_a_contract_proves_what_it_proves_and_nothing_else(): void
     {
-        // A prompt goes in and music comes out: that is what the interface
-        // does, so that is all it is read for. Every other capability is a
-        // claim somebody has to make.
+        // A prompt goes in and music comes out: that is what every provider
+        // contract has in common, so that is all the general list holds.
         $this->assertSame(
             [GenerationCapability::TextToMusic],
             GenerationCapability::structural(),
         );
 
+        // GEN-007: implementing a *particular* sub-contract proves one more
+        // thing -- the shape the supplier answers in. That is a method which
+        // exists, not a claim, so it is read off the interface too.
         $this->assertSame(
-            [GenerationCapability::TextToMusic],
+            [GenerationCapability::TextToMusic, GenerationCapability::AsyncPolling],
             $this->capabilities()->for(new SilentProvider),
+        );
+
+        // And a synchronous supplier gets the other one, without ever having
+        // implemented a method it has no answer for.
+        $this->assertSame(
+            [GenerationCapability::TextToMusic, GenerationCapability::Synchronous],
+            $this->capabilities()->for(new SynchronousStubProvider),
         );
     }
 
@@ -182,7 +194,7 @@ final class ProviderCapabilityTest extends TestCase
         ]);
 
         $this->assertSame(
-            [GenerationCapability::TextToMusic],
+            [GenerationCapability::TextToMusic, GenerationCapability::AsyncPolling],
             $capabilities->for(new SilentProvider),
         );
     }
@@ -522,6 +534,9 @@ final class ProviderCapabilityTest extends TestCase
                     'TEXT_TO_MUSIC',
                     'LYRICS_TO_MUSIC',
                     'INSTRUMENTAL',
+                    // GEN-007: read off the sub-contract the fake implements,
+                    // not from its declaration -- which mentions neither.
+                    'ASYNC_POLLING',
                     'CANCEL',
                 ]));
     }
@@ -653,6 +668,37 @@ final class SilentProvider implements MusicGenerationProvider
     public function cancelGeneration(string $providerJobId): bool
     {
         return false;
+    }
+}
+
+/**
+ * A provider that answers with the audio.
+ *
+ * Named apart from GEN-007's own `AtOnceProvider` because test doubles share a
+ * namespace and PHPUnit loads every file: two classes with one name is a fatal
+ * error the moment both suites run together.
+ *
+ * The shape GEN-006's research actually found, and the reason GEN-007 exists:
+ * it implements no `createGeneration`, no `getGenerationStatus`, no
+ * `cancelGeneration`, and invents no job identifier for a job that never ran.
+ */
+final class SynchronousStubProvider implements SynchronousMusicGenerationProvider
+{
+    public function name(): string
+    {
+        return 'synchronous-stub';
+    }
+
+    public function isAvailable(): bool
+    {
+        return true;
+    }
+
+    public function generate(GenerationRequest $request): GenerationExecution
+    {
+        return GenerationExecution::completed([
+            new ProviderResult(providerResultId: 'one', sourceReference: 'memory://one'),
+        ]);
     }
 }
 
