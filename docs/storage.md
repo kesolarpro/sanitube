@@ -24,12 +24,18 @@ facade appears in the domain.
 
 ## Choosing a provider
 
-| Provider | Set `SANITUBE_STORAGE_PROVIDER` to | Expiring URLs | Notes |
-| --- | --- | --- | --- |
-| Local disk | `local` | ✗ | The default. Works on any host, including shared cPanel. |
-| Amazon S3 | `s3` | ✓ | |
-| Cloudflare R2 | `r2` | ✓ | S3-compatible; set `R2_ENDPOINT`. |
-| Backblaze B2 | `b2` | ✓ | Through B2's S3-compatible endpoint. |
+| Provider | Set `SANITUBE_STORAGE_PROVIDER` to | Expiring URLs | Direct upload | Notes |
+| --- | --- | --- | --- | --- |
+| Local disk | `local` | ✗ | ✗ | The default. Works on any host, including shared cPanel. |
+| Amazon S3 | `s3` | ✓ | ✓ | |
+| Cloudflare R2 | `r2` | ✓ | ✓ | S3-compatible; set `R2_ENDPOINT`. |
+| Backblaze B2 | `b2` | ✓ | ✓ | Through B2's S3-compatible endpoint. |
+
+**Direct upload** is the column that matters for large masters — see
+[Direct uploads](#direct-uploads). The local disk cannot do it, and the
+application asks the provider rather than assuming: an install without object
+storage keeps the ordinary upload path and the server refuses a direct upload
+regardless of what the interface offered.
 
 The three S3-compatible providers need one package that is **not** a hard
 dependency:
@@ -296,14 +302,79 @@ are. A bulk mover is not part of AST-001.
 
 ---
 
-## Browser and mobile uploads
+## Direct uploads
 
-AST-001 ships the server-side path: the stream reaches PHP and PHP writes it to
-storage.
+STO-003 ships what the previous version of this page described as future work,
+and it turned out to need no architectural change — the read-back step already
+read from storage rather than from the request.
 
-The architecture does not have to change to support direct uploads later. A
-client would ask for a signed upload URL, `PUT` the bytes straight to the
-provider, and then call back; the server would run exactly the same read-back,
-checksum and promotion it runs today, because that step already reads from
-storage rather than from the request. Large masters would stop transiting PHP
-twice — which is the reason to do it.
+### Why
+
+A master is routinely hundreds of megabytes and may be two gigabytes. For that
+to pass through PHP on a shared cPanel account, `upload_max_filesize`,
+`post_max_size`, `memory_limit` and `max_execution_time` must all be generous at
+the same time. On the accounts SaniTube targets, at least one never is — so the
+browser writes to object storage directly and the application stays out of the
+data path.
+
+### The flow
+
+1. `POST /assets/uploads` — the server authorises, **registers the asset**, and
+   returns a 15-minute capability to `PUT` one object at one key.
+2. The browser uploads straight to the provider.
+3. `POST /assets/uploads/{asset}/complete` — the server reads the stored object
+   and measures it.
+
+**The client is authoritative for nothing.** The completion call carries no
+size, no checksum and no media type; it is a request to go and look. Size,
+SHA-256, media type and duplicate status are all measured from the object, by
+the same code that handles an upload arriving through PHP.
+
+### What you must configure on the bucket
+
+Two things, and the first one fails in a way that is hard to diagnose.
+
+**CORS.** A browser `PUT` from your application's origin to the storage
+provider is a cross-origin request. Without a CORS rule the upload fails in the
+browser with an opaque network error and nothing reaches your logs. On R2, set a
+rule on the bucket allowing `PUT` from your application's origin:
+
+```json
+[
+  {
+    "AllowedOrigins": ["https://your-app-domain"],
+    "AllowedMethods": ["PUT"],
+    "AllowedHeaders": ["content-type"],
+    "MaxAgeSeconds": 3600
+  }
+]
+```
+
+Use your real origin, not `*`. The signed URL is already scoped to one key for
+a few minutes; a wildcard origin adds nothing but lets any page attempt the
+request.
+
+**Lifecycle rules**, for two different kinds of litter:
+
+- **Abandoned staging objects.** An upload that starts and never completes
+  leaves an object under the staging prefix. Expire that prefix after a day.
+- **Incomplete multipart uploads.** These are the trap: they **occupy storage
+  and do not appear in an object listing**, so they are invisible until the
+  bill. Configure the provider to abort incomplete multipart uploads after a
+  day as well.
+
+Neither rule may touch canonical keys. Scope both to the staging prefix.
+
+### The size limit
+
+A presigned `PUT` cannot express a maximum, so the cap in
+`assets.max_upload_bytes` is enforced **after** the object exists: the server
+measures it, refuses it and discards it. The bytes briefly occupy storage, which
+is why the lifecycle rules above are not optional.
+
+### What is not implemented
+
+**Multipart.** A single presigned `PUT` covers the sizes seen so far. Multipart
+needs `CreateMultipartUpload`, per-part signing and `CompleteMultipartUpload` —
+a provider-level API rather than a Laravel filesystem call, and worth building
+once a real upload proves it is needed rather than before.
