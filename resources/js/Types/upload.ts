@@ -39,4 +39,13 @@ export interface UploadItem {
     code: string | null;
     assetUuid: string | null;
     duplicate: boolean;
+    /**
+     * UPL-003. The review candidate this master became, when it became one.
+     *
+     * Null for artwork, which is not a recording, and null for a master that
+     * did not verify. It is what stops the screen being a dead end: before this
+     * the bytes arrived, were verified, and there was no route onward to a
+     * track at all.
+     */
+    candidateUuid: string | null;
 }

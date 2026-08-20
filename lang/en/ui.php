@@ -1222,6 +1222,7 @@ return [
         'accepted_any' => 'Any file type is accepted for this kind.',
         'limit' => 'Up to :size per file.',
         'limited_by_php' => 'This ceiling comes from the server’s own PHP limits, not from SaniTube. Raising the SaniTube setting alone will not raise it.',
+        'review_candidate' => 'Review it and add it to the catalogue',
         'direct_on' => 'Files go straight to storage without passing through this server.',
         'direct_off' => 'Files pass through this server, so its upload limits apply.',
         'summary' => ':done stored, :failed refused, of :total.',

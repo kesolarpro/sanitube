@@ -1222,6 +1222,7 @@ return [
         'accepted_any' => 'Für diese Art wird jeder Dateityp akzeptiert.',
         'limit' => 'Bis zu :size je Datei.',
         'limited_by_php' => 'Diese Obergrenze stammt aus den PHP-Limits des Servers, nicht aus SaniTube. Nur die SaniTube-Einstellung zu erhöhen genügt nicht.',
+        'review_candidate' => 'Prüfen und in den Katalog aufnehmen',
         'direct_on' => 'Dateien gehen direkt in den Speicher, ohne diesen Server zu durchlaufen.',
         'direct_off' => 'Dateien laufen über diesen Server, dessen Upload-Grenzen daher gelten.',
         'summary' => ':done gespeichert, :failed abgelehnt, von :total.',

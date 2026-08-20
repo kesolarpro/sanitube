@@ -98,6 +98,7 @@ function add(files: FileList | null): void {
             code: null,
             assetUuid: null,
             duplicate: false,
+            candidateUuid: null,
         });
 
         queue.push({ id: nextId - 1, file });
@@ -143,12 +144,21 @@ async function send(id: number, file: File): Promise<void> {
 
         item.assetUuid = result.asset;
         item.duplicate = result.duplicate === true;
+        item.candidateUuid = typeof result.candidate === 'string' ? result.candidate : null;
         item.state = 'done';
         item.progress = 100;
     } catch (error) {
         item.state = 'failed';
         item.code = error instanceof UploadRefused ? error.code : 'NETWORK';
     }
+}
+
+/** What the server says came of one file. */
+interface UploadOutcome {
+    asset: string;
+    duplicate?: boolean;
+    /** UPL-003: the review candidate a verified master became, if it became one. */
+    candidate?: string | null;
 }
 
 /** A refusal the server named, as distinct from a connection that died. */
@@ -183,7 +193,7 @@ function csrf(): string {
  * Through the application. One request, and progress is reported by the browser
  * as the body goes out.
  */
-function sendRelayed(item: UploadItem, file: File): Promise<{ asset: string; duplicate?: boolean }> {
+function sendRelayed(item: UploadItem, file: File): Promise<UploadOutcome> {
     const body = new FormData();
 
     body.append('kind', kind.value);
@@ -242,7 +252,7 @@ function sendRelayed(item: UploadItem, file: File): Promise<{ asset: string; dup
  * The completion call carries no size, no checksum and no media type, because
  * anything it carried would be the browser's word for it.
  */
-async function sendDirect(item: UploadItem, file: File): Promise<{ asset: string; duplicate?: boolean }> {
+async function sendDirect(item: UploadItem, file: File): Promise<UploadOutcome> {
     const begin = await fetch('/assets/uploads', {
         method: 'POST',
         headers: {
@@ -286,7 +296,7 @@ async function sendDirect(item: UploadItem, file: File): Promise<{ asset: string
         await readCode(finished);
     }
 
-    return (await finished.json()) as { asset: string; duplicate?: boolean };
+    return (await finished.json()) as UploadOutcome;
 }
 </script>
 
@@ -395,6 +405,19 @@ async function sendDirect(item: UploadItem, file: File): Promise<{ asset: string
                     <p v-if="item.duplicate" class="text-small text-muted">
                         {{ trans('ui.upload.duplicate') }}
                     </p>
+
+                    <!-- UPL-003. Where this file goes next. A screen that
+                         stored a master and then said nothing left a person
+                         with a verified file and no idea what to do with it —
+                         which was the literal state of the product, because
+                         there was no next step to point at. -->
+                    <a
+                        v-if="item.candidateUuid !== null"
+                        :href="`/ingestion/candidates/${item.candidateUuid}`"
+                        class="text-small text-accent hover:underline"
+                    >
+                        {{ trans('ui.upload.review_candidate') }}
+                    </a>
                 </li>
             </ul>
         </AppCard>

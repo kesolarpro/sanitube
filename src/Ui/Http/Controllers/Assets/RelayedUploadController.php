@@ -12,6 +12,7 @@ use SaniTube\Assets\Services\AssetVerificationService;
 use SaniTube\Assets\Services\UploadAdmission;
 use SaniTube\Audit\Enums\AuditAction;
 use SaniTube\Audit\Services\RecordAuditEvent;
+use SaniTube\Ingestion\Services\RegisterUploadedMaster;
 use SaniTube\Ui\Http\Requests\Assets\RelayedUploadRequest;
 use Throwable;
 
@@ -45,6 +46,7 @@ final class RelayedUploadController
         AssetStorageService $assets,
         AssetVerificationService $verification,
         RecordAuditEvent $audit,
+        RegisterUploadedMaster $candidates,
     ): JsonResponse {
         $kind = $request->kind();
         $file = $request->upload();
@@ -101,6 +103,13 @@ final class RelayedUploadController
             'duplicate' => $verified->duplicate_of_asset_id !== null ? 'true' : 'false',
         ]);
 
+        // UPL-003. A verified master becomes a candidate for review. Null for
+        // artwork, and null for a master that did not verify — both ordinary
+        // outcomes of an upload rather than faults, so neither fails the
+        // request. Before this the bytes arrived and stopped: there was no
+        // route from an uploaded master to a track at all.
+        $candidate = $candidates->handle($verified);
+
         return response()->json([
             'asset' => $verified->uuid,
             'status' => $verified->status->value,
@@ -109,6 +118,9 @@ final class RelayedUploadController
             // already has.
             'duplicate' => $verified->duplicate_of_asset_id !== null,
             'filename' => $verified->original_filename,
+            // Where to go next. The whole point of the ticket is that this
+            // stops being a dead end.
+            'candidate' => $candidate?->uuid,
         ]);
     }
 
