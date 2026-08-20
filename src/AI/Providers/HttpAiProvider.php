@@ -109,6 +109,24 @@ abstract readonly class HttpAiProvider implements AiProvider
         return max(1, (int) config('ai.max_output_tokens', 1024));
     }
 
+    /**
+     * What a caller is told about a vendor's refusal.
+     *
+     * **The response body is not carried, and redaction is not the reason.**
+     * A vendor's error routinely quotes the request back — headers, prompt, and
+     * on some endpoints the whole body — so the safe amount of it to keep is
+     * none. Redaction masks the credential this installation is configured
+     * with; it cannot mask the catalogue data in the prompt, and this message
+     * reaches a screen.
+     *
+     * The status code is enough to act on: 401 is a key, 429 is a rate limit,
+     * 5xx is theirs.
+     */
+    protected function describeFailure(int $status): string
+    {
+        return sprintf('The [%s] provider answered %d.', $this->name(), $status);
+    }
+
     protected function redact(string $message): string
     {
         return (new CredentialRedactor([$this->key()]))->redact($message);

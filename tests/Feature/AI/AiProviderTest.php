@@ -267,19 +267,33 @@ final class AiProviderTest extends TestCase
     }
 
     #[Test]
-    public function a_failure_message_never_carries_the_api_key(): void
+    public function a_failure_message_never_carries_the_api_key_or_the_vendors_body(): void
     {
         // A failing AI call is precisely the output someone pastes into a
         // support thread.
+        //
+        // **Strengthened by ENR-001, from "redact the body" to "do not carry
+        // it".** Redaction masks the credential this installation is
+        // configured with, and that was the whole of what this test used to
+        // check. It cannot mask the *prompt* — and a vendor's error routinely
+        // quotes the request back, which on this endpoint means catalogue
+        // data. TRN-002 had already settled the same question for
+        // transcription; this brings the AI adapters into line.
         Http::fake(['*/chat/completions' => Http::response(
-            'Invalid key '.self::KEY.' supplied',
+            'Invalid key '.self::KEY.' supplied for a track called Une chanson',
             401,
         )]);
 
         $completion = $this->openai()->complete(new AiPrompt('Suggest a title'));
+        $message = (string) $completion->failureMessage;
 
-        $this->assertStringNotContainsString(self::KEY, (string) $completion->failureMessage);
-        $this->assertStringContainsString('[redacted]', (string) $completion->failureMessage);
+        $this->assertStringNotContainsString(self::KEY, $message);
+        $this->assertStringNotContainsString('Une chanson', $message);
+        $this->assertStringNotContainsString('Invalid key', $message);
+
+        // The status code survives, because it is the part an operator acts
+        // on: 401 is a key, 429 is a rate limit, 5xx is theirs.
+        $this->assertStringContainsString('401', $message);
     }
 
     #[Test]
