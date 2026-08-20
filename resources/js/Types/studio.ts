@@ -13,10 +13,38 @@
  * import, without saying where from.
  */
 
+/**
+ * What a generation capability is called on the wire.
+ *
+ * The strings are `GenerationCapability`'s own values, and the union is
+ * written out rather than typed as `string` so that a capability renamed in
+ * PHP fails the type check here instead of silently rendering nothing.
+ */
+export type GenerationCapability =
+    | 'TEXT_TO_MUSIC'
+    | 'LYRICS_TO_MUSIC'
+    | 'INSTRUMENTAL'
+    | 'REFERENCE_AUDIO'
+    | 'AUDIO_TO_AUDIO'
+    | 'EXTEND'
+    | 'REMIX'
+    | 'STEM_SEPARATION'
+    | 'AUDIO_UNDERSTANDING'
+    | 'LYRICS_TIMESTAMPS'
+    | 'CANCEL'
+    | 'WEBHOOK'
+    | 'SELF_HOSTED';
+
 export interface ProviderState {
     name: string | null;
     configured: boolean;
     available: boolean;
+    /**
+     * What this supplier can do — separate from whether it may be used now.
+     * Empty when nothing is configured, and empty is not the same as unknown:
+     * `configured` says which.
+     */
+    capabilities: GenerationCapability[];
 }
 
 /** Every state is present, including the ones at zero — never an absent key. */

@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace SaniTube\MusicGeneration\Providers;
 
+use SaniTube\MusicGeneration\Contracts\DeclaresCapabilities;
 use SaniTube\MusicGeneration\Contracts\MusicGenerationProvider;
+use SaniTube\MusicGeneration\Enums\GenerationCapability;
 use SaniTube\MusicGeneration\GenerationRequest;
 use SaniTube\MusicGeneration\GenerationResult;
 use SaniTube\MusicGeneration\GenerationStatus;
@@ -27,7 +29,7 @@ use SaniTube\MusicGeneration\ProviderResult;
  * No network, no sleeping, no clock. A test that had to wait would be a test
  * nobody runs.
  */
-final class FakeMusicGenerationProvider implements MusicGenerationProvider
+final class FakeMusicGenerationProvider implements DeclaresCapabilities, MusicGenerationProvider
 {
     /** @var array<string, GenerationResult> */
     private array $jobs = [];
@@ -40,6 +42,9 @@ final class FakeMusicGenerationProvider implements MusicGenerationProvider
     /** How many variants the next completion produces, unless told otherwise. */
     private int $resultsPerJob = 1;
 
+    /** @var list<GenerationCapability>|null */
+    private ?array $capabilities = null;
+
     public function __construct(
         private readonly string $name = 'fake',
         private bool $available = true,
@@ -48,6 +53,42 @@ final class FakeMusicGenerationProvider implements MusicGenerationProvider
     public function name(): string
     {
         return $this->name;
+    }
+
+    /**
+     * What this fake honestly does, not what a real provider might.
+     *
+     * Four, and no more. It takes a prompt, it takes lyrics, it will produce an
+     * instrumental, and cancelling it actually stops it. It has no reference
+     * audio, no stems and no webhook, so it claims none of those -- a fake that
+     * declared everything would make every capability check pass in the test
+     * suite and none of them mean anything.
+     *
+     * @return list<GenerationCapability>
+     */
+    public function capabilities(): array
+    {
+        return $this->capabilities ?? [
+            GenerationCapability::TextToMusic,
+            GenerationCapability::LyricsToMusic,
+            GenerationCapability::Instrumental,
+            GenerationCapability::Cancel,
+        ];
+    }
+
+    /**
+     * Stand in for a provider that can do less -- or more.
+     *
+     * The point of a fake is to reach states a real provider reaches rarely,
+     * and "this supplier cannot sing supplied lyrics" is one of them.
+     *
+     * @param  list<GenerationCapability>  $capabilities
+     */
+    public function supporting(array $capabilities): self
+    {
+        $this->capabilities = $capabilities;
+
+        return $this;
     }
 
     public function isAvailable(): bool

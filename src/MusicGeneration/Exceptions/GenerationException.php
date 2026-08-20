@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SaniTube\MusicGeneration\Exceptions;
 
 use RuntimeException;
+use SaniTube\MusicGeneration\Enums\GenerationCapability;
 
 /**
  * A generation request the platform will not carry out.
@@ -75,6 +76,56 @@ final class GenerationException extends RuntimeException
                 $provider,
             ),
             'PROVIDER_CIRCUIT_OPEN',
+        );
+    }
+
+    /**
+     * The provider was asked for something it does not do.
+     *
+     * Named capabilities, not a bare refusal. "This provider cannot sing
+     * supplied lyrics" is a sentence an operator can act on -- switch supplier,
+     * or stop supplying lyrics -- and "the request was refused" is not.
+     *
+     * @param  list<GenerationCapability>  $missing
+     */
+    public static function providerIncapable(string $provider, array $missing): self
+    {
+        return new self(
+            sprintf(
+                'The [%s] generation provider does not support: %s. Nothing was sent.',
+                $provider,
+                implode(', ', array_map(
+                    static fn (GenerationCapability $capability): string => $capability->value,
+                    $missing,
+                )),
+            ),
+            'PROVIDER_INCAPABLE',
+        );
+    }
+
+    /**
+     * Nothing configured on this installation can serve the request.
+     *
+     * Distinct from {@see providerIncapable()} on purpose: that one names a
+     * supplier that fell short, this one says the search itself came back
+     * empty. They lead to different actions -- change provider, versus
+     * configure one -- so they are different codes.
+     *
+     * @param  list<GenerationCapability>  $required
+     */
+    public static function noCapableProvider(array $required): self
+    {
+        return new self(
+            $required === []
+                ? 'No generation provider is configured on this installation.'
+                : sprintf(
+                    'No configured generation provider supports: %s.',
+                    implode(', ', array_map(
+                        static fn (GenerationCapability $capability): string => $capability->value,
+                        $required,
+                    )),
+                ),
+            'NO_CAPABLE_PROVIDER',
         );
     }
 

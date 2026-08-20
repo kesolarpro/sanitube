@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace SaniTube\MusicGeneration\Providers;
 
+use SaniTube\MusicGeneration\Contracts\DeclaresCapabilities;
 use SaniTube\MusicGeneration\Contracts\MusicGenerationProvider;
+use SaniTube\MusicGeneration\Enums\GenerationCapability;
 use SaniTube\MusicGeneration\GenerationRequest;
 use SaniTube\MusicGeneration\GenerationResult;
 use SaniTube\MusicGeneration\GenerationStatus;
@@ -19,11 +21,27 @@ use SaniTube\MusicGeneration\GenerationStatus;
  *
  * It never throws. A Studio screen that cannot generate must still render.
  */
-final readonly class UnavailableMusicGenerationProvider implements MusicGenerationProvider
+final readonly class UnavailableMusicGenerationProvider implements DeclaresCapabilities, MusicGenerationProvider
 {
     public function name(): string
     {
         return 'none';
+    }
+
+    /**
+     * Nothing, explicitly.
+     *
+     * The one place an empty declaration is the honest answer, and the reason
+     * {@see DeclaresCapabilities} treats it as one. This is not an unconfigured
+     * supplier whose capabilities are unknown -- it is the absence of a
+     * supplier, and letting it inherit the structural TEXT_TO_MUSIC would put a
+     * button on a fresh install that can only fail.
+     *
+     * @return list<GenerationCapability>
+     */
+    public function capabilities(): array
+    {
+        return [];
     }
 
     public function isAvailable(): bool

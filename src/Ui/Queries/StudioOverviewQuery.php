@@ -7,9 +7,11 @@ namespace SaniTube\Ui\Queries;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use SaniTube\MusicGeneration\Enums\CommercialRightsStatus;
+use SaniTube\MusicGeneration\Enums\GenerationCapability;
 use SaniTube\MusicGeneration\Enums\MusicGenerationStatus;
 use SaniTube\MusicGeneration\Exceptions\UnknownGenerationProvider;
 use SaniTube\MusicGeneration\MusicGenerationManager;
+use SaniTube\MusicGeneration\Services\ProviderCapabilities;
 
 /**
  * What the studio can do, and what it has done.
@@ -31,10 +33,20 @@ use SaniTube\MusicGeneration\MusicGenerationManager;
  * `isAvailable()` is asked of the provider object, not of the network. No
  * outbound request happens on a page load; that rule was settled by UI-002's
  * review and applies to every provider surface.
+ *
+ * GEN-006 adds a fourth thing the screen has to be able to say: **what this
+ * supplier can do**. Capability is not availability — a provider with an
+ * expired key is still capable of everything it ever was — so the two are
+ * reported side by side rather than folded together. Without this, a request
+ * for stems from a provider that has none is refused at submission with no
+ * warning anywhere on the screen that produced it.
  */
 final readonly class StudioOverviewQuery
 {
-    public function __construct(private MusicGenerationManager $providers) {}
+    public function __construct(
+        private MusicGenerationManager $providers,
+        private ProviderCapabilities $capabilities,
+    ) {}
 
     /**
      * @return array<string, mixed>
@@ -66,7 +78,7 @@ final readonly class StudioOverviewQuery
         $name = $this->providers->defaultName();
 
         if ($name === MusicGenerationManager::DISABLED) {
-            return ['name' => null, 'configured' => false, 'available' => false];
+            return ['name' => null, 'configured' => false, 'available' => false, 'capabilities' => []];
         }
 
         try {
@@ -76,13 +88,19 @@ final readonly class StudioOverviewQuery
             // unavailable, and worth showing rather than swallowing — an
             // operator who typed a provider name wrong needs to see that they
             // did, not an empty studio.
-            return ['name' => $name, 'configured' => true, 'available' => false];
+            return ['name' => $name, 'configured' => true, 'available' => false, 'capabilities' => []];
         }
 
         return [
             'name' => $provider->name(),
             'configured' => true,
             'available' => $provider->isAvailable(),
+            // Names, not objects, and no endpoint, model or key among them.
+            // What a supplier can do is not a secret; how to reach it is.
+            'capabilities' => array_map(
+                static fn (GenerationCapability $capability): string => $capability->value,
+                $this->capabilities->for($provider),
+            ),
         ];
     }
 
