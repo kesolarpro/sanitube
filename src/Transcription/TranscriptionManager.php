@@ -8,6 +8,7 @@ use SaniTube\AI\AiManager;
 use SaniTube\Transcription\Contracts\TranscriptionProvider;
 use SaniTube\Transcription\Exceptions\UnknownTranscriptionProvider;
 use SaniTube\Transcription\Providers\NullTranscriptionProvider;
+use SaniTube\Transcription\Providers\OpenAiTranscriptionProvider;
 
 /**
  * Resolves configured transcription providers by name.
@@ -116,15 +117,25 @@ final class TranscriptionManager
             return new NullTranscriptionProvider;
         }
 
-        // **`none` is the only driver that ships today.** This ticket is the
-        // contract, the storage and the refusals; a vendor adapter is its own
-        // ticket and will register itself through {@see register()} from its
-        // service provider, exactly as a test does.
-        //
-        // A name that is declared in configuration but has nothing behind it
-        // is therefore still unknown, and saying so is the point: falling back
-        // to the disabled provider would leave an operator who configured a
-        // supplier wondering for a week why nothing was ever transcribed.
-        throw UnknownTranscriptionProvider::named($name);
+        $configuration = $this->providers[$name] ?? null;
+
+        // A name that is not declared in configuration is unknown, and saying
+        // so is the point: falling back to the disabled provider would leave
+        // an operator who configured a supplier wondering for a week why
+        // nothing was ever transcribed.
+        if (! is_array($configuration)) {
+            throw UnknownTranscriptionProvider::named($name);
+        }
+
+        // The name is the driver unless the installation says otherwise, so a
+        // second endpoint for the same vendor is a configuration entry rather
+        // than a class.
+        $driver = is_string($configuration['driver'] ?? null) ? $configuration['driver'] : $name;
+
+        return match ($driver) {
+            'openai' => new OpenAiTranscriptionProvider($configuration),
+            self::DISABLED => new NullTranscriptionProvider,
+            default => throw UnknownTranscriptionProvider::named($driver),
+        };
     }
 }

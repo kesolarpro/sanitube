@@ -51,4 +51,19 @@ final class TranscriptionFailed extends RuntimeException
     {
         return new self('The audio could not be read from storage.', 'TRANSCRIPTION_SOURCE_UNREADABLE');
     }
+
+    /**
+     * Bigger than this installation is willing to send.
+     *
+     * **Configured policy, not a documented API limit.** The official
+     * specification states no maximum upload size, so this is a local decision
+     * about what is worth paying to upload rather than a restatement of a rule
+     * somebody else made. The size is not in the message: the reason code is
+     * what a caller acts on, and an operator wanting the number can read their
+     * own configuration.
+     */
+    public static function sourceTooLarge(string $provider): self
+    {
+        return new self(sprintf('The audio is larger than the configured limit for [%s].', $provider), 'TRANSCRIPTION_SOURCE_TOO_LARGE');
+    }
 }

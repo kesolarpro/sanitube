@@ -1,8 +1,8 @@
 {
   "$comment": "Machine-readable project state. Any new session reads this first, then verifies it against GitHub before trusting it. Written at the end of each ticket, so a stale entry means a session ended mid-ticket — check the branch and CI rather than the status field.",
   "updated_at": "2026-08-20",
-  "current_phase": "Phase 3 wired end to end. PIPE-001 connected fingerprinting and duplicate evaluation, which nothing had been calling.",
-  "last_completed_ticket": "PIPE-001",
+  "current_phase": "Phase 4 begins. TRN-002 ships the first real transcription adapter, wired through configuration. TranscribeAsset still has no upstream caller: that is TRN-003.",
+  "last_completed_ticket": "TRN-002",
   "default_branch": "main",
   "tickets": {
     "ARCH-001": {
@@ -482,6 +482,12 @@
       "ci": "pending",
       "report": "docs/reports/PIPE-001.md",
       "note": "Found that nothing in the application called EvaluateAssetDuplicates, FingerprintAsset or TranscribeAsset — four merged tickets whose output would have been permanently empty. Wires fingerprinting and evaluation via events, adds the backfill command behind the OPS-002 gates. Transcription stays disconnected until an adapter ships."
+    },
+    "TRN-002": {
+      "status": "in_progress",
+      "branch": "claude/sanitube-autonomous-v1-5pycx0",
+      "report": "docs/reports/TRN-002.md",
+      "notes": "OpenAI /audio/transcriptions adapter. Provider certification CONFIGURED_UNCERTIFIED: no real credential has ever been used from this installation."
     }
   },
   "architecture_amendments": [
