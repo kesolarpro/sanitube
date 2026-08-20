@@ -32,6 +32,7 @@ use SaniTube\Ui\Http\Controllers\Enrichment\SuggestionActionController;
 use SaniTube\Ui\Http\Controllers\Enrichment\SuggestionIndexController;
 use SaniTube\Ui\Http\Controllers\Ingestion\BatchDetailController;
 use SaniTube\Ui\Http\Controllers\Ingestion\BatchIndexController;
+use SaniTube\Ui\Http\Controllers\Ingestion\BulkReviewController;
 use SaniTube\Ui\Http\Controllers\Ingestion\CandidateDetailController;
 use SaniTube\Ui\Http\Controllers\Ingestion\CandidateIndexController;
 use SaniTube\Ui\Http\Controllers\Ingestion\CandidateReviewController;
@@ -209,6 +210,17 @@ Route::middleware(['web', HandleInertiaRequests::class, 'auth', 'active'])->grou
 
         Route::post('ingestion/batches', [ImportActionController::class, 'start'])
             ->name('ingestion.batches.store');
+
+        /*
+         * BULK-002. One decision per candidate, asked about many at once.
+         *
+         * Before `ingestion/candidates/bulk`, a catalogue of nine hundred
+         * imported files meant nine hundred page loads. The decisions are
+         * unchanged: each queues a job that calls the same service, runs the
+         * same invariants and writes the same audit entry as a single one.
+         */
+        Route::post('ingestion/candidates/bulk', BulkReviewController::class)
+            ->name('ingestion.candidates.bulk');
 
         Route::post('ingestion/candidates/{candidate}/promote', [CandidateReviewController::class, 'promote'])
             ->name('ingestion.candidates.promote');

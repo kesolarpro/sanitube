@@ -10,6 +10,7 @@ use SaniTube\Audit\Enums\AuditAction;
 use SaniTube\Audit\Services\RecordAuditEvent;
 use SaniTube\Ingestion\Exceptions\IngestionException;
 use SaniTube\Ingestion\Services\StartIngestionBatch;
+use SaniTube\Operations\Exceptions\WorkRefused;
 use SaniTube\Ui\Http\Requests\Ingestion\StartImportRequest;
 
 /**
@@ -49,9 +50,17 @@ final class ImportActionController
                 provider: $request->provider(),
                 createdBy: $operator->getKey(),
             );
-        } catch (IngestionException $exception) {
+        } catch (IngestionException|WorkRefused $exception) {
             // A code, not the sentence. The domain's English is written for a
             // developer reading a log, and this platform ships six languages.
+            //
+            // `WorkRefused` was missing from this catch until BULK-001, and the
+            // consequence was a 500 on a screen: `StartIngestionBatch` asks
+            // OPS-002 for capacity, and on an installation with background work
+            // paused — a supported, deliberate state — starting an import threw
+            // straight past this handler. The exception already carried a code
+            // written to be translated into an instruction; nothing was
+            // catching it to do so.
             $audit->refused(AuditAction::IngestionBatchStarted, $exception->reason);
 
             return back()->withErrors(['import' => $exception->reason]);
