@@ -7,9 +7,11 @@ namespace SaniTube\Storage\Testing;
 use DateTimeImmutable;
 use DateTimeInterface;
 use SaniTube\Storage\Contracts\StorageProvider;
+use SaniTube\Storage\Contracts\SupportsDirectUpload;
 use SaniTube\Storage\Exceptions\StorageOperationFailed;
 use SaniTube\Storage\Exceptions\TemporaryUrlsUnsupported;
 use SaniTube\Storage\ObjectPrefix;
+use SaniTube\Storage\PresignedUpload;
 use SaniTube\Storage\StorageHealth;
 use SaniTube\Storage\StoredObject;
 
@@ -31,7 +33,7 @@ use SaniTube\Storage\StoredObject;
  * infrastructure that a future integration suite and local development can
  * both use.
  */
-final class InMemoryStorageProvider implements StorageProvider
+final class InMemoryStorageProvider implements StorageProvider, SupportsDirectUpload
 {
     /** @var array<string, string> */
     private array $objects = [];
@@ -342,5 +344,28 @@ final class InMemoryStorageProvider implements StorageProvider
         if ($this->failure !== null) {
             throw new StorageOperationFailed($this->failure);
         }
+    }
+
+    /**
+     * A deterministic stand-in for a signed upload URL.
+     *
+     * It is not a permission — nothing here checks it — and that is the point:
+     * the tests that matter assert what the *server* does with what arrives in
+     * staging, not that a signature was well formed. Signature construction
+     * belongs to the SDK and is not this platform's to re-prove.
+     *
+     * There is deliberately no flag to make this double *refuse*. A provider
+     * that declares the capability and then throws is precisely the promise
+     * nobody kept that {@see SupportsDirectUpload} exists to prevent — so the
+     * other case is tested against a provider that genuinely does not
+     * implement it, which is the local disk.
+     */
+    public function temporaryUploadUrl(string $key, DateTimeInterface $expiresAt): PresignedUpload
+    {
+        return new PresignedUpload(
+            url: sprintf('memory://%s/%s?upload=1', $this->name, $key),
+            headers: ['Content-Type' => 'application/octet-stream'],
+            expiresAt: $expiresAt->format(DATE_ATOM),
+        );
     }
 }

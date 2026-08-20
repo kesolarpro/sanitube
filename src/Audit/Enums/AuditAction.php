@@ -63,6 +63,8 @@ enum AuditAction: string
     // --------------------------------------------------------------- assets
 
     case AssetPreviewMinted = 'asset.preview.minted';
+    case AssetUploadStarted = 'asset.upload.started';
+    case AssetUploadFinalized = 'asset.upload.finalized';
     case IngestionBatchStarted = 'ingestion.batch.started';
 
     // ------------------------------------------------------------ generation
@@ -109,7 +111,9 @@ enum AuditAction: string
             self::DeliveryTakedownRequested,
             self::DeliveryReferenceDecided => AuditSubject::Delivery,
 
-            self::AssetPreviewMinted => AuditSubject::Asset,
+            self::AssetPreviewMinted,
+            self::AssetUploadStarted,
+            self::AssetUploadFinalized => AuditSubject::Asset,
             self::IngestionBatchStarted => AuditSubject::IngestionBatch,
 
             self::GenerationStarted,
