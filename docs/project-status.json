@@ -1,8 +1,8 @@
 {
   "$comment": "Machine-readable project state. Any new session reads this first, then verifies it against GitHub before trusting it. Written at the end of each ticket, so a stale entry means a session ended mid-ticket — check the branch and CI rather than the status field.",
   "updated_at": "2026-08-20",
-  "current_phase": "Phase 2 foundations merged: direct uploads (STO-003) and acoustic fingerprinting (MED-003). Phase 3 opened with DEDUP-001 — duplicate findings recorded, not acted on.",
-  "last_completed_ticket": "DEDUP-001",
+  "current_phase": "Phase 3 in progress. DEDUP-001 merged (findings recorded). DEDUP-002 adds the decision and logical trash; the review screen is DEDUP-003.",
+  "last_completed_ticket": "DEDUP-002",
   "default_branch": "main",
   "tickets": {
     "ARCH-001": {
@@ -432,11 +432,20 @@
       "note": "Shipped ordering by ABS(unsigned - ?), which aborts on MySQL and MariaDB and only works on SQLite. Caught by the engine matrix and fixed before merge; see ADR-0017."
     },
     "DEDUP-001": {
+      "status": "merged",
+      "branch": "claude/sanitube-autonomous-v1-5pycx0",
+      "pr": 61,
+      "ci": "green 10/10 (run 32326329882)",
+      "report": "docs/reports/DEDUP-001.md",
+      "merge_commit": "7fd25b2",
+      "note": "Fingerprint comparison with alignment search; three duplicate levels; findings PROPOSED only. Chromaprint switched to raw output (VERSION 2). ADR-0016, ADR-0017."
+    },
+    "DEDUP-002": {
       "status": "in_review",
       "branch": "claude/sanitube-autonomous-v1-5pycx0",
       "ci": "pending",
-      "report": "docs/reports/DEDUP-001.md",
-      "note": "Fingerprint comparison, three duplicate levels, findings recorded as PROPOSED only. Chromaprint switched to raw output (VERSION 2) because the compressed form cannot be compared. No deletion, no review UI — DEDUP-002 next."
+      "report": "docs/reports/DEDUP-002.md",
+      "note": "DecideDuplicate and TrashAsset. Logical trash as three nullable columns, never a status and never a deletion. No similarity score reaches TrashAsset. Permanent deletion deliberately not implemented. No HTTP surface yet — DEDUP-003."
     }
   },
   "architecture_amendments": [

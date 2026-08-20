@@ -48,6 +48,9 @@ use SaniTube\Foundation\Concerns\HasPublicUuid;
  * @property AssetStatus $status
  * @property Carbon|null $stored_at
  * @property Carbon|null $verified_at
+ * @property Carbon|null $trashed_at
+ * @property int|null $trashed_by_user_id
+ * @property string|null $trash_reason
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
@@ -86,6 +89,7 @@ final class Asset extends Model
             'status' => AssetStatus::class,
             'stored_at' => 'datetime',
             'verified_at' => 'datetime',
+            'trashed_at' => 'datetime',
         ];
     }
 
@@ -129,6 +133,18 @@ final class Asset extends Model
     public function isImmutable(): bool
     {
         return $this->status->isImmutable();
+    }
+
+    /**
+     * Set aside by a person, with the bytes still there.
+     *
+     * Deliberately not a status and deliberately not a deletion. The object is
+     * untouched, the checksum still describes it, and restoring is a matter of
+     * clearing three columns.
+     */
+    public function isTrashed(): bool
+    {
+        return $this->trashed_at !== null;
     }
 
     public function isVerifiedMaster(): bool

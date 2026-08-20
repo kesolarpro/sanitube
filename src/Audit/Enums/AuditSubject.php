@@ -25,6 +25,7 @@ enum AuditSubject: string
     case Release = 'release';
     case Delivery = 'delivery';
     case Asset = 'asset';
+    case DuplicateRelation = 'duplicate_relation';
     case IngestionBatch = 'ingestion_batch';
     case Generation = 'generation';
     case FailedJob = 'failed_job';

@@ -33,6 +33,7 @@ final class AssetIndexRequest extends FormRequest
             'kind' => ['nullable', Rule::enum(AssetKind::class)],
             'status' => ['nullable', Rule::enum(AssetStatus::class)],
             'duplicates' => ['nullable', 'in:0,1,'],
+            'trashed' => ['nullable', 'in:only,all,'],
             'cursor' => [
                 'nullable',
                 'string',
@@ -70,6 +71,9 @@ final class AssetIndexRequest extends FormRequest
 
         $duplicates = $this->validated('duplicates');
         $filters['duplicates'] = ($duplicates === '0' || $duplicates === '1') ? $duplicates === '1' : null;
+
+        $trashed = $this->validated('trashed');
+        $filters['trashed'] = ($trashed === 'only' || $trashed === 'all') ? $trashed : null;
 
         return $filters;
     }

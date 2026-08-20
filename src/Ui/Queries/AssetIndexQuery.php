@@ -86,6 +86,9 @@ final readonly class AssetIndexQuery
                 'duration_ms' => $asset->duration_ms,
                 'is_duplicate' => $asset->duplicate_of_asset_id !== null,
                 'is_derivative' => $asset->parent_asset_id !== null,
+                'is_trashed' => $asset->isTrashed(),
+                'trashed_at' => $asset->trashed_at?->toAtomString(),
+                'trash_reason' => $asset->trash_reason,
                 'stored_at' => $asset->stored_at?->toAtomString(),
                 'verified_at' => $asset->verified_at?->toAtomString(),
                 'created_at' => $asset->created_at?->toAtomString(),
@@ -132,6 +135,16 @@ final readonly class AssetIndexQuery
                 ? $query->whereNotNull('duplicate_of_asset_id')
                 : $query->whereNull('duplicate_of_asset_id');
         }
+
+        // Trash is hidden unless it is asked for. Setting something aside that
+        // then goes on appearing in every listing is not setting it aside --
+        // and the list still has to be reachable, because an asset nobody can
+        // find is one nobody can restore.
+        match ($this->stringOrNull($filters['trashed'] ?? null)) {
+            'only' => $query->whereNotNull('trashed_at'),
+            'all' => null,
+            default => $query->whereNull('trashed_at'),
+        };
     }
 
     private function validCursor(?string $cursor): ?string
