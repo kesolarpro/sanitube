@@ -1,8 +1,8 @@
 {
   "$comment": "Machine-readable project state. Any new session reads this first, then verifies it against GitHub before trusting it. Written at the end of each ticket, so a stale entry means a session ended mid-ticket — check the branch and CI rather than the status field.",
   "updated_at": "2026-08-20",
-  "current_phase": "Phase 3 complete: duplicate findings, the decision and logical trash, and the review queue.",
-  "last_completed_ticket": "DEDUP-003",
+  "current_phase": "Phase 3 complete. Phase 4 opened with TRN-001 — the transcription contract, storage and refusals; no vendor adapter yet.",
+  "last_completed_ticket": "TRN-001",
   "default_branch": "main",
   "tickets": {
     "ARCH-001": {
@@ -450,11 +450,20 @@
       "note": "DecideDuplicate and TrashAsset. Logical trash as three nullable columns, never a status and never a deletion. Permanent deletion deliberately not implemented."
     },
     "DEDUP-003": {
+      "status": "merged",
+      "branch": "claude/sanitube-autonomous-v1-5pycx0",
+      "pr": 63,
+      "ci": "green 10/10 (run 32327898260)",
+      "report": "docs/reports/DEDUP-003.md",
+      "merge_commit": "7bcf3d9",
+      "note": "The duplicate queue. Deciding and trashing stay separate routes. Fixed a defective leak assertion and a payload widening AssetIndexQuery's no-filename boundary."
+    },
+    "TRN-001": {
       "status": "in_review",
       "branch": "claude/sanitube-autonomous-v1-5pycx0",
       "ci": "pending",
-      "report": "docs/reports/DEDUP-003.md",
-      "note": "The duplicate queue. Deciding and trashing stay separate routes. Found and fixed a defective leak assertion, and a payload that was widening AssetIndexQuery's no-filename boundary."
+      "report": "docs/reports/TRN-001.md",
+      "note": "TranscriptionProvider contract, transcripts + transcript_segments, TranscribeAsset. A transcript is SUGGESTED and reaches nothing in the catalogue. `none` is the default and refuses rather than returning empty text. No vendor adapter ships — deliberate."
     }
   },
   "architecture_amendments": [

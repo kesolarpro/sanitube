@@ -32,6 +32,7 @@ return [
         'Contributors',
         'Media',
         'Deduplication',
+        'Transcription',
         'AI',
         'Releases',
         'Rights',
