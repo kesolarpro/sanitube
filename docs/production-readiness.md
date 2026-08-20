@@ -79,6 +79,44 @@ blocks going live.
 | Checksums verified on ingest | READY | |
 | Duration / loudness when available | READY | |
 
+## Transcription
+
+| Control | Verdict | Notes |
+|---|---|---|
+| Optional by design; absent provider is not a failure | READY | A library with no supplier configured is complete, not broken. |
+| Provider certification is a state, never a config claim | READY | TRN-002. `CONFIGURED_UNCERTIFIED` until a real call proves otherwise; config alone can never say `CERTIFIED`. |
+| OpenAI adapter written against the published API contract | READY | `verbose_json`, seconds converted to milliseconds, size guarded before the request. |
+| Vendor error bodies never reach a screen | READY | Status code kept, body dropped; transport errors redacted. |
+| Provider is handed a local path, never a URL | READY | No adapter can be talked into fetching an arbitrary address. |
+| Transcription reachable from the interface and the queue | READY | TRN-003. Route, job, listener and backlog command; automatic mode off by default. |
+| Idempotent per provider version | READY | Re-running the same version returns the stored row rather than paying again. |
+| **Certified against the real OpenAI API** | BLOCKED_EXTERNAL | No key in CI. The adapter has never spoken to the live endpoint. |
+
+## AI enrichment
+
+| Control | Verdict | Notes |
+|---|---|---|
+| Structured output required, never prose parsed | READY | ENR-001. `json_schema`+`strict` at OpenAI, a forced tool at Anthropic. |
+| Malformed model output is a refusal, not partial data | READY | The shape is enforced before anything is stored; model text is not carried into the failure. |
+| Prompt-injection boundary | READY | The instruction is a fixed constant; catalogue text only ever arrives as input. |
+| Suggestions are suggestions | READY | ENR-002. A `MetadataSuggestion` row; nothing is written to a Track by a model. |
+| Call ceiling and circuit breaker | READY | ENR-003. Rolling 24h/168h/720h windows over the invocation ledger; per-provider cooldown. Counts calls — no prices, no currency, no balance. |
+| Accept / reject, audited, one decision only | READY | ENR-004. Guarded `UPDATE` inside a transaction; released tracks refuse edits. |
+| Four levels of truth kept apart on screen | READY | ENR-005. `canonical` / `measured` / `proposed` / `suggested` as four server-named objects. |
+| **Certified against real vendor endpoints** | BLOCKED_EXTERNAL | No OpenAI or Anthropic key in CI. |
+
+## Editorial and production planning
+
+| Control | Verdict | Notes |
+|---|---|---|
+| Editorial profile per imprint | READY | EDI-001. Guidance that a prompt can carry; refuses a half-made profile. |
+| Autonomy modes are an enum, not a boolean | READY | PROD-001. Manual / Assisted / AutonomousGeneration / AutonomousPreparation. |
+| `AUTONOMOUS_RELEASE` locked | READY | Unavailable in code, not by configuration. Three independent tests hold it shut. |
+| Plan status set by the platform is distinguishable | READY | `wasSetByThePlatform()`; a paused plan and an exhausted one are not the same thing. |
+| Slots opened once, claimed once | READY | PROD-002. Unique index on (plan, occasion); a guarded claim; a lost race is a success, not an error. |
+| Nothing is generated blindly | READY | PROD-003. Inventory counted before work; no attribution is a refusal, not a default. |
+| Unattended release | NOT_REQUIRED | Deliberately unavailable. The lock is the feature. |
+
 ## Catalogue
 
 | Control | Verdict | Notes |
