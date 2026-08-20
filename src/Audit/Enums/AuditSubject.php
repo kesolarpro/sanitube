@@ -57,6 +57,18 @@ enum AuditSubject: string
      * generation row keeps its record when `release_id` is nulled.
      */
     case ArtworkGeneration = 'artwork_generation';
+
+    /**
+     * A standing intention the platform acts on unattended.
+     *
+     * Its own subject rather than folded into `Generation`: a plan outlives
+     * every generation it produces, and steering one is a decision about all
+     * future occasions rather than about any particular request.
+     */
+    case ProductionPlan = 'production_plan';
+
+    /** One occasion a plan opened. */
+    case ProductionSlot = 'production_slot';
     case FailedJob = 'failed_job';
     case System = 'system';
 }

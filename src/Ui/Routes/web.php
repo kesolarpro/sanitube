@@ -40,6 +40,9 @@ use SaniTube\Ui\Http\Controllers\Ingestion\ImportActionController;
 use SaniTube\Ui\Http\Controllers\Ingestion\ImportScreenController;
 use SaniTube\Ui\Http\Controllers\Ingestion\InboxDepositController;
 use SaniTube\Ui\Http\Controllers\Ingestion\InboxDiscardController;
+use SaniTube\Ui\Http\Controllers\Production\PlanActionController;
+use SaniTube\Ui\Http\Controllers\Production\PlanDetailController;
+use SaniTube\Ui\Http\Controllers\Production\PlanIndexController;
 use SaniTube\Ui\Http\Controllers\Releases\GenerateCoverController;
 use SaniTube\Ui\Http\Controllers\Releases\ReleaseActionController;
 use SaniTube\Ui\Http\Controllers\Releases\ReleaseBuilderController;
@@ -351,6 +354,43 @@ Route::middleware(['web', HandleInertiaRequests::class, 'auth', 'active'])->grou
             ->name('studio.generations.cancel');
         Route::post('studio/results/{result}/select', [StudioActionController::class, 'selectResult'])
             ->name('studio.results.select');
+    });
+
+    /*
+     * Production.
+     *
+     * PROD-001 through PROD-004 built the one part of SaniTube that acts with
+     * nobody present -- it decides that more music should exist and pays a
+     * supplier for it -- and until PROD-UI-001 the only way to see or stop any
+     * of that was a shell. An autonomous planner an operator cannot watch is
+     * one they discover from a bill.
+     *
+     * Reads are open to anybody who may sign in. Watching what the platform did
+     * on its own is not a privilege; being unable to is a hazard.
+     */
+    Route::get('production', PlanIndexController::class)->name('production');
+    Route::get('production/plans/{plan}', PlanDetailController::class)->name('production.plans.show');
+
+    /*
+     * Production writes.
+     *
+     * Behind `can.role:catalogue`, the same guard the studio uses: steering a
+     * plan decides whether this installation keeps paying a supplier, and a
+     * MEMBER may watch that and not change it.
+     *
+     * Named actions, never a settable status. `PATCH {status: ACTIVE}` would
+     * present resuming as an assignment and would put `EXHAUSTED` -- a
+     * conclusion the platform draws -- within reach of a form.
+     */
+    Route::middleware('can.role:catalogue')->group(function (): void {
+        Route::post('production/plans/{plan}/pause', [PlanActionController::class, 'pause'])
+            ->name('production.plans.pause');
+        Route::post('production/plans/{plan}/resume', [PlanActionController::class, 'resume'])
+            ->name('production.plans.resume');
+        Route::post('production/plans/{plan}/autonomy', [PlanActionController::class, 'setAutonomy'])
+            ->name('production.plans.autonomy');
+        Route::post('production/occasions/{slot}/cancel', [PlanActionController::class, 'cancelOccasion'])
+            ->name('production.occasions.cancel');
     });
 
     /*

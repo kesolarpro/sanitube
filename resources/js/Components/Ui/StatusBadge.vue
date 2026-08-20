@@ -29,6 +29,10 @@ const TONES: Record<string, Tone> = {
 
     // Work is under way, or somebody else owes an answer.
     PROCESSING: 'progress',
+    // PROD-UI-001: an occasion something has taken and not yet settled, and a
+    // plan that is running. Both mean "in motion", which is what progress is.
+    CLAIMED: 'progress',
+    ACTIVE: 'progress',
     UPLOADING: 'progress',
     VERIFYING: 'progress',
     VALIDATING: 'progress',
@@ -51,6 +55,9 @@ const TONES: Record<string, Tone> = {
     RELEASED: 'success',
     AVAILABLE: 'success',
     ALLOWED: 'success',
+    // A plan that made what it set out to make. Finished well, and the reason
+    // it is not `neutral`: an exhausted plan is a plan that worked.
+    EXHAUSTED: 'success',
 
     // A person needs to look.
     NEEDS_REVIEW: 'warning',
@@ -60,6 +67,9 @@ const TONES: Record<string, Tone> = {
     RESTRICTED: 'warning',
     DEGRADED: 'warning',
     COMPLETED_WITH_ERRORS: 'warning',
+    // Somebody stopped it on purpose. Not danger -- nothing went wrong -- and
+    // not neutral, because a paused plan is a plan somebody has to restart.
+    PAUSED: 'warning',
 
     // It went wrong, or somebody said no.
     FAILED: 'danger',
@@ -69,6 +79,7 @@ const TONES: Record<string, Tone> = {
     PROHIBITED: 'danger',
     UNAVAILABLE: 'danger',
     ARCHIVED: 'neutral',
+    DISABLED: 'neutral',
 };
 
 const tone = computed<Tone>(() => TONES[props.status] ?? 'neutral');

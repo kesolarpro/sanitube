@@ -54,6 +54,11 @@ final readonly class NavigationTree
                 $this->item('suggestions', '/enrichment/suggestions', 'assets', available: true),
             ]),
 
+            // PROD-UI-001. Next to the studio because they are the same
+            // activity at two speeds: the studio is a person asking for one
+            // track, this is a plan asking for one a week without them.
+            $this->item('production', '/production', 'studio', available: true),
+
             $this->item('releases', '/releases', 'releases', available: true),
             $this->item('distribution', '/distribution', 'distribution', available: true),
             $this->item('rights', null, 'rights', available: false),
