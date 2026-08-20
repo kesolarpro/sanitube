@@ -1,7 +1,7 @@
 {
   "$comment": "Machine-readable project state. Any new session reads this first, then verifies it against GitHub before trusting it. Written at the end of each ticket, so a stale entry means a session ended mid-ticket — check the branch and CI rather than the status field.",
   "updated_at": "2026-08-20",
-  "current_phase": "Phase 5. PROD-003 puts an inventory in front of generation: unknown is not zero, and in-flight work counts.",
+  "current_phase": "Phase 4 complete end to end (transcription and AI enrichment). Phase 5 opened: editorial profiles, production plans, slots and the inventory that precedes generation.",
   "last_completed_ticket": "PROD-003",
   "default_branch": "main",
   "tickets": {
@@ -566,10 +566,13 @@
       "notes": "ProductionSlot. The scheduler opens rows and never generates. Found a SQLite date-format caveat on the unique key."
     },
     "PROD-003": {
-      "status": "in_progress",
+      "status": "merged",
       "branch": "claude/sanitube-autonomous-v1-5pycx0",
+      "pr": 77,
+      "ci": "green 10/10 (run 32367592546)",
       "report": "docs/reports/PROD-003.md",
-      "notes": "Inventory before generation. Unknown is NO_ATTRIBUTION rather than zero. Two plans on one imprint share stock -- recorded as a known limitation."
+      "merge_commit": "479fb44",
+      "notes": "Inventory before generation. NO_ATTRIBUTION rather than zero when stock cannot be counted. Two plans on one imprint share stock -- known limitation."
     }
   },
   "architecture_amendments": [
