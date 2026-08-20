@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SaniTube\Ui\Queries;
 
 use App\Models\User;
+use SaniTube\Artwork\Services\MeasuredDimensions;
 use SaniTube\Catalog\Enums\ExternalIdentifierType;
 use SaniTube\Catalog\Models\ExternalIdentifier;
 use SaniTube\Foundation\Validation\ValidationIssue;
@@ -39,7 +40,10 @@ use SaniTube\Releases\Services\ValidateRelease;
  */
 final readonly class ReleaseDetailQuery
 {
-    public function __construct(private ValidateRelease $validator) {}
+    public function __construct(
+        private ValidateRelease $validator,
+        private MeasuredDimensions $dimensions,
+    ) {}
 
     /**
      * @return array<string, mixed>
@@ -121,12 +125,18 @@ final readonly class ReleaseDetailQuery
             return null;
         }
 
+        $dimensions = $this->dimensions->for($cover);
+
         return [
             'uuid' => $cover->uuid,
             'kind' => $cover->kind->value,
             'status' => $cover->status->value,
-            'width' => $cover->width,
-            'height' => $cover->height,
+            // Measured, not declared. `assets.width` is a column nothing in
+            // this platform writes; reading it showed an empty field beside a
+            // verified checksum, which invites a reader to believe something
+            // was checked.
+            'width' => $dimensions['width'],
+            'height' => $dimensions['height'],
             'byte_size' => $cover->byte_size,
             'verified' => $cover->isVerifiedArtwork(),
         ];

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SaniTube\Releases\Services;
 
+use SaniTube\Artwork\Services\ValidateArtwork;
 use SaniTube\Assets\Enums\AssetKind;
 use SaniTube\Assets\Enums\AssetStatus;
 use SaniTube\Catalog\Models\Track;
@@ -29,6 +30,8 @@ use SaniTube\Releases\Models\Release;
  */
 final readonly class ValidateRelease
 {
+    public function __construct(private ValidateArtwork $artwork) {}
+
     public function handle(Release $release): ValidationResult
     {
         return new ValidationResult([
@@ -141,7 +144,14 @@ final readonly class ValidateRelease
             );
         }
 
-        return $errors;
+        // The image itself, measured rather than assumed. Everything above
+        // this line is about the *asset record*; a cover can be artwork, be
+        // verified, and still be a 600x600 CMYK JPEG that no store accepts.
+        //
+        // Read from a stored measurement, never taken here: validation runs
+        // every time a release screen is drawn, and streaming a cover down from
+        // object storage on each of those would make a page load a bill.
+        return array_merge($errors, $this->artwork->handle($cover));
     }
 
     /**

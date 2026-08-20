@@ -31,6 +31,7 @@ return [
         'Artists',
         'Contributors',
         'Media',
+        'Artwork',
         'Deduplication',
         'Transcription',
         'AI',
