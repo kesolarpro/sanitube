@@ -1,8 +1,8 @@
 {
     "$comment": "Machine-readable project state. Any new session reads this first, then verifies it against GitHub before trusting it. Written at the end of each ticket, so a stale entry means a session ended mid-ticket — check the branch and CI rather than the status field.",
     "updated_at": "2026-08-21",
-    "current_phase": "Phase 2. ART-004 a donne un plafond au declencheur de pochettes payant. GEN-006 fait demander a un fournisseur de musique ce qu'il sait faire, au lieu de le supposer : la recherche n'a trouve qu'un seul contrat verifiable et il est synchrone, alors que le contrat MusicGenerationProvider suppose l'asynchrone. Toujours aucun fournisseur de musique reel : CODE READY, ni CONFIGURED ni PRODUCTION VERIFIED.",
-    "last_completed_ticket": "GEN-006",
+    "current_phase": "Phase 2. GEN-006 fait demander a un fournisseur ce qu'il sait faire. PROD-004 relie enfin le moteur de production a la generation : jusqu'ici WorkProductionSlot decidait et rien n'agissait — grep ne trouvait aucun appelant. Une panne de fournisseur ne perd plus une occasion : elle est reproposee au suivant qui n'a pas encore ete essaye. Toujours aucun fournisseur de musique reel : CODE READY.",
+    "last_completed_ticket": "PROD-004",
     "default_branch": "main — confirmed by API this session. The EXTERNAL_ADMIN_ACTION_REQUIRED blocker is cleared.",
     "tickets": {
         "ARCH-001": {
@@ -653,12 +653,21 @@
             "merge_commit": "b651ae3"
         },
         "GEN-006": {
+            "status": "merged",
+            "branch": "claude/sanitube-autonomous-v1-5pycx0",
+            "pr": 104,
+            "ci": "green (10/10)",
+            "report": "docs/reports/GEN-006.md",
+            "merge_commit": "1272510",
+            "note": "Capability discovery + provider selection. Aucun adaptateur. Recherche : docs/research/music-generation-2026-08.md"
+        },
+        "PROD-004": {
             "status": "open",
             "branch": "claude/sanitube-autonomous-v1-5pycx0",
             "pr": null,
             "ci": "pending",
-            "report": "docs/reports/GEN-006.md",
-            "note": "Capability discovery + provider selection. Aucun adaptateur : rien de verifiable a quoi en brancher un. Recherche : docs/research/music-generation-2026-08.md"
+            "report": "docs/reports/PROD-004.md",
+            "note": "Le pont occasion -> generation -> reconciliation. sanitube:production:run, non planifie par defaut."
         }
     },
     "architecture_amendments": [

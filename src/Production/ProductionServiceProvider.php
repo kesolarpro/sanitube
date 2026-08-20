@@ -6,11 +6,12 @@ namespace SaniTube\Production;
 
 use Illuminate\Support\ServiceProvider;
 use SaniTube\Production\Console\OpenProductionSlotsCommand;
+use SaniTube\Production\Console\RunProductionSlotsCommand;
 
 /**
  * Wires the production module.
  *
- * One command, and no listener. A plan is a standing intention and a slot is an
+ * Two commands, and no listener. A plan is a standing intention and a slot is an
  * occasion; nothing here listens for an event, because opening occasions is
  * something a clock does rather than something an event causes.
  *
@@ -28,7 +29,7 @@ final class ProductionServiceProvider extends ServiceProvider
     public function boot(): void
     {
         if ($this->app->runningInConsole()) {
-            $this->commands([OpenProductionSlotsCommand::class]);
+            $this->commands([OpenProductionSlotsCommand::class, RunProductionSlotsCommand::class]);
         }
     }
 }
