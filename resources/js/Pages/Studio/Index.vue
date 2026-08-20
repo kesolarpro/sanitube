@@ -119,6 +119,23 @@ function submitProject(): void {
 
         <AppAlert v-else tone="success" :title="trans('ui.studio.available')">
             {{ trans('ui.studio.provider') }}: {{ studio.provider.name }}
+
+            <!--
+                What this supplier can do, said on the screen that asks it to do
+                things. Not every provider sings supplied lyrics or returns
+                stems, and a request for one that cannot is refused at
+                submission -- minutes later, on another page, in a language the
+                form gave no warning of.
+            -->
+            <ul v-if="studio.provider.capabilities.length > 0" class="mt-2 flex flex-wrap gap-1">
+                <li
+                    v-for="capability in studio.provider.capabilities"
+                    :key="capability"
+                    class="rounded border border-border px-1.5 py-0.5 text-caption text-muted"
+                >
+                    {{ trans(`ui.studio.capability.${capability}`) }}
+                </li>
+            </ul>
         </AppAlert>
 
         <AppAlert v-if="actionError !== null" tone="danger" :title="trans('ui.ingestion.refused')">

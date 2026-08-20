@@ -33,6 +33,54 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Provider preference
+    |--------------------------------------------------------------------------
+    |
+    | Which supplier to try first when a request does not name one. Providers
+    | not listed still get used -- this states an order, not a whitelist, and
+    | an installation that lost its only working provider by expressing a
+    | preference would be a trap.
+    |
+    | An array here, or a comma-separated list in the environment, because a
+    | value set in .env can only ever be a string and the same setting has to
+    | mean the same thing either way.
+    |
+    | Selection is by capability first: a provider that cannot sing supplied
+    | lyrics is not offered a request that supplies them, whatever the order
+    | says. See SaniTube\MusicGeneration\Services\SelectGenerationProvider.
+    |
+    */
+
+    'preference' => env('SANITUBE_GENERATION_PREFERENCE', []),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Withheld capabilities
+    |--------------------------------------------------------------------------
+    |
+    | Each provider entry above may carry a `disabled_capabilities` list, which
+    | switches off things the adapter believes its supplier can do:
+    |
+    |     'my-provider' => [
+    |         'driver' => 'my-provider',
+    |         'disabled_capabilities' => ['STEM_SEPARATION'],
+    |     ],
+    |
+    | Removing only, never adding. A self-hosted deployment with no stem model
+    | installed genuinely cannot separate stems however capable the software
+    | is, and only the operator knows that. Granting a capability here would
+    | instead produce a failure at the supplier that looks like a bug in
+    | SaniTube, and would let a configuration file overrule the one place that
+    | has actually read the provider's contract.
+    |
+    | Names come from SaniTube\MusicGeneration\Enums\GenerationCapability. An
+    | unrecognised one is ignored rather than fatal: a typo must not stop
+    | generation from booting.
+    |
+    */
+
+    /*
+    |--------------------------------------------------------------------------
     | Polling
     |--------------------------------------------------------------------------
     |

@@ -6,11 +6,11 @@ namespace SaniTube\MusicGeneration\Services;
 
 use SaniTube\Localization\ContentLanguage;
 use SaniTube\MusicGeneration\Enums\CommercialRightsStatus;
+use SaniTube\MusicGeneration\Enums\GenerationCapability;
 use SaniTube\MusicGeneration\Enums\MusicGenerationStatus;
 use SaniTube\MusicGeneration\Exceptions\GenerationException;
 use SaniTube\MusicGeneration\Models\GenerationProject;
 use SaniTube\MusicGeneration\Models\MusicGeneration;
-use SaniTube\MusicGeneration\MusicGenerationManager;
 
 /**
  * Records the intent to generate, and queues the submission.
@@ -23,6 +23,12 @@ use SaniTube\MusicGeneration\MusicGenerationManager;
  *
  * **Both brakes are checked here as well as at submission**, because the refusal
  * an operator can act on is the one that arrives before a row exists.
+ *
+ * Which supplier is asked is decided here too, and decided rather than assumed:
+ * {@see SelectGenerationProvider} matches what the request needs against what
+ * each configured provider can do. The circuit breaker moved in there with it,
+ * because a failing provider should first be *avoided* and only refused when
+ * there is nowhere else to go.
  *
  * This check is a courtesy, not the bound, and the difference is worth stating
  * plainly: the ceiling counts requests that *left this server*, and starting
@@ -43,9 +49,8 @@ use SaniTube\MusicGeneration\MusicGenerationManager;
 final readonly class StartMusicGeneration
 {
     public function __construct(
-        private MusicGenerationManager $providers,
+        private SelectGenerationProvider $selection,
         private GenerationSpendGuard $ceiling,
-        private GenerationCircuitBreaker $breaker,
     ) {}
 
     /**
@@ -62,13 +67,12 @@ final readonly class StartMusicGeneration
         array $parameters = [],
         ?string $providerName = null,
     ): MusicGeneration {
-        $provider = $providerName === null
-            ? $this->providers->default()
-            : $this->providers->provider($providerName);
-
-        if (! $provider->isAvailable()) {
-            throw GenerationException::providerUnavailable($provider->name());
-        }
+        // Chosen, not assumed. What the request needs decides which suppliers
+        // can serve it; a named one is honoured or refused, never replaced.
+        $provider = $this->selection->select(
+            required: self::requires($lyrics, $instrumental),
+            preferred: $providerName,
+        );
 
         if ($project instanceof GenerationProject && ! $project->status->acceptsGenerations()) {
             throw GenerationException::projectClosed($project->uuid);
@@ -81,10 +85,6 @@ final readonly class StartMusicGeneration
 
         if ($exhausted !== null) {
             throw GenerationException::ceilingReached($exhausted);
-        }
-
-        if ($this->breaker->isOpenFor($provider->name())) {
-            throw GenerationException::providerCircuitOpen($provider->name());
         }
 
         return MusicGeneration::query()->create([
@@ -105,6 +105,37 @@ final readonly class StartMusicGeneration
             // CommercialRightsStatus.
             'commercial_rights_status' => CommercialRightsStatus::Unknown,
         ]);
+    }
+
+    /**
+     * What this request needs a supplier to be able to do.
+     *
+     * Derived from the request rather than configured, because the answer is
+     * already in what was asked for: words to sing need a supplier that sings
+     * supplied words, and a request for no vocal needs one that honours that
+     * rather than adding one anyway.
+     *
+     * Lyrics on an instrumental are not a requirement, because they are not a
+     * request -- {@see handle()} drops them, for the same reason
+     * {@see language()} overrides the language.
+     *
+     * @return list<GenerationCapability>
+     */
+    public static function requires(?string $lyrics, bool $instrumental): array
+    {
+        $required = [GenerationCapability::TextToMusic];
+
+        if ($instrumental) {
+            $required[] = GenerationCapability::Instrumental;
+
+            return $required;
+        }
+
+        if ($lyrics !== null && trim($lyrics) !== '') {
+            $required[] = GenerationCapability::LyricsToMusic;
+        }
+
+        return $required;
     }
 
     private function language(bool $instrumental, ?string $requested, ?GenerationProject $project): string
