@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
 use SaniTube\Localization\ContentLanguage;
 use SaniTube\MusicGeneration\Enums\MusicGenerationStatus;
+use SaniTube\MusicGeneration\Exceptions\GenerationException;
 use SaniTube\MusicGeneration\GenerationRequest;
 use SaniTube\MusicGeneration\Models\MusicGeneration;
 use SaniTube\MusicGeneration\MusicGenerationManager;
@@ -44,7 +45,11 @@ use Throwable;
  */
 final readonly class SubmitMusicGeneration
 {
-    public function __construct(private MusicGenerationManager $providers) {}
+    public function __construct(
+        private MusicGenerationManager $providers,
+        private GenerationSpendGuard $ceiling,
+        private GenerationCircuitBreaker $breaker,
+    ) {}
 
     public function handle(MusicGeneration $generation): MusicGeneration
     {
@@ -66,6 +71,20 @@ final readonly class SubmitMusicGeneration
 
         if (! $provider->isAvailable()) {
             return $this->fail($generation, 'The provider is not configured on this installation.');
+        }
+
+        // Checked again here, and this is the check that counts: StartMusicGeneration
+        // ran when a person clicked, and a queue can run this hours later with a
+        // thousand siblings ahead of it. The ceiling that matters is the one
+        // read at the moment the request would leave.
+        $exhausted = $this->ceiling->exhaustedWindow();
+
+        if ($exhausted !== null) {
+            return $this->fail($generation, GenerationException::ceilingReached($exhausted)->getMessage());
+        }
+
+        if ($this->breaker->isOpenFor($provider->name())) {
+            return $this->fail($generation, GenerationException::providerCircuitOpen($provider->name())->getMessage());
         }
 
         try {

@@ -2,7 +2,7 @@
   "$comment": "Machine-readable project state. Any new session reads this first, then verifies it against GitHub before trusting it. Written at the end of each ticket, so a stale entry means a session ended mid-ticket — check the branch and CI rather than the status field.",
   "updated_at": "2026-08-20",
   "current_phase": "Phase 5 in progress: editorial profiles, production plans, slots and pre-generation inventory are merged. Ten of the twenty Phase 2 order items are done.",
-  "last_completed_ticket": "GEN-003 (in review)",
+  "last_completed_ticket": "GEN-003",
   "default_branch": "main (locally and for every merge). GitHub's configured default branch is still \"claude/verifier-repertoire-git-k29ft2\" — see EXTERNAL_ADMIN_ACTION_REQUIRED.",
   "tickets": {
     "ARCH-001": {
@@ -575,6 +575,12 @@
       "notes": "Inventory before generation. NO_ATTRIBUTION rather than zero when stock cannot be counted. Two plans on one imprint share stock -- known limitation."
     },
     "GEN-003": {
+      "status": "merged",
+      "branch": "claude/sanitube-autonomous-v1-5pycx0",
+      "pr": 80,
+      "ci": "green"
+    },
+    "GEN-004": {
       "status": "in review",
       "branch": "claude/sanitube-autonomous-v1-5pycx0",
       "pr": null,
@@ -667,9 +673,9 @@
     "since": "UI-001",
     "note": "Nine tickets (ING/MED/CAT/AI/GEN/REL/DIST/SEC-001 and PR #12) were merged under an earlier autonomous-chaining instruction that bypassed review. A retroactive audit is under way; they stay in main and any correction becomes a follow-up ticket, not a revert. BULK-001b, UI-004 and UI-005 were merged under the session's explicit merge policy for read-only UI, ingestion tooling and documentation: none changes authentication, authorization, rights, money, identifier lifecycle, destructive storage behaviour or any external action."
   },
-  "main_sha": "90ee15d",
-  "current_ticket": "GEN-003",
-  "tests": "1582 passed, 1 skipped, 8132 assertions",
+  "main_sha": "1420591",
+  "current_ticket": "GEN-004",
+  "tests": "1600 passed, 1 skipped, 8200 assertions",
   "phpstan": {
     "level": 6,
     "baseline": false,
