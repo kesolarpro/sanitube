@@ -1,8 +1,8 @@
 {
   "$comment": "Machine-readable project state. Any new session reads this first, then verifies it against GitHub before trusting it. Written at the end of each ticket, so a stale entry means a session ended mid-ticket — check the branch and CI rather than the status field.",
   "updated_at": "2026-08-20",
-  "current_phase": "Phase 3 complete; Phase 4 opened (TRN-001). OPS-002 adds the global stop and the backlog ceiling, unblocking the deferred backfills.",
-  "last_completed_ticket": "OPS-002",
+  "current_phase": "Phase 3 wired end to end. PIPE-001 connected fingerprinting and duplicate evaluation, which nothing had been calling.",
+  "last_completed_ticket": "PIPE-001",
   "default_branch": "main",
   "tickets": {
     "ARCH-001": {
@@ -468,11 +468,20 @@
       "ci": "green 10/10"
     },
     "OPS-002": {
+      "status": "merged",
+      "branch": "claude/sanitube-autonomous-v1-5pycx0",
+      "pr": 65,
+      "ci": "green 10/10 (run 32330043916)",
+      "report": "docs/reports/OPS-002.md",
+      "merge_commit": "29d1694",
+      "note": "Global stop as a database row plus a backlog ceiling that refuses whole requests."
+    },
+    "PIPE-001": {
       "status": "in_review",
       "branch": "claude/sanitube-autonomous-v1-5pycx0",
       "ci": "pending",
-      "report": "docs/reports/OPS-002.md",
-      "note": "Global stop as a database row (survives config:cache) plus a backlog ceiling that refuses whole requests. Wired into StartIngestionBatch, the one place that enqueues in bulk. Console commands for the incident case. Unblocks the DEDUP and TRN backfills."
+      "report": "docs/reports/PIPE-001.md",
+      "note": "Found that nothing in the application called EvaluateAssetDuplicates, FingerprintAsset or TranscribeAsset — four merged tickets whose output would have been permanently empty. Wires fingerprinting and evaluation via events, adds the backfill command behind the OPS-002 gates. Transcription stays disconnected until an adapter ships."
     }
   },
   "architecture_amendments": [

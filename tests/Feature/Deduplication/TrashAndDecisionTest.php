@@ -213,11 +213,17 @@ final class TrashAndDecisionTest extends TestCase
 
         $this->app->make(TrashAsset::class)->trash($second, $this->reviewer(), 'DUPLICATE');
 
+        // Whatever was already found stays. PIPE-001 evaluates on `AssetStored`,
+        // so a finding exists from the moment the second copy landed -- made
+        // while both were live, and the record of *why* this one was trashed.
+        // Withdrawing it on trashing would erase that.
+        $before = DuplicateRelation::query()->count();
+
         $evaluate = $this->app->make(EvaluateAssetDuplicates::class);
 
         $this->assertCount(0, $evaluate->for($second), 'A trashed asset produced findings about itself.');
         $this->assertCount(0, $evaluate->for($first), 'A trashed asset was proposed as a match.');
-        $this->assertSame(0, DuplicateRelation::query()->count());
+        $this->assertSame($before, DuplicateRelation::query()->count(), 'Re-evaluating grew the queue.');
     }
 
     // ------------------------------------------------------------ fixtures
