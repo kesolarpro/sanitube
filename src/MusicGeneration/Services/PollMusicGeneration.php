@@ -5,11 +5,13 @@ declare(strict_types=1);
 namespace SaniTube\MusicGeneration\Services;
 
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use SaniTube\MusicGeneration\Enums\MusicGenerationStatus;
 use SaniTube\MusicGeneration\GenerationStatus;
 use SaniTube\MusicGeneration\Models\MusicGeneration;
 use SaniTube\MusicGeneration\Models\MusicGenerationResult;
 use SaniTube\MusicGeneration\MusicGenerationManager;
+use SaniTube\MusicGeneration\ProviderFailure;
 use SaniTube\MusicGeneration\ProviderResult;
 use Throwable;
 
@@ -21,6 +23,11 @@ use Throwable;
  * timeout. A provider that never answers must cost a fixed amount of work, and
  * a row left permanently QUEUED is a row nobody ever cleans up. This is also
  * what stops the polling job re-dispatching itself for ever.
+ *
+ * **The provider's own words are sanitised before they are stored.** A failure
+ * reason is rendered on the Studio screen; a vendor explaining itself may quote
+ * the request, and a signed callback URL's token is in no config file for a
+ * redactor to recognise. See {@see ProviderFailure}.
  *
  * Results are written by `updateOrCreate` on `(generation, provider_result_id)`
  * — the unique index — because polling re-fetches the same list on every pass
@@ -38,10 +45,19 @@ final readonly class PollMusicGeneration
             return $generation;
         }
 
-        $generation->forceFill([
-            'poll_count' => $generation->poll_count + 1,
-            'last_polled_at' => Carbon::now(),
-        ])->save();
+        // Incremented by the database rather than by reading and adding one.
+        // Two workers polling the same generation both read N and both write
+        // N+1, so the count advances by one per round instead of per poll --
+        // and the bound that exists to stop a runaway loop is exactly the thing
+        // a runaway loop would evade.
+        MusicGeneration::query()
+            ->where('id', $generation->id)
+            ->update([
+                'poll_count' => DB::raw('poll_count + 1'),
+                'last_polled_at' => Carbon::now(),
+            ]);
+
+        $generation->refresh();
 
         if ($generation->poll_count > $this->maximumPolls()) {
             return $this->fail($generation, sprintf(
@@ -63,7 +79,11 @@ final readonly class PollMusicGeneration
 
         return match ($state->status) {
             GenerationStatus::Completed => $this->complete($generation, $provider->fetchResults($generation->provider_job_id)),
-            GenerationStatus::Failed => $this->fail($generation, $state->failureReason ?? 'The provider reported a failure.'),
+            GenerationStatus::Failed => $this->fail($generation, ProviderFailure::fromProvider(
+                $generation->provider,
+                $state->failureReason,
+                'The provider reported a failure.',
+            )),
             GenerationStatus::Cancelled => $this->cancelled($generation),
             GenerationStatus::Running => $this->mark($generation, MusicGenerationStatus::Processing),
             GenerationStatus::Pending => $generation->refresh(),

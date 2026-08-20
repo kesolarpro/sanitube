@@ -8,6 +8,7 @@ use App\Models\User;
 use SaniTube\MusicGeneration\Enums\MusicGenerationStatus;
 use SaniTube\MusicGeneration\Models\MusicGeneration;
 use SaniTube\MusicGeneration\Models\MusicGenerationResult;
+use SaniTube\MusicGeneration\ProviderFailure;
 
 /**
  * One generation, its inputs, and what came back.
@@ -67,7 +68,7 @@ final readonly class GenerationDetailQuery
             // the only thing that distinguishes "your prompt was refused" from
             // "the provider was down", and unlike a storage driver's message
             // it names nothing about this server.
-            'failure_reason' => $generation->failure_reason,
+            'failure_reason' => ProviderFailure::forDisplay($generation->failure_reason),
 
             'poll_count' => $generation->poll_count,
             'submitted_at' => $generation->submitted_at?->toAtomString(),

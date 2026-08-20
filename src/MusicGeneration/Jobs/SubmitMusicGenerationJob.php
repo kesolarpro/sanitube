@@ -28,6 +28,18 @@ final class SubmitMusicGenerationJob implements ShouldQueue
     use Queueable;
     use SerializesModels;
 
+    /**
+     * One attempt.
+     *
+     * A submission that fails has either been refused or has cost a call, and
+     * a queue retry cannot tell which — a timeout on a request the provider
+     * actually received would be retried into a second billed generation. The
+     * service claims the row before calling out, which makes a redelivery safe
+     * rather than expensive; this makes redelivery rare as well. Retrying is a
+     * decision for whoever is watching, not a default.
+     */
+    public int $tries = 1;
+
     public function __construct(public readonly string $generationUuid) {}
 
     public function handle(SubmitMusicGeneration $submitter): void

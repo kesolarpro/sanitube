@@ -47,6 +47,26 @@ return [
     |
     */
 
+    /*
+    |--------------------------------------------------------------------------
+    | Submission claim
+    |--------------------------------------------------------------------------
+    |
+    | How long one worker may hold the exclusive right to submit a generation
+    | before another may take it. The claim is what stops two workers handed the
+    | same job from both calling the provider and paying twice.
+    |
+    | It expires because its holder can die mid-call, and a claim that never
+    | expired would leave that generation QUEUED for ever with nothing able to
+    | pick it up. The number is a trade, not a fix: shorter risks asking a slow
+    | provider twice, longer risks a crash stalling a generation. Fifteen
+    | minutes is generous for an API call and short enough that a stall is
+    | noticed rather than lived with.
+    |
+    */
+
+    'submission_claim_seconds' => (int) env('SANITUBE_GENERATION_SUBMISSION_CLAIM_SECONDS', 900),
+
     'poll' => [
         'max_polls' => (int) env('SANITUBE_GENERATION_MAX_POLLS', 60),
         'interval_seconds' => (int) env('SANITUBE_GENERATION_POLL_INTERVAL', 30),

@@ -55,6 +55,19 @@ final class FakeMusicGenerationProvider implements MusicGenerationProvider
         return $this->available;
     }
 
+    /**
+     * How many times a caller has actually asked this provider to generate.
+     *
+     * The only way to prove a submission happened *once*. Asserting on the
+     * stored `provider_job_id` cannot: a second call that overwrote the first
+     * with an equal-looking value leaves the same row, and a second call is
+     * exactly what GEN-003's claim exists to prevent — a paid one.
+     */
+    public function generationsCreated(): int
+    {
+        return $this->sequence;
+    }
+
     public function createGeneration(GenerationRequest $request): GenerationResult
     {
         $jobId = sprintf('fake-%03d', ++$this->sequence);

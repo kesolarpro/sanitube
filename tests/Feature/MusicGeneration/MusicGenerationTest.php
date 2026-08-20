@@ -155,7 +155,14 @@ final class MusicGenerationTest extends TestCase
         $generation = $this->poller()->handle($generation);
 
         $this->assertSame(MusicGenerationStatus::Failed, $generation->status);
-        $this->assertSame('Content policy refusal.', $generation->failure_reason);
+
+        // Kept, because it is the useful part -- but attributed, because "your
+        // prompt was refused" from the platform is a decision to appeal to us
+        // and from a vendor is a report of what they did. GEN-003.
+        $this->assertSame(
+            'The [fake] provider reported: Content policy refusal.',
+            $generation->failure_reason,
+        );
     }
 
     #[Test]

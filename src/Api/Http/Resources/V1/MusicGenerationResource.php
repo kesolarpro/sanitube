@@ -7,6 +7,7 @@ namespace SaniTube\Api\Http\Resources\V1;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use SaniTube\MusicGeneration\Models\MusicGeneration;
+use SaniTube\MusicGeneration\ProviderFailure;
 
 /**
  * The public face of a generation.
@@ -46,7 +47,7 @@ final class MusicGenerationResource extends JsonResource
             'project' => $this->whenLoaded('project', fn (): ?string => $this->project?->uuid),
             'results' => MusicGenerationResultResource::collection($this->whenLoaded('results')),
 
-            'failure_reason' => $this->failure_reason,
+            'failure_reason' => ProviderFailure::forDisplay($this->failure_reason),
             'submitted_at' => $this->submitted_at?->toIso8601String(),
             'completed_at' => $this->completed_at?->toIso8601String(),
             'created_at' => $this->created_at?->toIso8601String(),
