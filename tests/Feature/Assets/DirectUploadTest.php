@@ -11,10 +11,14 @@ use PHPUnit\Framework\Attributes\Test;
 use SaniTube\Assets\Enums\AssetKind;
 use SaniTube\Assets\Enums\AssetStatus;
 use SaniTube\Assets\Models\Asset;
+use SaniTube\Assets\Observers\AssetObserver;
+use SaniTube\Assets\Services\AssetStorageService;
 use SaniTube\Assets\Services\BeginDirectUpload;
 use SaniTube\Assets\Storage\AssetObjectKeys;
 use SaniTube\Audit\Enums\AuditAction;
 use SaniTube\Audit\Models\AuditEvent;
+use SaniTube\Deduplication\Enums\DuplicateLevel;
+use SaniTube\Deduplication\Models\DuplicateRelation;
 use SaniTube\Identity\Enums\UserRole;
 use SaniTube\Storage\Contracts\SupportsDirectUpload;
 use SaniTube\Storage\Providers\LocalStorageProvider;
@@ -242,6 +246,44 @@ final class DirectUploadTest extends TestCase
         $this->assertNotSame($first->path, $second->path);
         $this->assertSame('song.mp3', $first->original_filename);
         $this->assertSame('song.mp3', $second->original_filename);
+    }
+
+    /**
+     * The production path, asserted end to end.
+     *
+     * A direct upload never passes through the ingestion service that other
+     * routes go through, so nothing about it being analysed follows from those
+     * tests. What makes it work is that {@see AssetObserver}
+     * raises `AssetStored` on the row itself, whichever code wrote it — and
+     * that is precisely the kind of claim that stays true until somebody moves
+     * the event into the service where it looks like it belongs.
+     */
+    #[Test]
+    public function a_direct_upload_enters_the_deduplication_pipeline(): void
+    {
+        $storage = $this->app->make(AssetStorageService::class);
+        $first = $storage->register(AssetKind::AudioMaster, 'already-here.wav');
+        $stream = fopen('php://temp', 'r+');
+        self::assertIsResource($stream);
+        fwrite($stream, 'identical master bytes');
+        rewind($stream);
+        $storage->store($first, $stream);
+
+        $asset = $this->begin();
+        $this->store->put($this->stagingKeyFor($asset), 'identical master bytes');
+
+        $this->actingAs($this->user())
+            ->postJson('/assets/uploads/'.$asset->uuid.'/complete')
+            ->assertOk();
+
+        $relation = DuplicateRelation::query()->first();
+
+        self::assertInstanceOf(
+            DuplicateRelation::class,
+            $relation,
+            'A direct upload did not reach the deduplication pipeline.',
+        );
+        self::assertSame(DuplicateLevel::ExactDuplicate, $relation->level);
     }
 
     // ------------------------------------------------------------ fixtures

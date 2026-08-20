@@ -28,16 +28,60 @@ return [
     | Configured suppliers
     |--------------------------------------------------------------------------
     |
-    | Empty until an adapter ships. A supplier registers itself with the manager
-    | from its own service provider; this array is what an installation declares
-    | it intends to use, and the manager refuses any name with nothing behind
-    | it.
+    | This array is what an installation declares it intends to use, and the
+    | manager refuses any name with nothing behind it. A name maps to a driver;
+    | when no `driver` is given the name is the driver, so an installation may
+    | declare `openai-eu` pointing at a different endpoint without inventing a
+    | second adapter.
     |
     | No key, endpoint or credential is ever read outside this file, and none is
     | ever written to a transcript row or an exception message.
     |
+    | Base URLs come from the environment with no default in PHP, exactly as the
+    | AI providers and the object stores do: an installation behind a corporate
+    | gateway, or one pointed at a self-hosted OpenAI-compatible endpoint,
+    | changes an environment value and nothing else.
+    |
+    | The OpenAI credentials fall back to the ones the AI module already reads,
+    | because they are the same account and pasting a key twice is how the two
+    | copies drift apart. An installation that wants a separate key -- a
+    | separate project, a separate budget -- sets the transcription-specific
+    | variables and the fallback never applies.
+    |
     */
 
-    'providers' => [],
+    'providers' => [
+
+        'openai' => [
+            'driver' => 'openai',
+            'base_url' => env('SANITUBE_TRANSCRIPTION_OPENAI_BASE_URL', env('SANITUBE_OPENAI_BASE_URL')),
+            'key' => env('SANITUBE_TRANSCRIPTION_OPENAI_KEY', env('SANITUBE_OPENAI_KEY')),
+
+            /*
+             * `whisper-1` is the model whose `verbose_json` segment structure
+             * the official specification actually pins. The newer transcription
+             * models are configurable here; defaulting to one on the assumption
+             * that it returns the same segments would be a guess.
+             */
+            'model' => env('SANITUBE_TRANSCRIPTION_OPENAI_MODEL', 'whisper-1'),
+
+            /*
+             * A transcription is one long call. Longer than the AI timeout on
+             * purpose: this one is bounded by how long the audio is, not by how
+             * fast a model writes a paragraph.
+             */
+            'timeout' => (int) env('SANITUBE_TRANSCRIPTION_TIMEOUT', 300),
+
+            /*
+             * **Local policy, not a documented API limit.** The official
+             * specification carries no maximum upload size, so this is a
+             * decision about what this installation is willing to pay to
+             * upload rather than a rule restated from elsewhere. 0 removes the
+             * ceiling and leaves the supplier's own refusal as the authority.
+             */
+            'max_bytes' => (int) env('SANITUBE_TRANSCRIPTION_MAX_BYTES', 25 * 1024 * 1024),
+        ],
+
+    ],
 
 ];
