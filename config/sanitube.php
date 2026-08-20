@@ -35,6 +35,7 @@ return [
         'Transcription',
         'AI',
         'Enrichment',
+        'Editorial',
         'Releases',
         'Rights',
         'Publishing',
