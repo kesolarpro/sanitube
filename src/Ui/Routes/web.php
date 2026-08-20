@@ -24,6 +24,7 @@ use SaniTube\Ui\Http\Controllers\Distribution\DeliveryDetailController;
 use SaniTube\Ui\Http\Controllers\Distribution\DeliveryIndexController;
 use SaniTube\Ui\Http\Controllers\Distribution\DistributionActionController;
 use SaniTube\Ui\Http\Controllers\Distribution\ReleaseDistributionController;
+use SaniTube\Ui\Http\Controllers\Enrichment\EnrichmentRequestController;
 use SaniTube\Ui\Http\Controllers\Ingestion\BatchDetailController;
 use SaniTube\Ui\Http\Controllers\Ingestion\BatchIndexController;
 use SaniTube\Ui\Http\Controllers\Ingestion\CandidateDetailController;
@@ -208,6 +209,20 @@ Route::middleware(['web', HandleInertiaRequests::class, 'auth', 'active'])->grou
     Route::middleware('can.role:catalogue')->group(function (): void {
         Route::post('assets/{asset}/transcription', TranscriptionRequestController::class)
             ->name('assets.transcription');
+
+        /*
+         * ENR-002. Asking a model to describe a recording.
+         *
+         * The same guard and the same reasoning as transcription above, and
+         * the same act performed twice on one asset: this is the second paid
+         * call, reading the evidence the first one produced.
+         *
+         * What comes back is a SUGGESTION and never catalogue data. Accepting
+         * one is a separate act by a person through the ordinary domain
+         * services, and it is not this route.
+         */
+        Route::post('assets/{asset}/enrichment', EnrichmentRequestController::class)
+            ->name('assets.enrichment');
     });
 
     // Studio. Read-only for now: starting a generation calls a supplier and
