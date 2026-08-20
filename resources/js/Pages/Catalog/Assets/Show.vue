@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { ref } from 'vue';
-import { Link, usePage } from '@inertiajs/vue3';
+import { computed, ref } from 'vue';
+import { Link, router, usePage } from '@inertiajs/vue3';
 import AppAlert from '@/Components/Ui/AppAlert.vue';
+import AppButton from '@/Components/Ui/AppButton.vue';
 import AppCard from '@/Components/Ui/AppCard.vue';
 import CodeValue from '@/Components/Ui/CodeValue.vue';
 import StatusBadge from '@/Components/Ui/StatusBadge.vue';
@@ -63,6 +64,49 @@ async function requestPreview(): Promise<void> {
 }
 
 const isAudio = ['AUDIO_MASTER', 'AUDIO_DERIVATIVE', 'PREVIEW', 'STEM'].includes(props.asset.kind);
+
+/* ------------------------------------------------------- optional work */
+
+/**
+ * Transcription and metadata suggestions both cost money, so neither is a side
+ * effect of arriving on this page. They are buttons a person presses, and the
+ * server decides again — the refusal shown here is the eligibility service's
+ * answer, not a second copy of its rules.
+ */
+const working = ref<'transcription' | 'enrichment' | null>(null);
+const queued = ref<'transcription' | 'enrichment' | null>(null);
+
+const workErrors = computed(() => {
+    const errors = page.props.errors as Record<string, string> | undefined;
+
+    return {
+        transcription: errors?.transcription ?? null,
+        enrichment: errors?.enrichment ?? null,
+    };
+});
+
+function requestWork(what: 'transcription' | 'enrichment'): void {
+    working.value = what;
+    queued.value = null;
+
+    router.post(
+        `/assets/${props.asset.uuid}/${what}`,
+        {},
+        {
+            preserveScroll: true,
+            onSuccess: () => {
+                // Only when the server neither refused nor errored. A refusal
+                // arrives as a validation error, not as a failed request.
+                if ((page.props.errors as Record<string, string> | undefined)?.[what] === undefined) {
+                    queued.value = what;
+                }
+            },
+            onFinish: () => {
+                working.value = null;
+            },
+        },
+    );
+}
 </script>
 
 <template>
@@ -175,6 +219,69 @@ const isAudio = ['AUDIO_MASTER', 'AUDIO_DERIVATIVE', 'PREVIEW', 'STEM'].includes
                         <dt class="text-muted">{{ trans('ui.catalog.bitrate') }}</dt>
                         <dd class="numeric text-foreground">{{ bitrate(asset.analysis.bitrate) }}</dd>
                     </dl>
+                </div>
+            </AppCard>
+
+            <!--
+                The two paid, optional steps of the pipeline. Before UPL-002
+                both routes existed and nothing called them: transcription was
+                reachable only from the console, and a *first* metadata
+                suggestion could not be asked for at all — only regenerated
+                from a suggestion that already existed.
+            -->
+            <AppCard>
+                <template #header>{{ trans('ui.work.title') }}</template>
+                <template #description>{{ trans('ui.work.description') }}</template>
+
+                <div class="space-y-3">
+                    <div>
+                        <AppButton
+                            variant="secondary"
+                            :loading="working === 'transcription'"
+                            :disabled="asset.work.transcription.refusal !== null || working !== null"
+                            @click="requestWork('transcription')"
+                        >
+                            {{ trans('ui.work.transcribe') }}
+                        </AppButton>
+
+                        <!-- Why not, rather than a greyed-out button. -->
+                        <p v-if="asset.work.transcription.refusal !== null" class="mt-1 text-small text-muted">
+                            {{ trans(`ui.work.refusal.${asset.work.transcription.refusal}`) }}
+                        </p>
+                        <p v-else-if="asset.work.transcription.held" class="mt-1 text-small text-muted">
+                            {{ trans('ui.work.transcript_held') }}
+                        </p>
+                        <p v-if="workErrors.transcription !== null" class="mt-1 text-small text-danger">
+                            {{ trans(`ui.work.refusal.${workErrors.transcription}`) }}
+                        </p>
+                        <p v-else-if="queued === 'transcription'" class="mt-1 text-small text-success">
+                            {{ trans('ui.work.queued') }}
+                        </p>
+                    </div>
+
+                    <div>
+                        <AppButton
+                            variant="secondary"
+                            :loading="working === 'enrichment'"
+                            :disabled="asset.work.enrichment.refusal !== null || working !== null"
+                            @click="requestWork('enrichment')"
+                        >
+                            {{ trans('ui.work.suggest') }}
+                        </AppButton>
+
+                        <p v-if="asset.work.enrichment.refusal !== null" class="mt-1 text-small text-muted">
+                            {{ trans(`ui.work.refusal.${asset.work.enrichment.refusal}`) }}
+                        </p>
+                        <p v-else-if="asset.work.enrichment.waiting" class="mt-1 text-small text-muted">
+                            {{ trans('ui.work.suggestion_waiting') }}
+                        </p>
+                        <p v-if="workErrors.enrichment !== null" class="mt-1 text-small text-danger">
+                            {{ trans(`ui.work.refusal.${workErrors.enrichment}`) }}
+                        </p>
+                        <p v-else-if="queued === 'enrichment'" class="mt-1 text-small text-success">
+                            {{ trans('ui.work.queued') }}
+                        </p>
+                    </div>
                 </div>
             </AppCard>
         </div>
