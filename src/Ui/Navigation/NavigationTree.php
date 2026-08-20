@@ -38,6 +38,10 @@ final readonly class NavigationTree
             $this->item('studio', '/studio', 'studio', available: true),
 
             $this->group('library', 'library', [
+                // BULK-001. First in the group because it is where a
+                // catalogue starts: the batch list answers "what happened",
+                // and this is what makes something happen.
+                $this->item('import', '/ingestion/import', 'ingestion', available: true),
                 $this->item('ingestion', '/ingestion/batches', 'ingestion', available: true),
                 $this->item('candidates', '/ingestion/candidates', 'ingestion', available: true),
                 $this->item('catalog', '/catalog/tracks', 'catalog', available: true),

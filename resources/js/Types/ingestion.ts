@@ -196,3 +196,64 @@ export interface CandidateDetail {
     created_at: string | null;
     updated_at: string | null;
 }
+
+/**
+ * BULK-001. What the catalogue import screen works from.
+ *
+ * `waiting` is read from storage on every render, which is what makes the
+ * import survive a refresh: the objects in the inbox *are* the durable state,
+ * and nothing needed inventing to make that true. What cannot survive is a
+ * file that was picked and never uploaded — that exists only in the browser,
+ * and the screen says so rather than implying a resume it cannot perform.
+ */
+export interface InboxFile {
+    /** The storage key. What `POST /ingestion/batches` refers to. */
+    reference: string;
+    name: string;
+    /** Null when the object lists but will not measure. */
+    byte_size: number | null;
+}
+
+export interface ImportCapability {
+    /** True when the configured store can take a write that never enters PHP. */
+    direct: boolean;
+    /** Empty means any type. */
+    accepted_types: string[];
+    maximum_bytes: number;
+    /** How many files one deposit request may declare. */
+    per_request: number;
+    /** How many files the browser uploads at once. */
+    concurrency: number;
+    /** How many files one batch may carry. */
+    max_batch: number;
+    waiting: {
+        /** False means the inbox could not be read — not that it is empty. */
+        available: boolean;
+        files: InboxFile[];
+    };
+}
+
+/**
+ * A file's journey on this screen, before the batch takes over.
+ *
+ * These are the *deposit* states only. Once a batch starts, what happens to a
+ * file is an `IngestionItem` and is reported by the batch screens, which
+ * already know how to say IMPORTED, DUPLICATE, NEEDS_REVIEW and FAILED.
+ */
+export type DepositState = 'WAITING' | 'UPLOADING' | 'UPLOADED' | 'FAILED' | 'CANCELLED';
+
+export interface DepositItem {
+    /** Stable across re-renders; a filename is not unique. */
+    id: number;
+    name: string;
+    size: number;
+    /** What the browser thinks it is. Never what decides. */
+    type: string;
+    state: DepositState;
+    /** 0–100. */
+    progress: number;
+    /** A refusal code, never a sentence from the server. */
+    code: string | null;
+    /** The inbox key, once the bytes are there. */
+    reference: string | null;
+}

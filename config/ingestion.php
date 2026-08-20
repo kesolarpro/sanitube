@@ -37,6 +37,29 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Depositing from a browser
+    |--------------------------------------------------------------------------
+    |
+    | `deposit_per_request` bounds one *request*, not one import: a browser
+    | holding nine hundred files asks in rounds rather than in a payload no
+    | shared host will accept. `max_batch` above is the other limit and bounds
+    | something else — how many files one batch may carry.
+    |
+    | `deposit_concurrency` is how many files the browser uploads at once. The
+    | right answer is a property of the host rather than of the application:
+    | an object store happily takes six, and a shared cPanel account relaying
+    | through PHP starts refusing connections long before that. Low by
+    | default — a slow import that finishes beats a fast one that takes the
+    | site down.
+    |
+    */
+
+    'deposit_per_request' => (int) env('SANITUBE_INGESTION_DEPOSIT_PER_REQUEST', 50),
+
+    'deposit_concurrency' => (int) env('SANITUBE_INGESTION_DEPOSIT_CONCURRENCY', 3),
+
+    /*
+    |--------------------------------------------------------------------------
     | Retries
     |--------------------------------------------------------------------------
     |
