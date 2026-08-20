@@ -11,7 +11,9 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use SaniTube\Foundation\Concerns\SafelyRetryable;
 use SaniTube\Ingestion\Models\TrackCandidate;
+use SaniTube\Media\Models\AudioAnalysis;
 use SaniTube\Media\Services\AnalyzeAsset;
+use SaniTube\Media\Services\ApplyEmbeddedTags;
 use SaniTube\Media\Services\SettleCandidateAfterAnalysis;
 
 /**
@@ -36,8 +38,11 @@ final class AnalyzeAudioAssetJob implements SafelyRetryable, ShouldQueue
 
     public function __construct(public readonly string $candidateUuid) {}
 
-    public function handle(AnalyzeAsset $analyzer, SettleCandidateAfterAnalysis $settler): void
-    {
+    public function handle(
+        AnalyzeAsset $analyzer,
+        SettleCandidateAfterAnalysis $settler,
+        ApplyEmbeddedTags $tags,
+    ): void {
         $candidate = TrackCandidate::query()->where('uuid', $this->candidateUuid)->first();
 
         if (! $candidate instanceof TrackCandidate) {
@@ -50,6 +55,25 @@ final class AnalyzeAudioAssetJob implements SafelyRetryable, ShouldQueue
             $analyzer->handle($asset);
         }
 
+        // TAG-001, before settling. The probe payload the analyser just stored
+        // already carries what the file says about itself; reading it here
+        // means a candidate arrives at review with its own title rather than
+        // with a tidied filename.
+        //
+        // Before settling rather than after, because settling can mark the
+        // candidate terminal — a candidate that goes straight to DUPLICATE
+        // should still show what the file claimed, since that is part of what
+        // a person decides from.
+        $tags->handle($candidate->refresh(), $this->latestAnalysis($candidate));
+
         $settler->handle($candidate->refresh());
+    }
+
+    private function latestAnalysis(TrackCandidate $candidate): ?AudioAnalysis
+    {
+        return AudioAnalysis::query()
+            ->where('asset_id', $candidate->asset_id)
+            ->orderByDesc('id')
+            ->first();
     }
 }

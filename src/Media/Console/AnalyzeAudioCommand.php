@@ -7,7 +7,9 @@ namespace SaniTube\Media\Console;
 use Illuminate\Console\Command;
 use SaniTube\Ingestion\Enums\TrackCandidateStatus;
 use SaniTube\Ingestion\Models\TrackCandidate;
+use SaniTube\Media\Models\AudioAnalysis;
 use SaniTube\Media\Services\AnalyzeAsset;
+use SaniTube\Media\Services\ApplyEmbeddedTags;
 use SaniTube\Media\Services\SettleCandidateAfterAnalysis;
 
 /**
@@ -31,7 +33,7 @@ final class AnalyzeAudioCommand extends Command
 
     protected $description = 'Run technical analysis over candidates that are still waiting for it';
 
-    public function handle(AnalyzeAsset $analyzer, SettleCandidateAfterAnalysis $settler): int
+    public function handle(AnalyzeAsset $analyzer, SettleCandidateAfterAnalysis $settler, ApplyEmbeddedTags $tags): int
     {
         if (! $analyzer->isAvailable()) {
             $this->warn(
@@ -66,6 +68,14 @@ final class AnalyzeAudioCommand extends Command
                 $analyzer->handle($candidate->asset, force: $force);
                 $analysed++;
             }
+
+            // TAG-001. The same reading the queued job does, so a catalogue
+            // brought in by command arrives at review with the same
+            // information as one brought in by the import screen.
+            $tags->handle($candidate->refresh(), AudioAnalysis::query()
+                ->where('asset_id', $candidate->asset_id)
+                ->orderByDesc('id')
+                ->first());
 
             $status = $settler->handle($candidate->refresh())->status;
             $settled[$status->value] = ($settled[$status->value] ?? 0) + 1;

@@ -23,6 +23,7 @@ use SaniTube\Media\Contracts\AudioAnalyzer;
 use SaniTube\Media\Jobs\AnalyzeAudioAssetJob;
 use SaniTube\Media\Models\AudioAnalysis;
 use SaniTube\Media\Services\AnalyzeAsset;
+use SaniTube\Media\Services\ApplyEmbeddedTags;
 use SaniTube\Media\Services\SettleCandidateAfterAnalysis;
 use SaniTube\Media\Testing\FakeAudioAnalyzer;
 use SaniTube\Storage\StorageManager;
@@ -341,6 +342,7 @@ final class AudioAnalysisTest extends TestCase
         $job->handle(
             $this->app->make(AnalyzeAsset::class),
             $this->app->make(SettleCandidateAfterAnalysis::class),
+            $this->app->make(ApplyEmbeddedTags::class),
         );
 
         $this->assertSame(0, AudioAnalysis::query()->count());
@@ -443,6 +445,7 @@ final class AudioAnalysisTest extends TestCase
         (new AnalyzeAudioAssetJob($candidate->uuid))->handle(
             $this->app->make(AnalyzeAsset::class),
             $this->app->make(SettleCandidateAfterAnalysis::class),
+            $this->app->make(ApplyEmbeddedTags::class),
         );
     }
 }

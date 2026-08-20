@@ -8,6 +8,7 @@ use App\Models\User;
 use SaniTube\Ingestion\Enums\TrackCandidateStatus;
 use SaniTube\Ingestion\Models\TrackCandidate;
 use SaniTube\Media\Models\AudioAnalysis;
+use SaniTube\Media\Services\ApplyEmbeddedTags;
 use SaniTube\Ui\Assets\AssetPreviewPolicy;
 
 /**
@@ -77,6 +78,15 @@ final readonly class TrackCandidateDetailQuery
             'analysis' => $this->analysis($candidate),
             'duplicate' => $this->duplicate($candidate),
             'manifest' => $this->manifest($metadata),
+
+            // TAG-001. A *fourth* kind of claim, kept apart from the other
+            // three for the same reason they are kept apart from each other:
+            // what a file says about itself is neither what an operator
+            // claimed, nor what the analyser measured, nor what the catalogue
+            // holds. Files acquire tags from whatever last touched them, and a
+            // reviewer needs to be able to see the file disagree with the
+            // manifest rather than being shown one merged answer.
+            'embedded_tags' => $this->embeddedTags($metadata),
             'actions' => $this->actions($candidate, $viewer),
             'review' => [
                 'reviewed_at' => $candidate->reviewed_at?->toAtomString(),
@@ -211,6 +221,29 @@ final readonly class TrackCandidateDetailQuery
                 'title' => $candidate->matchedTrack->title,
             ],
         ];
+    }
+
+    /**
+     * What the file claims about itself, or null when it claims nothing.
+     *
+     * Null rather than an empty list, so the screen can leave the section out
+     * entirely: "this file carries no tags" and "this file carries tags that
+     * are all empty" are the same thing to a reviewer, and neither deserves a
+     * heading followed by nothing.
+     *
+     * @param  array<string, mixed>  $metadata
+     * @return array<string, string|int>|null
+     */
+    private function embeddedTags(array $metadata): ?array
+    {
+        $tags = $metadata[ApplyEmbeddedTags::METADATA_KEY] ?? null;
+
+        if (! is_array($tags) || $tags === []) {
+            return null;
+        }
+
+        /** @var array<string, string|int> $tags */
+        return $tags;
     }
 
     /**

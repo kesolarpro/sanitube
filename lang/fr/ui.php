@@ -832,6 +832,8 @@ return [
         'not_measured' => 'Non mesuré',
         'not_measured_note' => 'Aucun analyseur n\'a été exécuté sur cet hôte : rien n\'est connu de l\'audio. Ce n\'est pas un constat sur l\'enregistrement.',
         'analysis_failed' => 'L\'analyseur n\'a pas pu lire ce fichier.',
+        'what_the_file_says' => 'Ce que le fichier dit de lui-même',
+        'what_the_file_says_note' => 'Étiquettes lues dans le fichier. Des indices, pas une vérité : un fichier hérite des étiquettes de ce qui l\'a touché en dernier — vérifiez-les avant d\'accepter la suggestion.',
         'what_was_claimed' => 'Ce que le manifeste affirmait',
         'what_was_claimed_note' => 'Fourni par la personne qui a préparé l\'import. Un élément de preuve, pas une donnée de catalogue — rien n\'en a été appliqué.',
         'no_manifest' => 'Aucune ligne de manifeste',
@@ -1098,6 +1100,7 @@ return [
         'bpm' => 'Tempo',
         'musical_key' => 'Tonalité',
         'genre' => 'Genre',
+        'album' => 'Album',
         'recording_year' => 'Enregistré en',
         'p_line' => 'Mention P',
         'column' => [

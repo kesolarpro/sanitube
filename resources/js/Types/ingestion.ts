@@ -172,6 +172,15 @@ export interface CandidateActions {
     can_revise: boolean;
 }
 
+/**
+ * TAG-001. What the file says about itself.
+ *
+ * A fourth kind of claim, kept apart from the manifest, the analysis and the
+ * catalogue. Null when the file carries nothing worth showing — so the screen
+ * leaves the section out rather than heading an empty list.
+ */
+export type EmbeddedTags = Record<string, string | number>;
+
 export interface CandidateDetail {
     uuid: string;
     status: string;
@@ -187,6 +196,7 @@ export interface CandidateDetail {
         track: { uuid: string; title: string } | null;
     } | null;
     manifest: CandidateManifest | null;
+    embedded_tags: EmbeddedTags | null;
     actions: CandidateActions;
     review: {
         reviewed_at: string | null;

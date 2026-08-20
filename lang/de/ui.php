@@ -832,6 +832,8 @@ return [
         'not_measured' => 'Nicht gemessen',
         'not_measured_note' => 'Auf diesem Host lief kein Analysewerkzeug, über das Audio ist daher nichts bekannt. Das ist kein Befund über die Aufnahme.',
         'analysis_failed' => 'Das Analysewerkzeug konnte diese Datei nicht lesen.',
+        'what_the_file_says' => 'Was die Datei über sich sagt',
+        'what_the_file_says_note' => 'Aus der Datei gelesene Tags. Hinweise, keine Wahrheit: eine Datei erbt die Tags von dem, was sie zuletzt angefasst hat — prüfen Sie sie, bevor Sie den Vorschlag übernehmen.',
         'what_was_claimed' => 'Was das Manifest behauptet hat',
         'what_was_claimed_note' => 'Von der Person angegeben, die den Import vorbereitet hat. Ein Hinweis, kein Katalogdatum — nichts davon wurde übernommen.',
         'no_manifest' => 'Keine Manifestzeile',
@@ -1098,6 +1100,7 @@ return [
         'bpm' => 'Tempo',
         'musical_key' => 'Tonart',
         'genre' => 'Genre',
+        'album' => 'Album',
         'recording_year' => 'Aufgenommen',
         'p_line' => 'P-Vermerk',
         'column' => [
