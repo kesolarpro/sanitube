@@ -52,6 +52,7 @@ return [
         'artists' => 'Artistes',
         'assets' => 'Fichiers',
         'duplicates' => 'Doublons',
+        'suggestions' => 'Suggestions',
         'releases' => 'Sorties',
         'distribution' => 'Distribution',
         'rights' => 'Droits',
@@ -1006,6 +1007,64 @@ return [
             'MIXER' => 'Mixage',
             'MASTERING' => 'Mastering',
             'PROGRAMMER' => 'Programmation',
+        ],
+    ],
+
+    'enrichment' => [
+        'title' => 'Suggestions',
+        'description' => "Ce qu'un modèle a proposé au sujet de vos enregistrements. Rien ici n'entre au catalogue tant que vous ne l'y mettez pas.",
+        'empty' => 'Aucune suggestion',
+        'empty_description' => "Rien n'a encore été suggéré. Demandez une suggestion pour un fichier qui possède une transcription.",
+        'produced_by' => 'Produit par :provider (:model)',
+        'evidence_stale' => 'La transcription utilisée a changé depuis.',
+        'no_track' => "Aucune piste. Une suggestion ne peut pas en créer une — promouvez d'abord l'enregistrement.",
+        'not_analysed' => 'Non analysé.',
+        'no_transcript' => 'Aucune transcription.',
+        'contradicts_hint' => 'Le modèle a entendu une langue différente de celle attendue.',
+
+        'filter' => [
+            'any_status' => 'Tous les états',
+        ],
+
+        'column' => [
+            'status' => 'État',
+        ],
+
+        'status' => [
+            'PROPOSED' => 'En attente',
+            'ACCEPTED' => 'Acceptée',
+            'REJECTED' => 'Refusée',
+            'SUPERSEDED' => 'Remplacée',
+        ],
+
+        'level' => [
+            'canonical' => 'Au catalogue',
+            'canonical_note' => "Ce que dit le catalogue. Une personne l'y a mis.",
+            'measured' => 'Mesuré',
+            'measured_note' => 'Lu dans le fichier lui-même. Des faits.',
+            'proposed' => 'Entendu',
+            'proposed_note' => "Ce qu'un modèle de parole a entendu. Restreint, et toujours une supposition.",
+            'suggested' => 'Suggéré',
+            'suggested_note' => "Ce qu'un modèle de langage a tiré de la transcription. Le plus faible des quatre — corrigez-le avant d'accepter.",
+        ],
+
+        'field' => [
+            'title' => 'Titre',
+            'language' => 'Langue',
+            'genres' => 'Genres',
+            'moods' => 'Ambiances',
+            'themes' => 'Thèmes',
+            'duration' => 'Durée',
+            'codec' => 'Codec',
+            'covered' => 'Couvert',
+            'confidence' => 'Confiance du modèle',
+            'rationale' => 'Pourquoi',
+        ],
+
+        'action' => [
+            'accept' => 'Accepter',
+            'reject' => 'Refuser',
+            'regenerate' => 'Redemander',
         ],
     ],
 

@@ -52,6 +52,7 @@ return [
         'artists' => 'Artists',
         'assets' => 'Files',
         'duplicates' => 'Duplicates',
+        'suggestions' => 'Suggestions',
         'releases' => 'Releases',
         'distribution' => 'Distribution',
         'rights' => 'Rights',
@@ -1006,6 +1007,64 @@ return [
             'MIXER' => 'Mixer',
             'MASTERING' => 'Mastering',
             'PROGRAMMER' => 'Programmer',
+        ],
+    ],
+
+    'enrichment' => [
+        'title' => 'Suggestions',
+        'description' => 'What a model proposed about your recordings. Nothing here is in the catalogue until you put it there.',
+        'empty' => 'No suggestions',
+        'empty_description' => 'Nothing has been suggested yet. Ask for a suggestion from a file with a transcript.',
+        'produced_by' => 'Produced by :provider (:model)',
+        'evidence_stale' => 'The transcript this was based on has changed since.',
+        'no_track' => 'No track yet. A suggestion cannot create one — promote the recording first.',
+        'not_analysed' => 'Not analysed.',
+        'no_transcript' => 'No transcript.',
+        'contradicts_hint' => 'The model heard a different language from the one you expected.',
+
+        'filter' => [
+            'any_status' => 'Any state',
+        ],
+
+        'column' => [
+            'status' => 'State',
+        ],
+
+        'status' => [
+            'PROPOSED' => 'Waiting for you',
+            'ACCEPTED' => 'Accepted',
+            'REJECTED' => 'Rejected',
+            'SUPERSEDED' => 'Overtaken',
+        ],
+
+        'level' => [
+            'canonical' => 'In the catalogue',
+            'canonical_note' => 'What the catalogue says. A person put it there.',
+            'measured' => 'Measured',
+            'measured_note' => 'Read from the file itself. Facts.',
+            'proposed' => 'Heard',
+            'proposed_note' => 'What a speech model heard. Narrow, and still a guess.',
+            'suggested' => 'Suggested',
+            'suggested_note' => 'What a language model made of the transcript. The weakest of the four — edit it before you accept it.',
+        ],
+
+        'field' => [
+            'title' => 'Title',
+            'language' => 'Language',
+            'genres' => 'Genres',
+            'moods' => 'Moods',
+            'themes' => 'Themes',
+            'duration' => 'Length',
+            'codec' => 'Codec',
+            'covered' => 'Covered',
+            'confidence' => 'Model confidence',
+            'rationale' => 'Why',
+        ],
+
+        'action' => [
+            'accept' => 'Accept',
+            'reject' => 'Reject',
+            'regenerate' => 'Ask again',
         ],
     ],
 
