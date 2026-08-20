@@ -690,6 +690,47 @@ const editable = computed(() => props.release.actions.can_edit_details);
             </div>
         </AppCard>
 
+        <!-- ART-003. Whether a cover could be generated here, and which two
+             numbers disagree when it could not. Stated beside the cover rather
+             than hidden in settings: this is where somebody notices there is no
+             cover and wonders what their options are. A manually uploaded
+             cover remains a first-class citizen — nothing below is required. -->
+        <AppCard>
+            <template #header>{{ trans('ui.releases.artwork_generation') }}</template>
+            <template #description>{{ trans('ui.releases.artwork_generation_description') }}</template>
+
+            <AppAlert
+                v-if="release.artwork_generation.available"
+                tone="success"
+                :title="trans('ui.releases.artwork_generation_possible')"
+            >
+                <p>
+                    {{
+                        trans('ui.releases.artwork_generation_ready', {
+                            provider: release.artwork_generation.detail.provider ?? '',
+                            size: release.artwork_generation.detail.size ?? '',
+                        })
+                    }}
+                </p>
+            </AppAlert>
+
+            <AppAlert
+                v-else
+                tone="info"
+                :title="trans(`ui.releases.artwork_refusal.${release.artwork_generation.refusal}`)"
+            >
+                <!-- The numbers that disagree. Without them the refusal is a
+                     dead end; with them it names two settings an operator can
+                     change. -->
+                <dl v-if="Object.keys(release.artwork_generation.detail).length > 0" class="mt-2 grid gap-2 sm:grid-cols-2">
+                    <div v-for="(value, key) in release.artwork_generation.detail" :key="key">
+                        <dt class="text-caption text-muted">{{ trans(`ui.releases.artwork_detail.${key}`) }}</dt>
+                        <dd class="text-small text-foreground">{{ value }}</dd>
+                    </div>
+                </dl>
+            </AppAlert>
+        </AppCard>
+
         <!-- 5. What identifies it. Read, never minted. -->
         <AppCard>
             <template #header>{{ trans('ui.releases.section.identifiers') }}</template>

@@ -101,6 +101,22 @@ export interface ReleaseValidation {
     warnings: ValidationIssue[];
 }
 
+/**
+ * ART-003. Whether this installation could generate a cover, and which numbers
+ * disagree when it could not.
+ *
+ * `detail` carries the two settings that conflict — the requirement and what
+ * the provider can actually make — because "generation unavailable" alone
+ * leaves somebody re-reading provider documentation for an afternoon. Both are
+ * settings, so there are two honest ways out and the operator picks one.
+ */
+export interface ArtworkGenerationReadiness {
+    available: boolean;
+    /** A refusal code, never a sentence. */
+    refusal: string | null;
+    detail: Record<string, string>;
+}
+
 export interface ReleaseActions {
     may_edit: boolean;
     can_edit_details: boolean;
@@ -134,6 +150,7 @@ export interface ReleaseDetail {
     created_at: string | null;
     updated_at: string | null;
     cover: ReleaseCover | null;
+    artwork_generation: ArtworkGenerationReadiness;
     artists: ReleaseArtistCredit[];
     tracks: ReleaseTrackRow[];
     identifiers: ReleaseIdentifier[];
