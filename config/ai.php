@@ -97,6 +97,67 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Call ceilings
+    |--------------------------------------------------------------------------
+    |
+    | How many calls this installation is willing to make in a rolling window.
+    |
+    | **Operational safety, and deliberately not finance.** These count calls,
+    | because calls are what the platform can observe. There is no price here,
+    | no currency, no balance and no invoice, and this is not a step towards
+    | any of those -- it answers "should we keep going", which is an operations
+    | question.
+    |
+    | The failure they prevent is specific. A backfill over four thousand
+    | masters enqueues four thousand jobs; the backlog ceiling in
+    | `config/operations.php` bounds how many sit on the queue at once and
+    | bounds nothing about how many reach a vendor over the following week. A
+    | queue that drains steadily spends steadily, and the first sign of that is
+    | an invoice.
+    |
+    | Rolling rather than calendar: a calendar month needs a time zone to be
+    | meaningful and a reset somebody has to remember, and "the last 24 hours"
+    | cannot be gamed by starting a sweep at 23:55.
+    |
+    | 0 means no ceiling, and is the shipped default -- a platform whose first
+    | experience of an AI feature is a refusal is a platform nobody turns the
+    | feature on twice. Set these once you know what a suggestion is worth.
+    |
+    */
+
+    'limits' => [
+        'daily' => (int) env('SANITUBE_AI_DAILY_CALLS', 0),
+        'weekly' => (int) env('SANITUBE_AI_WEEKLY_CALLS', 0),
+        'monthly' => (int) env('SANITUBE_AI_MONTHLY_CALLS', 0),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | The circuit breaker
+    |--------------------------------------------------------------------------
+    |
+    | A vendor having an outage answers every request identically and
+    | immediately, and a queue worker holding two thousand enrichment jobs will
+    | discover that two thousand times -- each one possibly billed, all of them
+    | in the minutes before anybody notices.
+    |
+    | After this many consecutive *attempted* failures for one provider, the
+    | platform stops asking it for the cooldown. It reopens by itself: the
+    | first call after the cooldown is allowed through, and if it fails the
+    | window simply starts again.
+    |
+    | Per provider, because an outage at one vendor is not a reason to stop
+    | asking another. 0 disables the breaker.
+    |
+    */
+
+    'circuit' => [
+        'consecutive_failures' => (int) env('SANITUBE_AI_CIRCUIT_FAILURES', 5),
+        'cooldown_minutes' => (int) env('SANITUBE_AI_CIRCUIT_COOLDOWN_MINUTES', 15),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | The invocation ledger
     |--------------------------------------------------------------------------
     |

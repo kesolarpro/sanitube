@@ -44,6 +44,16 @@ final class TranscribeAssetJob implements SafelyRetryable, ShouldQueue
     use Queueable;
     use SerializesModels;
 
+    /**
+     * One attempt. **A retried job is a second billed transcription**, and deciding
+     * whether to pay twice is a person's call rather than a queue worker's.
+     *
+     * Stated rather than left to the framework default, because the default is
+     * a configuration value somebody can change without ever seeing this
+     * class, and the cost of that change is an invoice.
+     */
+    public int $tries = 1;
+
     public function __construct(
         public readonly string $assetUuid,
         public readonly ?string $languageHint = null,

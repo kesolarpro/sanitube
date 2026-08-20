@@ -27,16 +27,39 @@ use SaniTube\AI\Models\AiInvocation;
  *   - **The purpose is SaniTube's word**, not the vendor's — "suggest_title",
  *     never "chat.completions". A ledger grouped by vendor endpoint answers no
  *     question anyone actually asks.
+ *   - **Every call passes the same two gates**, so a spend ceiling and a
+ *     circuit breaker cannot be bypassed by a caller that resolved a provider
+ *     for itself. One place to ask means one place to change.
  */
 final readonly class RunPrompt
 {
-    public function __construct(private AiManager $providers) {}
+    public function __construct(
+        private AiManager $providers,
+        private AiSpendGuard $spend,
+        private AiCircuitBreaker $circuit,
+    ) {}
 
     public function handle(string $purpose, AiPrompt $prompt, ?string $providerName = null): AiCompletion
     {
         $provider = $providerName === null
             ? $this->providers->default()
             : $this->providers->provider($providerName);
+
+        // Both gates ask before the call rather than after, and both produce a
+        // completion rather than an exception -- an AI feature that threw when
+        // a ceiling was reached would break the workflow it exists to assist.
+        //
+        // Recorded in the ledger like everything else, and marked `attempted:
+        // false` so that a refusal cannot count towards the ceiling that
+        // produced it. A quota that counted its own refusals would latch shut
+        // and never reopen.
+        $refusal = $this->refuseBefore($provider->name());
+
+        if ($refusal instanceof AiCompletion) {
+            $this->record($purpose, $prompt, $refusal, $provider->name(), 0);
+
+            return $refusal;
+        }
 
         $startedAt = hrtime(true);
         $completion = $this->enforceShape($prompt, $provider->complete($prompt));
@@ -45,6 +68,27 @@ final readonly class RunPrompt
         $this->record($purpose, $prompt, $completion, $provider->name(), $durationMs);
 
         return $completion;
+    }
+
+    /**
+     * The two reasons this installation declines to make a call it could make.
+     *
+     * The spend ceiling is asked first, because it is the operator's own
+     * decision and outranks a measurement. The breaker is asked second,
+     * because "the vendor is down" is only worth saying to somebody who was
+     * otherwise allowed to call.
+     */
+    private function refuseBefore(string $provider): ?AiCompletion
+    {
+        $exhausted = $this->spend->exhaustedWindow();
+
+        if ($exhausted !== null) {
+            return AiCompletion::quotaExhausted($provider, $exhausted);
+        }
+
+        return $this->circuit->isOpenFor($provider)
+            ? AiCompletion::circuitOpen($provider)
+            : null;
     }
 
     /**
@@ -96,6 +140,11 @@ final readonly class RunPrompt
             'purpose' => $purpose,
             'prompt_version' => $prompt->promptVersion,
             'succeeded' => $completion->isUsable(),
+
+            // Whether a request actually left this server. The column a spend
+            // ceiling counts, and never `succeeded`: a vendor answering 500
+            // cost a request, and a missing key cost nothing.
+            'attempted' => $completion->attempted,
             'input_tokens' => $completion->inputTokens,
             'output_tokens' => $completion->outputTokens,
             'duration_ms' => $durationMs,
