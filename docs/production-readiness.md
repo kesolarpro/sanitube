@@ -117,6 +117,23 @@ blocks going live.
 | Nothing is generated blindly | READY | PROD-003. Inventory counted before work; no attribution is a refusal, not a default. |
 | Unattended release | NOT_REQUIRED | Deliberately unavailable. The lock is the feature. |
 
+## Artwork
+
+| Control | Verdict | Notes |
+|---|---|---|
+| A cover is judged on what was measured | READY | ART-001. Dimensions, format and channel count read from the file, stored per measurer version, and used by the release validator. |
+| Unmeasured is a warning, never a pass | READY | An installation that cannot measure images reports "nobody has looked" rather than conforming — and rather than reporting every release as broken. |
+| Unreadable is an error, not a warning | READY | Somebody looked and it is not an image. Distinct from nobody having looked. |
+| The minimum applies to the shortest side | READY | A 4000×1000 image satisfies "at least 3000 wide" and is not a cover. |
+| No distributor named in the requirements | READY | Every rule is configurable; zero means no requirement. Stores disagree at the edges, so an operator changes a number rather than patching a validator. |
+| Screens show measured dimensions only | READY | ART-001 found `assets.width`/`height` were columns nothing writes, read by three screens and masked by a test fixture. All three now report null until something has measured. |
+| Backfill for covers verified earlier | READY | `sanitube:artwork:measure`, bounded, and it says what it left behind. |
+| Image generation refuses before spending | READY | ART-002. Feasibility is checked against the provider's declared sizes before a request leaves; an unreachable requirement is `REQUIREMENTS_UNREACHABLE` and nothing is sent. |
+| A generated cover is an ordinary asset | READY | Registered, stored, checksummed, verified and measured like any upload. The provider's claim about what it produced is never what the platform reports. |
+| Generation usable on the shipped configuration | **NOT_READY** | Deliberate and stated in `config/artwork.php`: the default 3000px requirement and the specification's only square GPT-image size (1024) genuinely disagree, so generation declines out of the box. An operator resolves it by lowering the requirement or declaring a larger size their account supports. |
+| No colour-profile inspection | NOT_READY | `getimagesize` cannot read an ICC profile, so "is this sRGB" is unanswered rather than guessed. Needs an image library this platform deliberately avoids. |
+| **Certified against a real image endpoint** | BLOCKED_EXTERNAL | No key in CI. The adapter has never spoken to OpenAI. |
+
 ## Catalogue
 
 | Control | Verdict | Notes |
@@ -144,7 +161,10 @@ blocks going live.
 | Studio, projects, generations | READY | |
 | Fake provider drives a full E2E | READY | |
 | Generated audio joins the review queue | READY | Never becomes a Track directly. |
-| Real generation provider | BLOCKED_EXTERNAL | GEN-002 / AI-002. |
+| Submitted once, even by two workers | READY | GEN-003. A guarded `UPDATE` claim; the claim expires so a crashed worker cannot strand a generation. |
+| No provider error text reaches a browser | READY | GEN-003. A client exception quotes the request; on a query-string-authenticated provider that message *is* the credential. Vendor explanations are kept but redacted, address-stripped, bounded and attributed. |
+| Request ceiling and circuit breaker | READY | GEN-004. Rolling 24h/168h/720h windows over `music_generations` itself; per-provider cooldown. Counts requests — no prices, no currency, no balance. |
+| Real generation provider | BLOCKED_EXTERNAL | GEN-002 / AI-002. GEN-005 established the blocker is not credentials: **Suno publishes no API contract at all.** ADR-0018 records the four conditions that would unblock an adapter and permanently excludes reverse-engineered wrappers, enforced in CI. |
 
 ## Release
 
