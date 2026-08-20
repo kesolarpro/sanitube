@@ -1,8 +1,8 @@
 {
   "$comment": "Machine-readable project state. Any new session reads this first, then verifies it against GitHub before trusting it. Written at the end of each ticket, so a stale entry means a session ended mid-ticket — check the branch and CI rather than the status field.",
   "updated_at": "2026-08-20",
-  "current_phase": "Phase 5. PROD-002 separates scheduling from doing: the scheduler opens occasions and never generates.",
-  "last_completed_ticket": "PROD-002",
+  "current_phase": "Phase 5. PROD-003 puts an inventory in front of generation: unknown is not zero, and in-flight work counts.",
+  "last_completed_ticket": "PROD-003",
   "default_branch": "main",
   "tickets": {
     "ARCH-001": {
@@ -557,10 +557,19 @@
       "notes": "EditorialProfile: an imprint is a row, not code. No caller yet."
     },
     "PROD-002": {
+      "status": "merged",
+      "branch": "claude/sanitube-autonomous-v1-5pycx0",
+      "pr": 76,
+      "ci": "green 10/10 (run 32366843743)",
+      "report": "docs/reports/PROD-002.md",
+      "merge_commit": "27b7e7f",
+      "notes": "ProductionSlot. The scheduler opens rows and never generates. Found a SQLite date-format caveat on the unique key."
+    },
+    "PROD-003": {
       "status": "in_progress",
       "branch": "claude/sanitube-autonomous-v1-5pycx0",
-      "report": "docs/reports/PROD-002.md",
-      "notes": "ProductionSlot. The scheduler opens rows and never generates, asserted mechanically. Nothing claims a slot yet -- the worker needs the inventory check first."
+      "report": "docs/reports/PROD-003.md",
+      "notes": "Inventory before generation. Unknown is NO_ATTRIBUTION rather than zero. Two plans on one imprint share stock -- recorded as a known limitation."
     }
   },
   "architecture_amendments": [
