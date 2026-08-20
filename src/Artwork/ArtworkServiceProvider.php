@@ -8,9 +8,12 @@ use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
 use SaniTube\Artwork\Console\MeasureArtworkCommand;
 use SaniTube\Artwork\Contracts\ImageMeasurer;
+use SaniTube\Artwork\Contracts\ImageProvider;
 use SaniTube\Artwork\Listeners\MeasureWhenVerified;
 use SaniTube\Artwork\Measurers\NativeImageMeasurer;
 use SaniTube\Artwork\Measurers\UnavailableImageMeasurer;
+use SaniTube\Artwork\Providers\OpenAiImageProvider;
+use SaniTube\Artwork\Providers\UnavailableImageProvider;
 use SaniTube\Assets\Events\AssetVerified;
 
 /**
@@ -29,6 +32,24 @@ final class ArtworkServiceProvider extends ServiceProvider
             $measurer = new NativeImageMeasurer;
 
             return $measurer->isAvailable() ? $measurer : new UnavailableImageMeasurer;
+        });
+
+        $this->app->singleton(ImageProvider::class, static function (): ImageProvider {
+            $name = config('artwork.default_provider', 'none');
+            $name = is_string($name) && trim($name) !== '' ? trim($name) : 'none';
+
+            $configuration = config('artwork.providers.'.$name);
+            $configuration = is_array($configuration) ? $configuration : [];
+
+            $driver = $configuration['driver'] ?? $name;
+
+            // Dispatched on the driver rather than the key, so an operator may
+            // name a provider entry whatever suits them -- `openai-eu`, say --
+            // without the platform deciding it does not recognise it.
+            return match (is_string($driver) ? $driver : 'none') {
+                'openai' => new OpenAiImageProvider($configuration),
+                default => new UnavailableImageProvider,
+            };
         });
     }
 

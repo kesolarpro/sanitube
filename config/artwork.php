@@ -63,4 +63,72 @@ return [
         'refuse_cmyk' => (bool) env('SANITUBE_ARTWORK_REFUSE_CMYK', true),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Image generation
+    |--------------------------------------------------------------------------
+    |
+    | `none` on a fresh install, and `none` rather than `null`: Laravel reads
+    | the literal string `null` in a .env file as PHP null, which means "no
+    | value" rather than "the provider named null". The same convention the
+    | generation and transcription modules use, so an operator learns it once.
+    |
+    | **Read the note on `sizes` below before configuring this.** There is a
+    | mismatch between what image models produce today and the `minimum_pixels`
+    | above, and the platform refuses rather than spending into it.
+    |
+    */
+
+    'default_provider' => env('SANITUBE_ARTWORK_PROVIDER', 'none'),
+
+    'providers' => [
+
+        'none' => ['driver' => 'none'],
+
+        'openai' => [
+            'driver' => 'openai',
+
+            // Falls back to the shared OpenAI credentials, so an installation
+            // that has configured transcription or enrichment does not
+            // configure the same key a third time.
+            'key' => env('SANITUBE_ARTWORK_OPENAI_KEY', env('SANITUBE_OPENAI_KEY')),
+            // No default, deliberately, and the portability guardrail enforces
+            // it: nothing in this platform hardcodes a domain. An installation
+            // that has set no base URL has no image provider, which is the
+            // correct state for one that has not configured one.
+            'base_url' => env('SANITUBE_ARTWORK_OPENAI_BASE_URL', env('SANITUBE_OPENAI_BASE_URL')),
+            'model' => env('SANITUBE_ARTWORK_OPENAI_MODEL', 'gpt-image-1'),
+            'timeout' => (int) env('SANITUBE_ARTWORK_TIMEOUT', 120),
+
+            // png, jpeg or webp per the published specification. Note that
+            // `webp` is not in `accepted_mime_types` above by default, so
+            // choosing it without also accepting it produces covers this
+            // platform then rejects.
+            'output_format' => env('SANITUBE_ARTWORK_OPENAI_FORMAT', 'png'),
+
+            /*
+            | What this installation may ask this provider for.
+            |
+            | **Declared, never inferred.** The platform does not work out from
+            | a model name what an account may request. The published
+            | specification lists different allowed sizes per model, describes
+            | arbitrary sizes for one family under divisibility and aspect
+            | constraints, and marks the largest as experimental — deriving a
+            | usable set from that is exactly the guessing that is forbidden.
+            |
+            | The default is the one square size the specification lists as
+            | supported across the GPT image models. **It is smaller than
+            | `minimum_pixels` above**, which means generation refuses out of
+            | the box with REQUIREMENTS_UNREACHABLE rather than producing covers
+            | this platform's own validator rejects. That is deliberate: the
+            | two numbers genuinely disagree today, and an operator resolves it
+            | by lowering the requirement or by declaring a larger size their
+            | account and model actually support.
+            */
+            'sizes' => ['1024x1024'],
+
+            'output_mime_types' => ['image/png', 'image/jpeg', 'image/webp'],
+        ],
+    ],
+
 ];
