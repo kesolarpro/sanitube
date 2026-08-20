@@ -51,6 +51,7 @@ return [
         'compositions' => 'Œuvres',
         'artists' => 'Artistes',
         'assets' => 'Fichiers',
+        'duplicates' => 'Doublons',
         'releases' => 'Sorties',
         'distribution' => 'Distribution',
         'rights' => 'Droits',
@@ -1007,4 +1008,75 @@ return [
             'PROGRAMMER' => 'Programmation',
         ],
     ],
+
+    'duplicates' => [
+        'title' => 'Doublons',
+        'description' => "Des fichiers qui contiennent peut-être le même enregistrement. Rien n'est décidé tant que vous ne décidez pas, et rien n'est supprimé.",
+        'empty' => 'Aucun doublon trouvé',
+        'empty_description' => 'Rien dans la bibliothèque ne ressemble assez à autre chose pour mériter un examen.',
+        'measured' => 'Octets identiques',
+        'proposed' => 'Proposé par comparaison',
+        'in_trash' => 'À la corbeille. Le fichier est toujours stocké et peut être restauré.',
+
+        'column' => [
+            'decision' => 'Décision',
+            'level' => 'Constat',
+            'basis' => 'Fondé sur',
+            'agreement' => 'Concordance',
+            'checksum' => 'Empreinte',
+            'type' => 'Type',
+            'size' => 'Taille',
+            'duration' => 'Durée',
+            'added' => 'Ajouté',
+            'found' => 'Détecté',
+            'answered' => 'Répondu',
+            'reason' => 'Motif',
+        ],
+
+        'level' => [
+            'EXACT_DUPLICATE' => 'Les mêmes octets',
+            'SAME_RECORDING' => 'Le même enregistrement',
+            'POSSIBLE_RELATION' => 'À examiner',
+        ],
+
+        'basis' => [
+            'CHECKSUM' => 'Empreinte',
+            'FINGERPRINT' => 'Comparaison audio',
+        ],
+
+        'decision' => [
+            'PROPOSED' => 'Sans réponse',
+            'CONFIRMED' => 'Confirmé',
+            'REJECTED' => 'Rejeté',
+        ],
+
+        'reason' => [
+            'DUPLICATE' => 'Doublon',
+            'SUPERSEDED' => 'Remplacé par un fichier plus récent',
+            'WRONG_UPLOAD' => 'Envoyé par erreur',
+            'UNUSABLE_AUDIO' => 'Audio inutilisable',
+            'OTHER' => 'Autre',
+        ],
+
+        'action' => [
+            'confirm' => 'Confirmer',
+            'reject' => "Ce n'est pas un doublon",
+            'trash' => 'Mettre à la corbeille',
+            'restore' => 'Restaurer',
+        ],
+
+        'filter' => [
+            'any_decision' => 'Toute décision',
+            'any_level' => 'Tout constat',
+        ],
+
+        'error' => [
+            'DUPLICATE_ALREADY_DECIDED' => 'Ce constat a déjà cette réponse.',
+            'ASSET_IN_USE' => "Le catalogue utilise encore ce fichier. Retirez-le d'abord de la piste ou de la sortie.",
+            'ASSET_ALREADY_TRASHED' => 'Ce fichier est déjà à la corbeille.',
+            'ASSET_NOT_TRASHED' => "Ce fichier n'est pas à la corbeille.",
+            'ASSET_NOT_SETTLED' => "Cet envoi n'est pas terminé. Attendez qu'il aboutisse.",
+        ],
+    ],
+
 ];

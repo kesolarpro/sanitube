@@ -17,6 +17,8 @@ use SaniTube\Ui\Http\Controllers\Catalog\TrackActionController;
 use SaniTube\Ui\Http\Controllers\Catalog\TrackDetailController;
 use SaniTube\Ui\Http\Controllers\Catalog\TrackIndexController;
 use SaniTube\Ui\Http\Controllers\DashboardController;
+use SaniTube\Ui\Http\Controllers\Deduplication\DuplicateActionController;
+use SaniTube\Ui\Http\Controllers\Deduplication\DuplicateIndexController;
 use SaniTube\Ui\Http\Controllers\DesignSystemController;
 use SaniTube\Ui\Http\Controllers\Distribution\DeliveryDetailController;
 use SaniTube\Ui\Http\Controllers\Distribution\DeliveryIndexController;
@@ -155,6 +157,35 @@ Route::middleware(['web', HandleInertiaRequests::class, 'auth', 'active'])->grou
             ->name('ingestion.candidates.reject');
         Route::patch('ingestion/candidates/{candidate}', [CandidateReviewController::class, 'revise'])
             ->name('ingestion.candidates.revise');
+    });
+
+    /*
+     * The duplicate queue. DEDUP-003.
+     *
+     * Readable by anyone signed in -- knowing that two files may hold the same
+     * recording is not a privilege -- and answerable only behind
+     * `can.role:catalogue`, the same guard candidate review uses.
+     *
+     * Deciding and trashing are separate routes because they are separate
+     * acts. Confirming a duplicate is not a decision to lose a file, and a
+     * single endpoint that did both would quietly make it one.
+     */
+    Route::get('duplicates', DuplicateIndexController::class)->name('duplicates');
+
+    Route::middleware('can.role:catalogue')->group(function (): void {
+        Route::post('duplicates/{relation}/confirm', [DuplicateActionController::class, 'confirm'])
+            ->name('duplicates.confirm');
+        Route::post('duplicates/{relation}/reject', [DuplicateActionController::class, 'reject'])
+            ->name('duplicates.reject');
+
+        // Keyed by the asset, not by the finding. A master is set aside
+        // because somebody decided to set *it* aside; routing that through a
+        // finding would tie the act to the row that prompted it and make the
+        // same file untrashable from anywhere else.
+        Route::post('assets/{asset}/trash', [DuplicateActionController::class, 'trash'])
+            ->name('assets.trash');
+        Route::post('assets/{asset}/restore', [DuplicateActionController::class, 'restore'])
+            ->name('assets.restore');
     });
 
     // Studio. Read-only for now: starting a generation calls a supplier and

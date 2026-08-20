@@ -51,6 +51,7 @@ return [
         'compositions' => 'Obras',
         'artists' => 'Artistas',
         'assets' => 'Archivos',
+        'duplicates' => 'Duplicados',
         'releases' => 'Lanzamientos',
         'distribution' => 'Distribución',
         'rights' => 'Derechos',
@@ -1007,4 +1008,75 @@ return [
             'PROGRAMMER' => 'Programación',
         ],
     ],
+
+    'duplicates' => [
+        'title' => 'Duplicados',
+        'description' => 'Archivos que podrían contener la misma grabación. Nada se decide hasta que usted lo decida, y nada se elimina.',
+        'empty' => 'No se encontraron duplicados',
+        'empty_description' => 'Nada en la biblioteca se parece lo suficiente a otra cosa como para revisarlo.',
+        'measured' => 'Bytes idénticos',
+        'proposed' => 'Propuesto por comparación',
+        'in_trash' => 'En la papelera. El archivo sigue almacenado y puede restaurarse.',
+
+        'column' => [
+            'decision' => 'Decisión',
+            'level' => 'Hallazgo',
+            'basis' => 'Basado en',
+            'agreement' => 'Coincidencia',
+            'checksum' => 'Suma de verificación',
+            'type' => 'Tipo',
+            'size' => 'Tamaño',
+            'duration' => 'Duración',
+            'added' => 'Añadido',
+            'found' => 'Detectado',
+            'answered' => 'Respondido',
+            'reason' => 'Motivo',
+        ],
+
+        'level' => [
+            'EXACT_DUPLICATE' => 'Los mismos bytes',
+            'SAME_RECORDING' => 'La misma grabación',
+            'POSSIBLE_RELATION' => 'Merece revisión',
+        ],
+
+        'basis' => [
+            'CHECKSUM' => 'Suma de verificación',
+            'FINGERPRINT' => 'Comparación de audio',
+        ],
+
+        'decision' => [
+            'PROPOSED' => 'Sin responder',
+            'CONFIRMED' => 'Confirmado',
+            'REJECTED' => 'Rechazado',
+        ],
+
+        'reason' => [
+            'DUPLICATE' => 'Duplicado',
+            'SUPERSEDED' => 'Sustituido por un archivo más reciente',
+            'WRONG_UPLOAD' => 'Subido por error',
+            'UNUSABLE_AUDIO' => 'Audio inutilizable',
+            'OTHER' => 'Otro',
+        ],
+
+        'action' => [
+            'confirm' => 'Confirmar',
+            'reject' => 'No es un duplicado',
+            'trash' => 'Mover a la papelera',
+            'restore' => 'Restaurar',
+        ],
+
+        'filter' => [
+            'any_decision' => 'Cualquier decisión',
+            'any_level' => 'Cualquier hallazgo',
+        ],
+
+        'error' => [
+            'DUPLICATE_ALREADY_DECIDED' => 'Ese hallazgo ya tiene esta respuesta.',
+            'ASSET_IN_USE' => 'El catálogo todavía usa este archivo. Quítelo primero de la pista o del lanzamiento.',
+            'ASSET_ALREADY_TRASHED' => 'Ese archivo ya está en la papelera.',
+            'ASSET_NOT_TRASHED' => 'Ese archivo no está en la papelera.',
+            'ASSET_NOT_SETTLED' => 'Esa subida no ha terminado. Espere a que se complete.',
+        ],
+    ],
+
 ];
