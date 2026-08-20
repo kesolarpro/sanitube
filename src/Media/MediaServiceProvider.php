@@ -17,6 +17,7 @@ use SaniTube\Media\Fingerprinters\ChromaprintFingerprinter;
 use SaniTube\Media\Fingerprinters\UnavailableAudioFingerprinter;
 use SaniTube\Media\Listeners\RecordMeasuredDurationOnTrack;
 use SaniTube\Media\Listeners\ScheduleCandidateAnalysis;
+use SaniTube\Media\Listeners\ScheduleCandidateFingerprint;
 
 final class MediaServiceProvider extends ServiceProvider
 {
@@ -53,6 +54,12 @@ final class MediaServiceProvider extends ServiceProvider
         // and should not have to. It announces that a candidate exists; Media
         // decides what to do about it.
         $this->app['events']->listen(TrackCandidateCreated::class, ScheduleCandidateAnalysis::class);
+
+        // Beside analysis rather than inside it. FFmpeg and Chromaprint are
+        // installed independently, and a server with one and not the other
+        // should get the half it can do -- folding the two together would make
+        // a missing `fpcalc` look like a failed analysis.
+        $this->app['events']->listen(TrackCandidateCreated::class, ScheduleCandidateFingerprint::class);
 
         // The catalogue takes the measurement Media made, rather than Media
         // being asked for it — which would point Ingestion at Media and close
