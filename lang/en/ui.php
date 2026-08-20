@@ -832,6 +832,8 @@ return [
         'not_measured' => 'Not measured',
         'not_measured_note' => 'No analyser has run on this host, so nothing about the audio is known. That is not a finding about the recording.',
         'analysis_failed' => 'The analyser could not read this file.',
+        'what_the_file_says' => 'What the file says about itself',
+        'what_the_file_says_note' => 'Tags read from the file. Evidence, not truth: files pick up tags from whatever last touched them, so check them against what you know before accepting the suggestion.',
         'what_was_claimed' => 'What the manifest claimed',
         'what_was_claimed_note' => 'Supplied by whoever prepared the import. Evidence, not catalogue data — none of it has been applied.',
         'no_manifest' => 'No manifest row',
@@ -1098,6 +1100,7 @@ return [
         'bpm' => 'Tempo',
         'musical_key' => 'Key',
         'genre' => 'Genre',
+        'album' => 'Album',
         'recording_year' => 'Recorded',
         'p_line' => 'P line',
         'column' => [

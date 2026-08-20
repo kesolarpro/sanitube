@@ -832,6 +832,8 @@ return [
         'not_measured' => 'Não medido',
         'not_measured_note' => 'Nenhum analisador correu neste servidor, por isso nada se sabe sobre o áudio. Isso não é uma conclusão sobre a gravação.',
         'analysis_failed' => 'O analisador não conseguiu ler este ficheiro.',
+        'what_the_file_says' => 'O que o ficheiro diz de si próprio',
+        'what_the_file_says_note' => 'Etiquetas lidas do ficheiro. Indícios, não verdade: um ficheiro herda as etiquetas do que lhe tocou por último — confirme-as antes de aceitar a sugestão.',
         'what_was_claimed' => 'O que o manifesto afirmava',
         'what_was_claimed_note' => 'Fornecido por quem preparou a importação. É indício, não dado de catálogo — nada foi aplicado.',
         'no_manifest' => 'Sem linha de manifesto',
@@ -1098,6 +1100,7 @@ return [
         'bpm' => 'Andamento',
         'musical_key' => 'Tonalidade',
         'genre' => 'Género',
+        'album' => 'Álbum',
         'recording_year' => 'Gravado em',
         'p_line' => 'Menção P',
         'column' => [

@@ -177,6 +177,13 @@ const manifestLabels: Record<string, string> = {
     upc: 'ui.catalog.column.iswc',
     legacy_provider: 'ui.catalog.filter.source',
     notes: 'ui.ingestion.review_note',
+
+    // TAG-001. The tag names ffprobe normalises to, sharing the labels the
+    // manifest already uses where they mean the same thing.
+    album: 'ui.catalog.album',
+    album_artist: 'ui.catalog.column.artists',
+    genre: 'ui.catalog.genre',
+    year: 'ui.catalog.recording_year',
 };
 
 function labelFor(key: string): string {
@@ -292,6 +299,24 @@ function labelFor(key: string): string {
                     </div>
                 </dl>
             </div>
+        </AppCard>
+
+        <!-- TAG-001. What the file says about itself: a fourth kind of claim,
+             kept apart from the manifest, the analysis and the catalogue.
+             Files acquire tags from whatever last touched them, so a reviewer
+             has to be able to see the file disagree rather than be shown one
+             merged answer. Absent entirely when the file carries nothing. -->
+        <AppCard v-if="candidate.embedded_tags !== null">
+            <template #header>{{ trans('ui.ingestion.what_the_file_says') }}</template>
+
+            <p class="mb-3 text-caption text-muted">{{ trans('ui.ingestion.what_the_file_says_note') }}</p>
+
+            <dl class="grid gap-3 sm:grid-cols-2">
+                <div v-for="(value, key) in candidate.embedded_tags" :key="key">
+                    <dt class="text-caption text-muted">{{ labelFor(String(key)) }}</dt>
+                    <dd class="text-small text-foreground">{{ value }}</dd>
+                </div>
+            </dl>
         </AppCard>
 
         <!-- What the manifest claimed: evidence, never applied. -->
