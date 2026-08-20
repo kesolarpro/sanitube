@@ -81,6 +81,45 @@ final class CatalogAssetsTest extends TestCase
         $this->actingAs($user)->get('/catalog/assets/'.$asset->getKey())->assertNotFound();
     }
 
+    // ------------------------------------------------------------ the trash
+
+    #[Test]
+    public function a_trashed_asset_drops_out_of_the_list_but_stays_reachable(): void
+    {
+        // Setting something aside that then goes on appearing in every listing
+        // is not setting it aside. But an asset nobody can find is one nobody
+        // can restore, so the row has to remain addressable.
+        $kept = $this->asset();
+        $trashed = $this->asset();
+        $trashed->forceFill(['trashed_at' => now(), 'trash_reason' => 'DUPLICATE'])->save();
+
+        $query = $this->app->make(AssetIndexQuery::class);
+
+        $listed = array_column($query->paginate()['rows'], 'uuid');
+        $this->assertContains($kept->uuid, $listed);
+        $this->assertNotContains($trashed->uuid, $listed);
+
+        $this->actingAs($this->user())->get('/catalog/assets/'.$trashed->uuid)->assertOk();
+    }
+
+    #[Test]
+    public function the_trash_can_be_listed_on_its_own(): void
+    {
+        $kept = $this->asset();
+        $trashed = $this->asset();
+        $trashed->forceFill(['trashed_at' => now(), 'trash_reason' => 'DUPLICATE'])->save();
+
+        $rows = $this->app->make(AssetIndexQuery::class)->paginate(['trashed' => 'only'])['rows'];
+
+        $this->assertSame([$trashed->uuid], array_column($rows, 'uuid'));
+        $this->assertTrue($rows[0]['is_trashed']);
+        $this->assertSame('DUPLICATE', $rows[0]['trash_reason']);
+
+        $both = array_column($this->app->make(AssetIndexQuery::class)->paginate(['trashed' => 'all'])['rows'], 'uuid');
+        $this->assertContains($kept->uuid, $both);
+        $this->assertContains($trashed->uuid, $both);
+    }
+
     // ------------------------------------------------------ nothing leaks
 
     #[Test]

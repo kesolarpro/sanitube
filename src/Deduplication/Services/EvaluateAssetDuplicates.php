@@ -59,6 +59,11 @@ final readonly class EvaluateAssetDuplicates
             return new Collection;
         }
 
+        // Nothing is proposed *about* something already set aside either.
+        if ($asset->isTrashed()) {
+            return new Collection;
+        }
+
         /** @var Collection<int, DuplicateRelation> $findings */
         $findings = new Collection;
 
@@ -88,6 +93,9 @@ final readonly class EvaluateAssetDuplicates
             ->where('sha256', $asset->sha256)
             ->whereIn('status', [AssetStatus::Stored->value, AssetStatus::Verified->value])
             ->whereKeyNot($asset->getKey())
+            // Something already set aside is not a finding. Proposing it again
+            // asks a reviewer to answer a question they have answered.
+            ->whereNull('trashed_at')
             ->orderBy('id')
             ->get();
     }
@@ -124,7 +132,7 @@ final readonly class EvaluateAssetDuplicates
         foreach ($this->candidates->for($fingerprint)->load('asset') as $candidate) {
             $related = $candidate->asset;
 
-            if (! $related instanceof Asset) {
+            if (! $related instanceof Asset || $related->isTrashed()) {
                 continue;
             }
 

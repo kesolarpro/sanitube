@@ -65,6 +65,27 @@ enum AuditAction: string
     case AssetPreviewMinted = 'asset.preview.minted';
     case AssetUploadStarted = 'asset.upload.started';
     case AssetUploadFinalized = 'asset.upload.finalized';
+
+    /**
+     * Setting a master aside, and taking it back.
+     *
+     * Audited because it is the closest thing the platform has to losing a
+     * master, even though it loses nothing: the bytes stay, and only a person
+     * can do it. An operator asking "where did that file go" needs a name and
+     * a time, and the reason code the reviewer chose.
+     */
+    case AssetTrashed = 'asset.trashed';
+    case AssetRestored = 'asset.restored';
+
+    /**
+     * Answering a duplicate finding.
+     *
+     * Both outcomes are recorded, because a rejection is the more interesting
+     * one: it is a person saying the platform was wrong, and a run of them is
+     * how a mis-set threshold announces itself.
+     */
+    case DuplicateConfirmed = 'duplicate.confirmed';
+    case DuplicateRejected = 'duplicate.rejected';
     case IngestionBatchStarted = 'ingestion.batch.started';
 
     // ------------------------------------------------------------ generation
@@ -113,7 +134,12 @@ enum AuditAction: string
 
             self::AssetPreviewMinted,
             self::AssetUploadStarted,
-            self::AssetUploadFinalized => AuditSubject::Asset,
+            self::AssetUploadFinalized,
+            self::AssetTrashed,
+            self::AssetRestored => AuditSubject::Asset,
+
+            self::DuplicateConfirmed,
+            self::DuplicateRejected => AuditSubject::DuplicateRelation,
             self::IngestionBatchStarted => AuditSubject::IngestionBatch,
 
             self::GenerationStarted,
