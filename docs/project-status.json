@@ -1,8 +1,8 @@
 {
   "$comment": "Machine-readable project state. Any new session reads this first, then verifies it against GitHub before trusting it. Written at the end of each ticket, so a stale entry means a session ended mid-ticket — check the branch and CI rather than the status field.",
   "updated_at": "2026-08-20",
-  "current_phase": "Phase 4 enrichment. ENR-002 ships the first real AI task: a transcript becomes a suggestion that waits for a person.",
-  "last_completed_ticket": "ENR-002",
+  "current_phase": "Phase 4 enrichment. ENR-003 bounds what an AI feature may spend, in calls rather than money.",
+  "last_completed_ticket": "ENR-003",
   "default_branch": "main",
   "tickets": {
     "ARCH-001": {
@@ -511,10 +511,19 @@
       "notes": "Schema-required structured output at both vendors. Also found that repeated Http::fake() for one URL does not replace the first stub."
     },
     "ENR-002": {
+      "status": "merged",
+      "branch": "claude/sanitube-autonomous-v1-5pycx0",
+      "pr": 70,
+      "ci": "green 10/10 (run 32362113332)",
+      "report": "docs/reports/ENR-002.md",
+      "merge_commit": "fe76d80",
+      "notes": "First real AI task. Suggestions are always PROPOSED. Automatic enrichment OFF by default. No review screen yet."
+    },
+    "ENR-003": {
       "status": "in_progress",
       "branch": "claude/sanitube-autonomous-v1-5pycx0",
-      "report": "docs/reports/ENR-002.md",
-      "notes": "First real AI task. Suggestions are always PROPOSED; automatic enrichment is OFF by default because it is the second paid call on one asset. No review screen and no spend quota yet."
+      "report": "docs/reports/ENR-003.md",
+      "notes": "Call ceilings and a ledger-derived circuit breaker. Counts calls, never money: no currency anywhere, asserted by test. Transcription spend is NOT covered by these ceilings and the report says so."
     }
   },
   "architecture_amendments": [

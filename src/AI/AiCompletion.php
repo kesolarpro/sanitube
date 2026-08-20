@@ -17,6 +17,17 @@ final readonly class AiCompletion
         public ?int $outputTokens = null,
         public bool $refused = false,
         public ?string $failureMessage = null,
+
+        /**
+         * Whether a request actually left this server.
+         *
+         * Distinct from `refused`, and the distinction is what makes a spend
+         * ceiling possible. A missing key, an exhausted quota and an open
+         * circuit are all refusals that cost nothing; a vendor answering 500
+         * is not a refusal and costs a request. Counting either by the other
+         * gets the number wrong in a direction somebody pays for.
+         */
+        public bool $attempted = true,
     ) {}
 
     /**
@@ -31,6 +42,46 @@ final readonly class AiCompletion
             text: '',
             refused: true,
             failureMessage: 'No AI provider is configured on this installation.',
+            attempted: false,
+        );
+    }
+
+    /**
+     * This installation has made as many calls as it allows itself.
+     *
+     * **Operational safety, not accounting.** It counts calls, because calls
+     * are what this platform can actually observe; it holds no prices, no
+     * currency and no balance, and it is not a step towards any of those.
+     *
+     * Nothing was sent, so nothing was spent — which is why this does not
+     * count against the ceiling that produced it.
+     */
+    public static function quotaExhausted(string $provider, string $window): self
+    {
+        return new self(
+            provider: $provider,
+            text: '',
+            refused: true,
+            failureMessage: sprintf('The %s call ceiling for this installation has been reached.', $window),
+            attempted: false,
+        );
+    }
+
+    /**
+     * The provider has failed enough times in a row to stop asking for now.
+     *
+     * A vendor having an outage answers every request the same way, and a
+     * queue that keeps asking turns one outage into a few thousand billed
+     * failures. The circuit closes itself when the cooldown passes.
+     */
+    public static function circuitOpen(string $provider): self
+    {
+        return new self(
+            provider: $provider,
+            text: '',
+            refused: true,
+            failureMessage: sprintf('The [%s] provider failed repeatedly and is not being called at the moment.', $provider),
+            attempted: false,
         );
     }
 

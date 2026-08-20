@@ -14,6 +14,8 @@ use SaniTube\AI\AiManager;
 use SaniTube\AI\AiPrompt;
 use SaniTube\AI\AiSchema;
 use SaniTube\AI\Models\AiInvocation;
+use SaniTube\AI\Services\AiCircuitBreaker;
+use SaniTube\AI\Services\AiSpendGuard;
 use SaniTube\AI\Services\RunPrompt;
 use SaniTube\AI\Testing\FakeAiProvider;
 use Tests\TestCase;
@@ -423,7 +425,11 @@ final class StructuredOutputTest extends TestCase
         $manager = new AiManager([], AiManager::DISABLED);
         $manager->register('fake', $fake);
 
-        return (new RunPrompt($manager))->handle(
+        return (new RunPrompt(
+            $manager,
+            $this->app->make(AiSpendGuard::class),
+            $this->app->make(AiCircuitBreaker::class),
+        ))->handle(
             'suggest_title',
             new AiPrompt(instruction: 'Describe this recording.', input: 'a transcript', schema: $schema),
             'fake',

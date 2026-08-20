@@ -20,6 +20,7 @@ use SaniTube\Foundation\Concerns\HasPublicUuid;
  * @property string $purpose
  * @property string $prompt_version
  * @property bool $succeeded
+ * @property bool $attempted
  * @property int|null $input_tokens
  * @property int|null $output_tokens
  * @property int|null $duration_ms
@@ -44,6 +45,7 @@ final class AiInvocation extends Model
     {
         return [
             'succeeded' => 'boolean',
+            'attempted' => 'boolean',
         ];
     }
 }
