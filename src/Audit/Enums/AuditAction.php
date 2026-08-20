@@ -86,6 +86,18 @@ enum AuditAction: string
      */
     case DuplicateConfirmed = 'duplicate.confirmed';
     case DuplicateRejected = 'duplicate.rejected';
+
+    /**
+     * The global stop, lifted and lowered.
+     *
+     * The subject is the installation itself. Audited because it is the one
+     * control that changes what the whole platform will and will not do, and
+     * because the question after an incident is always when it was pressed and
+     * by whom -- including the case where the answer is "a console command, so
+     * nobody is recorded", which is itself worth knowing.
+     */
+    case BackgroundWorkPaused = 'operations.background_work.paused';
+    case BackgroundWorkResumed = 'operations.background_work.resumed';
     case IngestionBatchStarted = 'ingestion.batch.started';
 
     // ------------------------------------------------------------ generation
@@ -140,6 +152,9 @@ enum AuditAction: string
 
             self::DuplicateConfirmed,
             self::DuplicateRejected => AuditSubject::DuplicateRelation,
+
+            self::BackgroundWorkPaused,
+            self::BackgroundWorkResumed => AuditSubject::System,
             self::IngestionBatchStarted => AuditSubject::IngestionBatch,
 
             self::GenerationStarted,

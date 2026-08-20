@@ -16,6 +16,7 @@ use SaniTube\Ingestion\Manifest\Manifest;
 use SaniTube\Ingestion\Models\IngestionBatch;
 use SaniTube\Ingestion\Models\IngestionItem;
 use SaniTube\Ingestion\Sources\SourceReaderFactory;
+use SaniTube\Operations\Services\WorkAdmission;
 use SaniTube\Storage\StorageManager;
 
 /**
@@ -39,6 +40,7 @@ final readonly class StartIngestionBatch
     public function __construct(
         private StorageManager $storage,
         private SourceReaderFactory $readers,
+        private WorkAdmission $admission,
     ) {}
 
     /**
@@ -105,6 +107,13 @@ final readonly class StartIngestionBatch
         foreach ($resolved as $reference) {
             $reader->assertAcceptable($reference);
         }
+
+        // And so is a batch the queue has no room for. OPS-002: this loop
+        // enqueues one job per item, so the same reasoning that puts
+        // acceptability up here puts capacity up here too -- refusing now,
+        // while somebody is looking at the response, beats stranding half a
+        // batch in a queue nobody is watching.
+        $this->admission->admit(count($resolved));
 
         $batch = DB::transaction(function () use ($source, $createdBy, $resolved, $reader, $manifest): IngestionBatch {
             $batch = IngestionBatch::query()->create([
