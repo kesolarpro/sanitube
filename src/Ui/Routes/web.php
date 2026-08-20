@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Facades\Route;
+use SaniTube\Ui\Http\Controllers\Assets\DirectUploadController;
 use SaniTube\Ui\Http\Controllers\Catalog\ArtistDetailController;
 use SaniTube\Ui\Http\Controllers\Catalog\ArtistIndexController;
 use SaniTube\Ui\Http\Controllers\Catalog\AssetDetailController;
@@ -100,6 +101,18 @@ Route::middleware(['web', HandleInertiaRequests::class, 'auth', 'active'])->grou
      * present I3 as an assignment.
      */
     Route::middleware('can.role:catalogue')->group(function (): void {
+        /*
+         * STO-003. Uploading a master without it passing through PHP.
+         *
+         * Two POSTs, both writes: the first mints a capability, the second
+         * asks the server to measure what arrived. A GET for either would be
+         * prefetched and replayed.
+         */
+        Route::post('assets/uploads', [DirectUploadController::class, 'begin'])
+            ->name('assets.uploads.begin');
+        Route::post('assets/uploads/{asset}/complete', [DirectUploadController::class, 'complete'])
+            ->name('assets.uploads.complete');
+
         Route::post('catalog/tracks/{track}/credits', [TrackActionController::class, 'setCredits'])
             ->name('catalog.tracks.credits');
         Route::post('catalog/tracks/{track}/ready', [TrackActionController::class, 'markReady'])

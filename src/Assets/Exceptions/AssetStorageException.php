@@ -26,6 +26,22 @@ final class AssetStorageException extends RuntimeException
         ));
     }
 
+    /**
+     * This installation's storage cannot let a browser write into it.
+     *
+     * The local disk, in practice. Not a caller error and not a failure: an
+     * installation with no object storage still has the ordinary upload path,
+     * and the interface asks before offering the control.
+     */
+    public static function directUploadUnsupported(string $provider): self
+    {
+        return new self(sprintf(
+            'The [%s] storage provider cannot issue upload URLs, so uploads must go through the '
+                .'application. Configure an object storage provider to upload directly.',
+            $provider,
+        ));
+    }
+
     public static function empty(string $key): self
     {
         return new self(sprintf('The upload for [%s] contained no bytes.', $key));

@@ -120,11 +120,41 @@ final readonly class AssetStorageService
 
         $provider->putStream($stagingKey, $stream);
 
+        return $this->settleStagedObject($asset, $provider, $stagingKey, $expectedSha256, $expectedByteSize);
+    }
+
+    /**
+     * Everything that happens to a staged object once the bytes have landed.
+     *
+     * Extracted because there are now two ways for them to land — pushed
+     * through PHP by {@see self::store()}, or written straight to the provider
+     * by a browser holding a short-lived URL — and exactly one way for them to
+     * become an asset. A direct upload that measured itself, or skipped the
+     * duplicate check, or moved its own object, would be a second storage
+     * workflow with its own bugs.
+     *
+     * Every measurement here is taken **from the stored object**, never from
+     * anything a caller said about it. That is what makes the direct-upload
+     * path safe: the browser chooses the bytes and nothing else.
+     */
+    private function settleStagedObject(
+        Asset $asset,
+        StorageProvider $provider,
+        string $stagingKey,
+        ?string $expectedSha256,
+        ?int $expectedByteSize,
+    ): Asset {
+        $limit = $this->limitFor($asset->kind);
+
         try {
             $size = $provider->size($stagingKey);
 
-            // The cap yields at most limit + 1 bytes, so an object of exactly
-            // that size is the one that was still going when it was cut off.
+            // Two different arrivals, one check. A streamed upload is cut off
+            // by the byte cap at limit + 1, so an object of exactly that size
+            // was still going; a direct upload has no filter in front of it at
+            // all, because a presigned PUT cannot express a maximum — so this
+            // is the only thing standing between the platform and an object
+            // somebody decided should be a hundred gigabytes.
             if ($size > $limit) {
                 throw AssetStorageException::tooLarge($asset->kind->value, $limit);
             }
@@ -172,6 +202,51 @@ final readonly class AssetStorageService
         });
 
         return $asset->refresh();
+    }
+
+    /**
+     * Take in bytes a browser wrote to staging itself.
+     *
+     * The asset was registered before the URL was minted, so its staging key
+     * and its canonical key were both decided by this application. What this
+     * does is measure what actually arrived and settle it — the same code, the
+     * same order and the same refusals as an upload that came through PHP.
+     *
+     * **The client is authoritative for nothing.** It does not report the
+     * size, the checksum, the media type, or even that the upload finished:
+     * an object that is absent, empty, oversized or unreadable fails here
+     * exactly as it would have failed there.
+     *
+     * `expectedSha256` is offered because a caller that genuinely knows the
+     * hash — a re-upload of a file already held, say — gets a cheap guarantee
+     * from it. A caller that got it from the browser is trusting the browser,
+     * which is why nothing in this platform passes it from a request.
+     */
+    public function finalizeDirectUpload(
+        Asset $asset,
+        ?string $expectedSha256 = null,
+        ?int $expectedByteSize = null,
+    ): Asset {
+        if ($settled = $this->settleIdempotently($asset, $expectedSha256)) {
+            return $settled;
+        }
+
+        if ($asset->status !== AssetStatus::Pending) {
+            throw AssetStorageException::notPending($asset->status);
+        }
+
+        $provider = $this->providerFor($asset);
+        $stagingKey = $this->keys->staging($asset->uuid, $asset->original_filename);
+
+        if (! $provider->exists($stagingKey)) {
+            // Nothing arrived. Reported as an empty upload rather than as a
+            // missing object, because from the operator's side those are the
+            // same event: the browser said it was done and there is nothing
+            // there.
+            throw AssetStorageException::empty($stagingKey);
+        }
+
+        return $this->settleStagedObject($asset, $provider, $stagingKey, $expectedSha256, $expectedByteSize);
     }
 
     /**
