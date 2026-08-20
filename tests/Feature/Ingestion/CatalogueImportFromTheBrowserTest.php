@@ -15,6 +15,7 @@ use SaniTube\Ingestion\Enums\IngestionSource;
 use SaniTube\Ingestion\Jobs\ProcessIngestionItemJob;
 use SaniTube\Ingestion\Models\IngestionBatch;
 use SaniTube\Ingestion\Models\IngestionItem;
+use SaniTube\Operations\Services\BackgroundWork;
 use SaniTube\Storage\Providers\LocalStorageProvider;
 use SaniTube\Storage\StorageManager;
 use SaniTube\Storage\Testing\InMemoryStorageProvider;
@@ -315,6 +316,31 @@ final class CatalogueImportFromTheBrowserTest extends TestCase
             ->assertSessionHasNoErrors();
 
         $this->assertSame($operator->getKey(), IngestionBatch::query()->firstOrFail()->created_by);
+    }
+
+    #[Test]
+    public function a_paused_installation_refuses_the_import_by_code_rather_than_by_crashing(): void
+    {
+        // A defect BULK-001 found rather than introduced. `StartIngestionBatch`
+        // asks OPS-002 for capacity and throws `WorkRefused`; the controller
+        // caught only `IngestionException`, so on an installation with
+        // background work paused — a supported, deliberate state — starting an
+        // import threw straight past the handler and answered 500.
+        //
+        // The exception already carried a code written to be turned into an
+        // instruction. Nothing was catching it to do so.
+        $reference = $this->actingAs($this->user())
+            ->post('/ingestion/import/relay', ['file' => $this->wav('a.wav')])
+            ->json('reference');
+
+        $this->app->make(BackgroundWork::class)->pause(null, 'Maintenance.');
+
+        $this->actingAs($this->user())
+            ->post('/ingestion/batches', ['source' => 'MANUAL_UPLOAD', 'references' => [$reference]])
+            ->assertRedirect()
+            ->assertSessionHasErrors(['import' => 'BACKGROUND_WORK_PAUSED']);
+
+        $this->assertSame(0, IngestionBatch::query()->count());
     }
 
     #[Test]

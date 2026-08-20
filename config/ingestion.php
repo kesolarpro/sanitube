@@ -60,6 +60,23 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Deciding in bulk
+    |--------------------------------------------------------------------------
+    |
+    | The most candidates one review action may decide about. It bounds a
+    | *selection*, and the bound is the difference between "a selection" and
+    | "everything, submitted by a script".
+    |
+    | Not a limit on how many can be decided in a day: the screen pages, and
+    | a person works through nine hundred candidates a screenful at a time.
+    | Each one queues a job, so this is also how many jobs one click may add.
+    |
+    */
+
+    'max_bulk_review' => (int) env('SANITUBE_INGESTION_MAX_BULK_REVIEW', 200),
+
+    /*
+    |--------------------------------------------------------------------------
     | Retries
     |--------------------------------------------------------------------------
     |
