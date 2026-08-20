@@ -1,9 +1,9 @@
 {
     "$comment": "Machine-readable project state. Any new session reads this first, then verifies it against GitHub before trusting it. Written at the end of each ticket, so a stale entry means a session ended mid-ticket — check the branch and CI rather than the status field.",
     "updated_at": "2026-08-20",
-    "current_phase": "Product usability. Le jalon du parcours est ATTEINT et prouvé par un test de bout en bout : tests/Feature/Journey/FromAFileToAReadyReleaseTest.php fait traverser un vrai fichier audio depuis le navigateur jusqu'à une release READY dont le package s'assemble sans rien qui bloque — uniquement par des routes HTTP sur lesquelles un écran poste.",
-    "last_completed_ticket": "UPL-003",
-    "default_branch": "main (locally and for every merge). GitHub's configured default branch is still \"claude/verifier-repertoire-git-k29ft2\" — see EXTERNAL_ADMIN_ACTION_REQUIRED.",
+    "current_phase": "Catalogue scale. Un catalogue entre depuis le navigateur (BULK-001), se décide en masse (BULK-002), s'auto-étiquette depuis les tags embarqués (TAG-001), et les écrans sont mesurés O(1) jusqu'à 900 pistes (PERF-001). Le déclencheur de génération d'artwork attend un plafond de dépense (ART-004).",
+    "last_completed_ticket": "TAG-001",
+    "default_branch": "main — confirmed by API this session. The EXTERNAL_ADMIN_ACTION_REQUIRED blocker is cleared.",
     "tickets": {
         "ARCH-001": {
             "status": "merged",
@@ -638,7 +638,12 @@
         },
         "REL-004": "Préparer le package de distribution depuis l'écran de release, et montrer ce qui bloque toute livraison. PackageRelease (REL-003) avait zéro appelant de production. Extrait ValidateReleaseIdentifiers de ValidateDelivery : sans distributeur configuré — le défaut livré — une sortie sans aucun ISRC passait la validation, devenait READY et ne disait rien. 12 tests / 53 assertions ; 9 mutations, 0 survivante.",
         "CAT-005": "Assigner et révoquer un identifiant depuis l'écran. AssignExternalIdentifier et RevokeExternalIdentifier (ARCH-002) n'avaient aucun appelant : ni écran, ni API, ni commande. Ajoute un code lisible par machine à ExternalIdentifierException, qui n'en avait aucun, et AuditSubject::ExternalIdentifier. 15 tests / 53 assertions ; 8 mutations, 0 survivante.",
-        "UPL-003": "Un master déposé depuis le navigateur devient un candidat de revue. Avant, un TrackCandidate ne naissait que de ProcessIngestionItem ou de SelectMusicGenerationResult : les octets déposés arrivaient, étaient vérifiés, et s'arrêtaient là. Ajoute le test de parcours de bout en bout. 11 tests / 73 assertions ; 7 mutations, 1 survivante (garde « vérifié seulement » non testé) corrigée puis tuée."
+        "UPL-003": "Un master déposé depuis le navigateur devient un candidat de revue. Avant, un TrackCandidate ne naissait que de ProcessIngestionItem ou de SelectMusicGenerationResult : les octets déposés arrivaient, étaient vérifiés, et s'arrêtaient là. Ajoute le test de parcours de bout en bout. 11 tests / 73 assertions ; 7 mutations, 1 survivante (garde « vérifié seulement » non testé) corrigée puis tuée.",
+        "BULK-001": "Un catalogue entre depuis le navigateur : dépôt direct ou relayé dans l'inbox, puis batch sur références. L'inbox lue depuis le stockage est l'état durable. 16 tests / 85 assertions.",
+        "BULK-002": "Décider en masse dans la file de revue. Un job par candidat, jamais d'override en masse, capacité demandée avant mise en file. 14 tests / 46 assertions.",
+        "PERF-001": "Mesuré à 900 pistes : écrans d'index 1-3 requêtes, payload identique. SchemaPresence supprime 11 lookups répétés au tableau de bord. Garde validé contre un N+1 réel.",
+        "TAG-001": "Les étiquettes embarquées remplissent le candidat. ffprobe les renvoyait déjà et rien ne les lisait. Une étiquette n'écrase jamais un titre choisi par une personne.",
+        "ART-003": "L'écran de release dit si une pochette pourrait être générée ici, et quels deux nombres divergent. Le déclencheur reste non câblé faute de plafond de dépense (ART-004)."
     },
     "architecture_amendments": [
         {
@@ -682,17 +687,17 @@
             "status": "open"
         },
         {
-            "id": "EXTERNAL_ADMIN_ACTION_REQUIRED",
-            "summary": "The GitHub repository default branch is still 'claude/verifier-repertoire-git-k29ft2'; it should be 'main'. No tool in this environment can change repository settings — the GitHub MCP server exposes no repository-update tool and there is no gh CLI.",
-            "action": "A human with admin access: Settings -> General -> Default branch -> main.",
-            "blocking": "nothing in development; all work is on main and never returns to the old branch",
-            "status": "open"
-        },
-        {
             "id": "ENVIRONMENT_EGRESS",
             "summary": "Every distributor and DDEX host is refused by this execution environment's network egress policy (403 at the proxy). raw.githubusercontent.com is reachable, which is how the OpenAI specification could be read in full for ART-002. Verified by direct probe with a control; the evidence table is in docs/research/distribution-2026-08.md.",
             "blocking": "Items 17 and 18 of the Phase 2 order — DDEX and a first distributor adapter. Not certification, which DIST-002 covers separately.",
             "unblocked_by": "An environment whose egress allows ddex.net, kb.ddex.net and the chosen distributor's developer host; or the ERN schemas and the distributor's OpenAPI document committed into docs/.",
+            "status": "open"
+        },
+        {
+            "id": "ART-004",
+            "summary": "GenerateArtwork has no spend ceiling of any kind: there is no ArtworkGeneration record, so nothing counts generations and there is nothing to bound. Wiring a paid generator to a button without one would violate the cost mandate.",
+            "blocking": "the artwork generation trigger, nothing else",
+            "action": "Internal work, not a human action: a migration, a model, a guard, then the trigger.",
             "status": "open"
         }
     ],
@@ -734,9 +739,9 @@
         "since": "UI-001",
         "note": "Nine tickets (ING/MED/CAT/AI/GEN/REL/DIST/SEC-001 and PR #12) were merged under an earlier autonomous-chaining instruction that bypassed review. A retroactive audit is under way; they stay in main and any correction becomes a follow-up ticket, not a revert. BULK-001b, UI-004 and UI-005 were merged under the session's explicit merge policy for read-only UI, ingestion tooling and documentation: none changes authentication, authorization, rights, money, identifier lifecycle, destructive storage behaviour or any external action."
     },
-    "main_sha": "1db89dd",
-    "current_ticket": null,
-    "tests": "1739 passed, 1 skipped, 15212 assertions",
+    "main_sha": "07f3f18",
+    "current_ticket": "ART-003",
+    "tests": "1802 passed, 1 skipped, 22864 assertions",
     "phpstan": {
         "level": 6,
         "baseline": false,
@@ -751,9 +756,9 @@
         "note": "PHP suite stubs Vite when no manifest exists; the frontend CI job renders against a real one."
     },
     "next_action": {
-        "$comment": "Read this first. In order. Le jalon §31 est atteint ; ce qui reste ci-dessous sont des éléments permanents qu'une session antérieure a laissés, plus les blocages externes.",
-        "1": "Le parcours minimal est prouvé de bout en bout. Le prochain travail produit utile est d'élargir ce parcours plutôt que de l'ouvrir : plusieurs pistes par release depuis l'écran, et l'artwork généré (ART-002) qui n'a toujours aucun appelant de production.",
-        "2": "Accessibility, the part jsdom cannot reach: per-screen keyboard walkthroughs on real assistive technology, and responsive/long-content behaviour at four breakpoints across six locales. Needs a rendered browser.",
+        "$comment": "Read this first. The default branch is now main; that blocker is cleared.",
+        "1": "Fournir une clé de stockage objet (S3/R2/B2) : débloque le dépôt direct, sans lequel 900 masters transitent par PHP. Puis importer un premier vrai lot de 20-50 fichiers — le mécanisme est prêt et testé, ce qui manque est l'exécution sur de vrais octets.",
+        "2": "ART-004 : plafond de dépense pour la génération d'artwork, puis câbler le déclencheur.",
         "3": "AUDIT-002 — an honest actor identity for src/Api. A shared token names no person; recording those calls as guest misleads and as a user is false.",
         "4": "Real-host certification: CPANEL_CERTIFICATION and VPS_CERTIFICATION, including the settings config-cache rebuild branch that no suite can reach.",
         "5": "POST_V1_STORAGE_OPTIMIZATION — the ADR-0015 amendment. NOT a review: the decision was taken and accepted, the amplification factor is measured at 2 and pinned by a test, and every option that removes the second copy breaks AST-001's UUID-derived key or loses the record that a second import happened. A future session takes this only as deliberate post-V1 work."
@@ -983,5 +988,5 @@
         "implemented_percent": 86,
         "production_ready_percent": 77
     },
-    "session_report": "docs/reports/SESSION-2026-08-20-parcours-produit.md"
+    "session_report": "docs/reports/SESSION-2026-08-20-plateforme-exploitable.md"
 }
