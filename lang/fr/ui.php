@@ -1222,6 +1222,7 @@ return [
         'accepted_any' => 'Tout type de fichier est accepté pour ce genre.',
         'limit' => 'Jusqu’à :size par fichier.',
         'limited_by_php' => 'Ce plafond vient des limites PHP du serveur, pas de SaniTube. Augmenter le réglage SaniTube seul ne le relèvera pas.',
+        'review_candidate' => 'Le passer en revue et l\'ajouter au catalogue',
         'direct_on' => 'Les fichiers vont directement au stockage sans passer par ce serveur.',
         'direct_off' => 'Les fichiers transitent par ce serveur, dont les limites d’envoi s’appliquent.',
         'summary' => ':done stockés, :failed refusés, sur :total.',

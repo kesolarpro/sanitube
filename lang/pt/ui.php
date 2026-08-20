@@ -1222,6 +1222,7 @@ return [
         'accepted_any' => 'Qualquer tipo de ficheiro é aceite para este género.',
         'limit' => 'Até :size por ficheiro.',
         'limited_by_php' => 'Este limite vem dos limites de PHP do servidor, não do SaniTube. Aumentar apenas a definição do SaniTube não o eleva.',
+        'review_candidate' => 'Rever e adicionar ao catálogo',
         'direct_on' => 'Os ficheiros vão diretamente para o armazenamento sem passar por este servidor.',
         'direct_off' => 'Os ficheiros passam por este servidor, pelo que se aplicam os seus limites de envio.',
         'summary' => ':done armazenados, :failed recusados, de :total.',

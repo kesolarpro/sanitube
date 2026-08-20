@@ -12,6 +12,7 @@ use SaniTube\Assets\Services\AssetStorageService;
 use SaniTube\Assets\Services\BeginDirectUpload;
 use SaniTube\Audit\Enums\AuditAction;
 use SaniTube\Audit\Services\RecordAuditEvent;
+use SaniTube\Ingestion\Services\RegisterUploadedMaster;
 use SaniTube\Ui\Http\Requests\Assets\BeginUploadRequest;
 use Throwable;
 
@@ -63,8 +64,12 @@ final class DirectUploadController
             ->header('Pragma', 'no-cache');
     }
 
-    public function complete(Asset $asset, AssetStorageService $assets, RecordAuditEvent $audit): JsonResponse
-    {
+    public function complete(
+        Asset $asset,
+        AssetStorageService $assets,
+        RecordAuditEvent $audit,
+        RegisterUploadedMaster $candidates,
+    ): JsonResponse {
         try {
             $stored = $assets->finalizeDirectUpload($asset);
         } catch (AssetStorageException $exception) {
@@ -85,6 +90,11 @@ final class DirectUploadController
             'duplicate' => $stored->duplicate_of_asset_id !== null,
         ]);
 
+        // UPL-003, and idempotent on the asset — which matters most here: a
+        // completion call repeated after a timeout must not put the same
+        // recording in the review queue twice.
+        $candidate = $candidates->handle($stored);
+
         return response()->json([
             'asset' => $stored->uuid,
             'status' => $stored->status->value,
@@ -92,6 +102,7 @@ final class DirectUploadController
             // say so before somebody waits for an analysis of a file the
             // platform already has.
             'duplicate' => $stored->duplicate_of_asset_id !== null,
+            'candidate' => $candidate?->uuid,
         ]);
     }
 }
