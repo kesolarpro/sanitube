@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace SaniTube\Distribution\Services;
 
-use SaniTube\Catalog\Enums\ExternalIdentifierType;
-use SaniTube\Catalog\Models\Track;
 use SaniTube\Distribution\Contracts\Distributor;
 use SaniTube\Foundation\Validation\ValidationIssue;
 use SaniTube\Foundation\Validation\ValidationResult;
@@ -26,20 +24,20 @@ use Throwable;
  * stricter and different: a release can be perfectly valid and still be refused
  * for a territory restriction or a genre code one store does not recognise.
  *
- * **No identifier is ever minted here.** A missing ISRC is a validation error,
- * full stop. Assigning one automatically to a recording that may already have
- * been distributed under a different ISRC is the one mistake that cannot be
- * taken back once a store has seen it — and the platform has no way to know
- * whether a legacy import already carries one. Assignment is a separate,
- * deliberate service in a later ticket.
+ * The second layer lives in {@see ValidateReleaseIdentifiers} rather than here,
+ * because it does not depend on the destination and a label needs it before
+ * choosing one. This composes it; it is not a second copy.
  */
 final readonly class ValidateDelivery
 {
-    public function __construct(private ValidateRelease $releases) {}
+    public function __construct(
+        private ValidateRelease $releases,
+        private ValidateReleaseIdentifiers $identifiers,
+    ) {}
 
     public function handle(Release $release, Distributor $distributor): ValidationResult
     {
-        $issues = [...$this->releases->handle($release)->issues, ...$this->identifierErrors($release)];
+        $issues = [...$this->releases->handle($release)->issues, ...$this->identifiers->handle($release)];
 
         if (! $distributor->isAvailable()) {
             // Not configured is not approval. Skipping the distributor's
@@ -123,52 +121,5 @@ final readonly class ValidateDelivery
         }
 
         return new ValidationResult($issues);
-    }
-
-    /**
-     * @return list<ValidationIssue>
-     */
-    private function identifierErrors(Release $release): array
-    {
-        $errors = [];
-
-        if (! $this->hasIdentifier($release, ExternalIdentifierType::Upc)
-            && ! $this->hasIdentifier($release, ExternalIdentifierType::Ean)) {
-            $errors[] = ValidationIssue::error(
-                'NO_PRODUCT_IDENTIFIER',
-                'identifiers',
-                'The release has no UPC or EAN. Stores identify a product by it, and SaniTube does not mint one.',
-            );
-        }
-
-        foreach ($release->tracks()->get() as $track) {
-            /** @var Track $track */
-            if ($track->externalIdentifiers()
-                ->where('type', ExternalIdentifierType::Isrc->value)
-                ->whereNotNull('active_marker')
-                ->doesntExist()) {
-                $errors[] = ValidationIssue::error(
-                    'TRACK_NO_ISRC',
-                    'tracks.'.$track->uuid,
-                    sprintf(
-                        'Track "%s" has no active ISRC. Assign one deliberately — SaniTube never mints '
-                            .'an ISRC, because a recording that was already distributed elsewhere '
-                            .'already has one.',
-                        $track->title,
-                    ),
-                    ['title' => $track->title],
-                );
-            }
-        }
-
-        return $errors;
-    }
-
-    private function hasIdentifier(Release $release, ExternalIdentifierType $type): bool
-    {
-        return $release->externalIdentifiers()
-            ->where('type', $type->value)
-            ->whereNotNull('active_marker')
-            ->exists();
     }
 }

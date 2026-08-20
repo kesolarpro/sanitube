@@ -130,3 +130,82 @@ export interface ReleaseDetail {
     readiness_problems: ValidationIssue[];
     actions: ReleaseActions;
 }
+
+/**
+ * REL-004. What would cross to a distributor, and what still stops it.
+ *
+ * Three answers kept apart on purpose, because a release can be blocked by any
+ * one of them while the other two are fine:
+ *
+ *   - `package` is the assembled content, or `null` with a `refusal` code.
+ *   - `blocking_identifiers` are the UPC and per-track ISRC every delivery
+ *     needs, whoever it goes to. They do **not** stop the package assembling.
+ *   - `destinations_configured` is how many real distributors this
+ *     installation has. Zero means a perfect package is still going nowhere.
+ *
+ * `prepared` means the package assembled. It does not mean the release may be
+ * delivered, and the screen never says it does.
+ */
+export interface PackagedArtistCredit {
+    name: string;
+    role: string;
+    position: number;
+    isni: string | null;
+}
+
+export interface PackagedContributorCredit {
+    name: string;
+    role: string;
+    ipi: string | null;
+    isni: string | null;
+}
+
+export interface PackagedTrackRow {
+    uuid: string;
+    disc_number: number;
+    track_number: number;
+    title: string;
+    version_title: string | null;
+    isrc: string | null;
+    language_code: string;
+    is_instrumental: boolean;
+    is_explicit: boolean;
+    duration_ms: number | null;
+    p_line: string | null;
+    genre_primary: string | null;
+    genre_secondary: string | null;
+    master_asset_uuid: string;
+    is_focus_track: boolean;
+    artists: PackagedArtistCredit[];
+    contributors: PackagedContributorCredit[];
+}
+
+export interface PackagedRelease {
+    uuid: string;
+    type: string;
+    title: string;
+    version_title: string | null;
+    upc: string | null;
+    catalogue_number: string | null;
+    label_name: string | null;
+    release_date: string | null;
+    original_release_date: string | null;
+    language_code: string;
+    p_line: string | null;
+    c_line: string | null;
+    cover_asset_uuid: string;
+    artists: PackagedArtistCredit[];
+    tracks: PackagedTrackRow[];
+}
+
+export interface ReleasePackagePreparation {
+    release: string;
+    prepared: boolean;
+    /** A refusal code, never a sentence from the server. */
+    refusal: string | null;
+    /** The codes or uuids the refusal carries, for the translated message. */
+    refusal_context: string[];
+    package: PackagedRelease | null;
+    blocking_identifiers: ValidationIssue[];
+    destinations_configured: number;
+}
