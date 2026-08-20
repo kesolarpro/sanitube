@@ -63,6 +63,42 @@ final class ArtworkGenerationException extends RuntimeException
         );
     }
 
+    /**
+     * ART-004. A ceiling this installation set, named by window.
+     *
+     * The window is in the context because "you have run out" and "you have run
+     * out until Tuesday" are different instructions.
+     */
+    public static function ceilingReached(string $window): self
+    {
+        return new self(
+            sprintf('The %s artwork generation ceiling has been reached. Nothing was sent.', $window),
+            ArtworkRefusal::CeilingReached,
+            ['window' => $window],
+        );
+    }
+
+    public static function circuitOpen(string $provider, int $minutes): self
+    {
+        return new self(
+            sprintf(
+                'The [%s] image provider has failed repeatedly and is being left alone for %d minutes.',
+                $provider,
+                $minutes,
+            ),
+            ArtworkRefusal::ProviderCircuitOpen,
+            ['provider' => $provider, 'cooldown_minutes' => $minutes],
+        );
+    }
+
+    public static function paused(): self
+    {
+        return new self(
+            'Artwork generation is switched off on this installation, or background work is paused.',
+            ArtworkRefusal::GenerationPaused,
+        );
+    }
+
     public static function emptyPrompt(): self
     {
         return new self(

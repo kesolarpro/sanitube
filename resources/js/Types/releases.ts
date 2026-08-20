@@ -110,11 +110,35 @@ export interface ReleaseValidation {
  * leaves somebody re-reading provider documentation for an afternoon. Both are
  * settings, so there are two honest ways out and the operator picks one.
  */
+export interface ArtworkGenerationRequest {
+    uuid: string;
+    status: string;
+    /** Catalogue data the operator wrote — the only thing telling two attempts apart. */
+    prompt: string;
+    provider: string;
+    model: string | null;
+    /** A refusal code, never a sentence. */
+    failure: string | null;
+    /** The asset uuid. Never a storage key: where it lives is the storage service's answer. */
+    asset: string | null;
+    attempts: number;
+    requested_at: string | null;
+    completed_at: string | null;
+}
+
 export interface ArtworkGenerationReadiness {
     available: boolean;
     /** A refusal code, never a sentence. */
     refusal: string | null;
     detail: Record<string, string>;
+    /**
+     * ART-004. What is left in each rolling window. `null` means no ceiling is
+     * configured for that window — reported as such rather than as a very large
+     * number.
+     */
+    remaining: Record<string, number | null>;
+    requests: ArtworkGenerationRequest[];
+    can_request: boolean;
 }
 
 export interface ReleaseActions {

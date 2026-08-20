@@ -33,6 +33,7 @@ const TONES: Record<string, Tone> = {
     VERIFYING: 'progress',
     VALIDATING: 'progress',
     SUBMITTING: 'progress',
+    // ART-004: a cover request that has reached a provider.
     SUBMITTED: 'progress',
     ACCEPTED: 'progress',
     DELIVERED: 'progress',

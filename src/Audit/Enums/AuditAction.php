@@ -134,6 +134,14 @@ enum AuditAction: string
 
     // ------------------------------------------------------------ generation
 
+    /*
+     * ART-004. A cover generation is a paid call to an outside service. "Who
+     * asked for this, and when" is the first question after an invoice, and the
+     * generation row alone does not answer it once somebody has deleted the
+     * release it was for.
+     */
+    case ArtworkGenerationRequested = 'artwork.generation.requested';
+
     case GenerationStarted = 'generation.generation.started';
     case GenerationResultSelected = 'generation.result.selected';
 
@@ -201,6 +209,11 @@ enum AuditAction: string
 
             self::GenerationStarted,
             self::GenerationResultSelected => AuditSubject::Generation,
+
+            // The generation request itself. Not the release: a release may
+            // outlive several attempts, and several attempts may outlive the
+            // release.
+            self::ArtworkGenerationRequested => AuditSubject::ArtworkGeneration,
 
             self::FailedJobRetried,
             self::FailedJobForgotten => AuditSubject::FailedJob,

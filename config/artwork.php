@@ -131,4 +131,85 @@ return [
         ],
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Generation ceilings
+    |--------------------------------------------------------------------------
+    |
+    | How many cover generations this installation is willing to ask for inside
+    | a rolling window. **Operational safety, not finance**: these count
+    | requests, because requests are what the platform can observe. There is no
+    | price, no currency and no balance anywhere near them.
+    |
+    | Rolling rather than calendar: a calendar month needs a time zone to be
+    | meaningful and a reset somebody has to remember, and it can be gamed by
+    | starting a run at 23:55.
+    |
+    | Zero means no ceiling, and is the shipped default. A platform that refused
+    | generation out of the box would be one whose first experience of the
+    | feature is a refusal. The ceiling is for an operator who has decided what
+    | they are willing to spend.
+    |
+    */
+
+    'limits' => [
+        'daily' => (int) env('SANITUBE_ARTWORK_DAILY_LIMIT', 0),
+        'weekly' => (int) env('SANITUBE_ARTWORK_WEEKLY_LIMIT', 0),
+        'monthly' => (int) env('SANITUBE_ARTWORK_MONTHLY_LIMIT', 0),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Circuit breaker
+    |--------------------------------------------------------------------------
+    |
+    | Stop asking a provider that has stopped answering. Consecutive failures,
+    | not a failure rate: a provider that has failed the last five times in a
+    | row is broken now, whatever its monthly average says.
+    |
+    | The cooldown is what makes this a breaker rather than a fuse. Without it
+    | an outage would disable generation until somebody intervened, which on an
+    | unattended installation means until somebody noticed.
+    |
+    | Zero failures disables the breaker entirely — a legitimate setting for an
+    | operator who would rather see every failure than have the platform decide
+    | to stop asking.
+    |
+    */
+
+    'circuit' => [
+        'consecutive_failures' => (int) env('SANITUBE_ARTWORK_CIRCUIT_FAILURES', 5),
+        'cooldown_minutes' => (int) env('SANITUBE_ARTWORK_CIRCUIT_COOLDOWN', 15),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Generation switch
+    |--------------------------------------------------------------------------
+    |
+    | A dedicated off switch for artwork generation, separate from OPS-002's
+    | global background-work pause. Both stop it; they answer different
+    | questions. The global pause means "this installation is doing nothing
+    | right now"; this means "this installation does not generate covers",
+    | which an operator may want to be permanently true while everything else
+    | keeps running.
+    |
+    */
+
+    'generation_enabled' => (bool) env('SANITUBE_ARTWORK_GENERATION_ENABLED', true),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Submission claim
+    |--------------------------------------------------------------------------
+    |
+    | How long one worker's claim on a generation request lasts before another
+    | may take it. Long enough that a slow provider call is not overtaken;
+    | short enough that a worker killed mid-flight does not park a request for
+    | ever.
+    |
+    */
+
+    'submission_claim_seconds' => (int) env('SANITUBE_ARTWORK_CLAIM_SECONDS', 900),
+
 ];

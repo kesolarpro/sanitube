@@ -48,6 +48,15 @@ enum AuditSubject: string
     case MetadataSuggestion = 'metadata_suggestion';
     case IngestionBatch = 'ingestion_batch';
     case Generation = 'generation';
+
+    /**
+     * ART-004. A request to make a cover.
+     *
+     * Its own subject rather than the release's: a release may outlive several
+     * attempts, and an attempt may outlive the release it was for — the
+     * generation row keeps its record when `release_id` is nulled.
+     */
+    case ArtworkGeneration = 'artwork_generation';
     case FailedJob = 'failed_job';
     case System = 'system';
 }
