@@ -26,6 +26,19 @@ final readonly class EnrichmentEligibility
 {
     public function __construct(private AiManager $models) {}
 
+    /**
+     * Whether this installation has a model at all.
+     *
+     * Asked separately from `refusalFor()` because "no model is configured" is
+     * a property of the installation and every other refusal is a property of
+     * one asset. A backlog sweep needs to say the first *once*, before it walks
+     * a catalogue to be told the same thing four thousand times.
+     */
+    public function hasModel(): bool
+    {
+        return $this->models->isAvailable();
+    }
+
     public function refusalFor(Asset $asset): ?EnrichmentRefusal
     {
         if (! $this->models->isAvailable()) {
