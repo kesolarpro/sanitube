@@ -8,6 +8,7 @@ use SaniTube\Media\Analyzers\ProbeRunner;
 use SaniTube\Media\Contracts\AudioFingerprinter;
 use SaniTube\Media\Exceptions\FingerprintFailed;
 use SaniTube\Media\FingerprintResult;
+use SaniTube\Media\Fingerprints\FingerprintPoints;
 use Symfony\Component\Process\ExecutableFinder;
 use Throwable;
 
@@ -26,6 +27,16 @@ use Throwable;
  * well as the whole of it — the tail is where fades and silence live, and they
  * are the least distinctive part.
  *
+ * **The raw fingerprint is what gets stored, not the base64 one.** `fpcalc`
+ * prints a compressed string by default and it is the form AcoustID's API
+ * accepts, but it is entropy-coded: fingerprints differing by one bit compress
+ * to strings differing everywhere, so it supports equality and nothing else.
+ * Equality was never the interesting question — a WAV and an MP3 of one master
+ * are the same recording and never byte-identical. `-raw` gives the 32-bit
+ * words that {@see FingerprintPoints} stores and similarity is measured over.
+ * Nothing here submits to AcoustID; if something ever does, that ticket adds
+ * the compressed form beside this one rather than trading it away.
+ *
  * **The invocation is an argument list, never a shell string.** A filename is
  * caller-controlled, and `fpcalc "$path"` is a command injection waiting for
  * the first file called `; rm -rf`. {@see ProbeRunner} takes an array and
@@ -40,7 +51,7 @@ final readonly class ChromaprintFingerprinter implements AudioFingerprinter
      * comparable, and this is what lets a recalibration tell which stored rows
      * it may compare and which it must recompute.
      */
-    public const VERSION = '1';
+    public const VERSION = '2';
 
     public function __construct(
         private ProbeRunner $runner = new ProbeRunner,
@@ -77,6 +88,9 @@ final readonly class ChromaprintFingerprinter implements AudioFingerprinter
                     // JSON, so parsing is a decode rather than a guess at a
                     // key=value format that has changed before.
                     '-json',
+                    // The 32-bit words rather than the compressed string, so
+                    // the result can be compared and not only matched.
+                    '-raw',
                     '-length', (string) $this->seconds(),
                     $localPath,
                 ],
@@ -88,12 +102,22 @@ final readonly class ChromaprintFingerprinter implements AudioFingerprinter
 
         $decoded = json_decode($output, true);
 
-        if (! is_array($decoded) || ! is_string($decoded['fingerprint'] ?? null)) {
+        // `-raw` makes the fingerprint a list of integers. A string here means
+        // the flag was dropped or the tool changed shape, and storing the
+        // compressed form under a version that promises raw words would make
+        // every later comparison quietly meaningless.
+        if (! is_array($decoded) || ! is_array($decoded['fingerprint'] ?? null)) {
+            throw FingerprintFailed::unreadableOutput($this->name());
+        }
+
+        $points = array_values(array_map(intval(...), array_filter($decoded['fingerprint'], is_numeric(...))));
+
+        if ($points === []) {
             throw FingerprintFailed::unreadableOutput($this->name());
         }
 
         return new FingerprintResult(
-            fingerprint: $decoded['fingerprint'],
+            fingerprint: FingerprintPoints::encode($points),
             // The tool's own reading of what it decoded. Deliberately not the
             // analysis row's duration: the fingerprint is a function of the
             // audio fpcalc actually saw, and a disagreement between the two is

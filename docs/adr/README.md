@@ -39,3 +39,8 @@ true at the time remains readable.
 | [0010](ADR-0010-external-identifier-lifecycle.md) | External identifiers are immutable, revocable, never deleted | Accepted |
 | [0011](ADR-0011-read-projections-deferred.md) | Read projections deferred; canonical relations first | Deferred |
 | [0012](ADR-0012-asset-storage-compensation.md) | No distributed transaction between the database and object storage | Accepted |
+| [0013](ADR-0013-design-system-foundations.md) | Design system foundations | Proposed |
+| [0014](ADR-0014-operational-audit-log.md) | The operational audit log | Accepted |
+| [0015](ADR-0015-reimport-storage-amplification.md) | Re-import storage amplification accepted for V1 | Accepted |
+| [0016](ADR-0016-three-levels-of-truth.md) | Measured, proposed, suggested | Accepted |
+| [0017](ADR-0017-unsigned-columns-and-raw-arithmetic.md) | Unsigned columns and raw arithmetic | Accepted |

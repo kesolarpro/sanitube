@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SaniTube\Media\Services;
 
-use Illuminate\Support\Collection;
+use Illuminate\Database\Eloquent\Collection;
 use SaniTube\Media\Models\AudioFingerprint;
 
 /**
