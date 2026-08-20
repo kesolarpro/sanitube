@@ -7,15 +7,14 @@ namespace SaniTube\Ui\Queries;
 use Illuminate\Contracts\Database\Query\Builder as BuilderContract;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 use SaniTube\Catalog\Enums\TrackStatus;
 use SaniTube\Distribution\Enums\DistributionDeliveryStatus;
+use SaniTube\Foundation\Database\SchemaPresence;
 use SaniTube\Ingestion\Enums\IngestionBatchStatus;
 use SaniTube\Ingestion\Enums\TrackCandidateStatus;
 use SaniTube\MusicGeneration\Enums\MusicGenerationStatus;
 use SaniTube\Observability\Health\OperationalHealthStore;
 use SaniTube\Releases\Enums\ReleaseStatus;
-use Throwable;
 
 /**
  * Everything the dashboard shows, read once and read cheaply.
@@ -43,6 +42,7 @@ final readonly class DashboardQuery
 {
     public function __construct(
         private OperationalHealthStore $health,
+        private SchemaPresence $tables,
     ) {}
 
     /**
@@ -270,10 +270,6 @@ final readonly class DashboardQuery
 
     private function tableExists(string $table): bool
     {
-        try {
-            return Schema::hasTable($table);
-        } catch (Throwable) {
-            return false;
-        }
+        return $this->tables->has($table);
     }
 }
