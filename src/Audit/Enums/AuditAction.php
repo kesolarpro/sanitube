@@ -142,6 +142,19 @@ enum AuditAction: string
      */
     case ArtworkGenerationRequested = 'artwork.generation.requested';
 
+    /**
+     * Steering the one thing in SaniTube that spends money unattended.
+     *
+     * Recorded because the questions after a surprising month are *who*
+     * granted autonomy and *when*, and a plan row holds only its current
+     * state. Pausing and resuming are separate actions rather than one with a
+     * flag: a log that says "changed" makes somebody open the diff.
+     */
+    case ProductionPlanPaused = 'production.plan.paused';
+    case ProductionPlanResumed = 'production.plan.resumed';
+    case ProductionAutonomyChanged = 'production.autonomy.changed';
+    case ProductionOccasionCancelled = 'production.occasion.cancelled';
+
     case GenerationStarted = 'generation.generation.started';
     case GenerationResultSelected = 'generation.result.selected';
 
@@ -214,6 +227,15 @@ enum AuditAction: string
             // outlive several attempts, and several attempts may outlive the
             // release.
             self::ArtworkGenerationRequested => AuditSubject::ArtworkGeneration,
+
+            self::ProductionPlanPaused,
+            self::ProductionPlanResumed,
+            self::ProductionAutonomyChanged => AuditSubject::ProductionPlan,
+
+            // The occasion, never the plan. A plan may outlive many cancelled
+            // occasions, and recording the plan would make "which one did they
+            // call off" unanswerable.
+            self::ProductionOccasionCancelled => AuditSubject::ProductionSlot,
 
             self::FailedJobRetried,
             self::FailedJobForgotten => AuditSubject::FailedJob,
