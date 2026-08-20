@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace SaniTube\Ui\Queries;
 
 use App\Models\User;
+use SaniTube\Artwork\Models\ArtworkGeneration;
 use SaniTube\Artwork\Services\ArtworkGenerationReadiness;
+use SaniTube\Artwork\Services\ArtworkSpendGuard;
 use SaniTube\Artwork\Services\MeasuredDimensions;
 use SaniTube\Catalog\Enums\ExternalIdentifierType;
 use SaniTube\Catalog\ManuallyAssignableIdentifiers;
@@ -50,6 +52,7 @@ final readonly class ReleaseDetailQuery
         private ValidateRelease $validator,
         private MeasuredDimensions $dimensions,
         private ArtworkGenerationReadiness $artwork,
+        private ArtworkSpendGuard $spend,
     ) {}
 
     /**
@@ -86,7 +89,16 @@ final readonly class ReleaseDetailQuery
             // has known this since ART-002 and had no caller, so an operator
             // who configured a provider and expected covers got nothing and no
             // explanation. Costs nothing to ask: it compares two settings.
-            'artwork_generation' => $this->artwork->describe(),
+            'artwork_generation' => [
+                ...$this->artwork->describe(),
+
+                // ART-004. What this installation has left, and what it has
+                // already asked for. A ceiling nobody can see is a ceiling
+                // somebody hits by surprise.
+                'remaining' => $this->spend->remaining(),
+                'requests' => $this->generationRequests($release),
+                'can_request' => $mayWrite,
+            ],
             'artists' => $this->artists($release),
             'tracks' => $this->tracks($release),
             'identifiers' => $this->identifiers($release),
@@ -133,6 +145,48 @@ final readonly class ReleaseDetailQuery
                 'can_assign_identifier' => $mayWrite,
             ],
         ];
+    }
+
+    /**
+     * What has been asked for on this release, newest first.
+     *
+     * Bounded: a person regenerating until they like one should see their
+     * recent attempts, not a year of them. The prompt is included because it is
+     * the only thing that distinguishes two attempts from each other — it is
+     * catalogue data the operator wrote, not a secret.
+     *
+     * **No provider reference and no storage key.** The asset uuid is how the
+     * interface names an image; where it lives is the storage service's answer
+     * and no browser needs it.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function generationRequests(Release $release): array
+    {
+        $rows = [];
+
+        $requests = ArtworkGeneration::query()
+            ->where('release_id', $release->getKey())
+            ->orderByDesc('id')
+            ->limit(10)
+            ->get();
+
+        foreach ($requests as $request) {
+            $rows[] = [
+                'uuid' => $request->uuid,
+                'status' => $request->status->value,
+                'prompt' => $request->prompt,
+                'provider' => $request->provider,
+                'model' => $request->model,
+                'failure' => $request->failure_code?->value,
+                'asset' => $request->asset?->uuid,
+                'attempts' => $request->attempts,
+                'requested_at' => $request->created_at?->toAtomString(),
+                'completed_at' => $request->completed_at?->toAtomString(),
+            ];
+        }
+
+        return $rows;
     }
 
     /**

@@ -41,5 +41,19 @@ final class UiServiceProvider extends ServiceProvider
         RateLimiter::for('sanitube-asset-preview', fn (Request $request): Limit => $request->user() !== null
             ? Limit::perMinute(60)->by('preview:user:'.$request->user()->getAuthIdentifier())
             : Limit::perMinute(10)->by('preview:ip:'.$request->ip()));
+
+        /*
+         * ART-004. Cover generation is the only interface action that spends
+         * money at an outside provider, so it is the only one with a limit this
+         * tight. Six a minute is far above any human describing a record and
+         * far below what a retry loop in a browser would produce.
+         *
+         * The ceiling in `artwork.limits` is the budget; this is the tap. They
+         * answer different questions: one is how much this installation is
+         * willing to spend, the other is how fast anybody may spend it.
+         */
+        RateLimiter::for('sanitube-artwork-generation', fn (Request $request): Limit => $request->user() !== null
+            ? Limit::perMinute(6)->by('artwork:user:'.$request->user()->getAuthIdentifier())
+            : Limit::perMinute(1)->by('artwork:ip:'.$request->ip()));
     }
 }

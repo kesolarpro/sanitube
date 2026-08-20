@@ -49,6 +49,23 @@ final readonly class GenerateArtwork
      */
     public function handle(string $prompt, ?string $quality = null): Asset
     {
+        return $this->produce($prompt, $quality)['asset'];
+    }
+
+    /**
+     * The asset **and** what the provider said about it.
+     *
+     * ART-004 needs the model name for provenance, and the asset alone cannot
+     * carry it: an asset is bytes this platform verified, and which model made
+     * them is a fact about the request rather than about the file. `handle()`
+     * stays for callers that only want the cover.
+     *
+     * @return array{asset: Asset, model: string|null}
+     *
+     * @throws ArtworkGenerationException
+     */
+    public function produce(string $prompt, ?string $quality = null): array
+    {
         if (trim($prompt) === '') {
             throw ArtworkGenerationException::emptyPrompt();
         }
@@ -107,7 +124,7 @@ final readonly class GenerateArtwork
                 throw ArtworkGenerationException::notStored();
             }
 
-            return $verified;
+            return ['asset' => $verified, 'model' => $image->model];
         } catch (ArtworkGenerationException $exception) {
             throw $exception;
         } catch (Throwable) {

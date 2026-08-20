@@ -2,7 +2,7 @@
     "$comment": "Machine-readable project state. Any new session reads this first, then verifies it against GitHub before trusting it. Written at the end of each ticket, so a stale entry means a session ended mid-ticket — check the branch and CI rather than the status field.",
     "updated_at": "2026-08-20",
     "current_phase": "Catalogue scale. Un catalogue entre depuis le navigateur (BULK-001), se décide en masse (BULK-002), s'auto-étiquette depuis les tags embarqués (TAG-001), et les écrans sont mesurés O(1) jusqu'à 900 pistes (PERF-001). Le déclencheur de génération d'artwork attend un plafond de dépense (ART-004).",
-    "last_completed_ticket": "TAG-001",
+    "last_completed_ticket": "ART-003",
     "default_branch": "main — confirmed by API this session. The EXTERNAL_ADMIN_ACTION_REQUIRED blocker is cleared.",
     "tickets": {
         "ARCH-001": {
@@ -643,7 +643,8 @@
         "BULK-002": "Décider en masse dans la file de revue. Un job par candidat, jamais d'override en masse, capacité demandée avant mise en file. 14 tests / 46 assertions.",
         "PERF-001": "Mesuré à 900 pistes : écrans d'index 1-3 requêtes, payload identique. SchemaPresence supprime 11 lookups répétés au tableau de bord. Garde validé contre un N+1 réel.",
         "TAG-001": "Les étiquettes embarquées remplissent le candidat. ffprobe les renvoyait déjà et rien ne les lisait. Une étiquette n'écrase jamais un titre choisi par une personne.",
-        "ART-003": "L'écran de release dit si une pochette pourrait être générée ici, et quels deux nombres divergent. Le déclencheur reste non câblé faute de plafond de dépense (ART-004)."
+        "ART-003": "L'écran de release dit si une pochette pourrait être générée ici, et quels deux nombres divergent. Le déclencheur reste non câblé faute de plafond de dépense (ART-004).",
+        "ART-004": "Un appel payant obtient un plafond avant d'obtenir un bouton. Table artwork_generations comme registre, plafonds glissants, disjoncteur par fournisseur, interrupteur dédié + pause globale, réclamation atomique, limiteur de débit. Générer n'est pas choisir. 18 tests / 87 assertions ; 10 mutations, 1 survivante (le plafond comptait par created_at) corrigée puis tuée."
     },
     "architecture_amendments": [
         {
@@ -692,13 +693,6 @@
             "blocking": "Items 17 and 18 of the Phase 2 order — DDEX and a first distributor adapter. Not certification, which DIST-002 covers separately.",
             "unblocked_by": "An environment whose egress allows ddex.net, kb.ddex.net and the chosen distributor's developer host; or the ERN schemas and the distributor's OpenAPI document committed into docs/.",
             "status": "open"
-        },
-        {
-            "id": "ART-004",
-            "summary": "GenerateArtwork has no spend ceiling of any kind: there is no ArtworkGeneration record, so nothing counts generations and there is nothing to bound. Wiring a paid generator to a button without one would violate the cost mandate.",
-            "blocking": "the artwork generation trigger, nothing else",
-            "action": "Internal work, not a human action: a migration, a model, a guard, then the trigger.",
-            "status": "open"
         }
     ],
     "notes": {
@@ -739,9 +733,9 @@
         "since": "UI-001",
         "note": "Nine tickets (ING/MED/CAT/AI/GEN/REL/DIST/SEC-001 and PR #12) were merged under an earlier autonomous-chaining instruction that bypassed review. A retroactive audit is under way; they stay in main and any correction becomes a follow-up ticket, not a revert. BULK-001b, UI-004 and UI-005 were merged under the session's explicit merge policy for read-only UI, ingestion tooling and documentation: none changes authentication, authorization, rights, money, identifier lifecycle, destructive storage behaviour or any external action."
     },
-    "main_sha": "07f3f18",
-    "current_ticket": "ART-003",
-    "tests": "1802 passed, 1 skipped, 22864 assertions",
+    "main_sha": "445264c",
+    "current_ticket": "ART-004",
+    "tests": "1820 passed, 1 skipped, 23189 assertions",
     "phpstan": {
         "level": 6,
         "baseline": false,

@@ -32,4 +32,18 @@ enum ArtworkRefusal: string
 
     /** Nothing to describe the image with. */
     case EmptyPrompt = 'EMPTY_PROMPT';
+
+    /*
+     * ART-004. Three refusals that happen *before* anything is sent, and cost
+     * nothing — which is the whole point of them existing.
+     */
+
+    /** A ceiling this installation set has been reached. Names which window. */
+    case CeilingReached = 'CEILING_REACHED';
+
+    /** The provider has failed repeatedly and is being left alone to recover. */
+    case ProviderCircuitOpen = 'PROVIDER_CIRCUIT_OPEN';
+
+    /** Artwork generation is switched off, or background work is paused. */
+    case GenerationPaused = 'GENERATION_PAUSED';
 }

@@ -40,6 +40,7 @@ use SaniTube\Ui\Http\Controllers\Ingestion\ImportActionController;
 use SaniTube\Ui\Http\Controllers\Ingestion\ImportScreenController;
 use SaniTube\Ui\Http\Controllers\Ingestion\InboxDepositController;
 use SaniTube\Ui\Http\Controllers\Ingestion\InboxDiscardController;
+use SaniTube\Ui\Http\Controllers\Releases\GenerateCoverController;
 use SaniTube\Ui\Http\Controllers\Releases\ReleaseActionController;
 use SaniTube\Ui\Http\Controllers\Releases\ReleaseBuilderController;
 use SaniTube\Ui\Http\Controllers\Releases\ReleaseIndexController;
@@ -414,6 +415,21 @@ Route::middleware(['web', HandleInertiaRequests::class, 'auth', 'active'])->grou
         Route::post('releases/{release}/tracks/order', [ReleaseActionController::class, 'reorder'])->name('releases.tracks.order');
         Route::post('releases/{release}/artists', [ReleaseActionController::class, 'setArtists'])->name('releases.artists');
         Route::post('releases/{release}/cover', [ReleaseActionController::class, 'setCover'])->name('releases.cover');
+
+        /*
+         * ART-004. Asking for a cover to be generated.
+         *
+         * ART-003 measured whether generation was possible and said so; it
+         * stopped short of a button because a paid call had no ceiling.
+         * ART-004 built the ceiling, so this can exist.
+         *
+         * Throttled as well as role-guarded: the role says who may spend, and
+         * the limiter says how fast. A retry loop in a browser is the cheapest
+         * way to turn a working feature into an invoice.
+         */
+        Route::post('releases/{release}/cover/generate', GenerateCoverController::class)
+            ->middleware('throttle:sanitube-artwork-generation')
+            ->name('releases.cover.generate');
         Route::post('releases/{release}/ready', [ReleaseActionController::class, 'markReady'])->name('releases.ready');
 
         // CAT-005. A UPC or an EAN, typed in by somebody holding one. SaniTube
