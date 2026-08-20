@@ -20,6 +20,7 @@ use SaniTube\MusicGeneration\Enums\MusicGenerationStatus;
  * @property int|null $project_id
  * @property string $provider
  * @property string|null $provider_job_id
+ * @property Carbon|null $submission_claimed_at
  * @property MusicGenerationStatus $status
  * @property string $prompt
  * @property string|null $lyrics
@@ -57,6 +58,7 @@ final class MusicGeneration extends Model
             'commercial_rights_status' => CommercialRightsStatus::class,
             'instrumental' => 'boolean',
             'parameters' => 'array',
+            'submission_claimed_at' => 'datetime',
             'submitted_at' => 'datetime',
             'completed_at' => 'datetime',
             'last_polled_at' => 'datetime',
