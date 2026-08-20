@@ -1,8 +1,8 @@
 {
   "$comment": "Machine-readable project state. Any new session reads this first, then verifies it against GitHub before trusting it. Written at the end of each ticket, so a stale entry means a session ended mid-ticket — check the branch and CI rather than the status field.",
   "updated_at": "2026-08-20",
-  "current_phase": "Phase 4 enrichment. ENR-004 is where ADR-0016 is enforced against a click: acceptance writes catalogue data only through the catalogue.",
-  "last_completed_ticket": "ENR-004",
+  "current_phase": "Phase 4 enrichment complete end to end: transcript to suggestion to a screen a person answers on, with the four levels of truth kept apart.",
+  "last_completed_ticket": "ENR-005",
   "default_branch": "main",
   "tickets": {
     "ARCH-001": {
@@ -529,10 +529,19 @@
       "notes": "Call ceilings and a ledger-derived circuit breaker. Counts calls, never money. Transcription spend is NOT covered."
     },
     "ENR-004": {
+      "status": "merged",
+      "branch": "claude/sanitube-autonomous-v1-5pycx0",
+      "pr": 72,
+      "ci": "green 10/10 (run 32363909815)",
+      "report": "docs/reports/ENR-004.md",
+      "merge_commit": "0b2078e",
+      "notes": "Accept / edit-before-accept / reject / regenerate through SetTrackMetadata. Found that the audit scrubber silently drops list-valued context."
+    },
+    "ENR-005": {
       "status": "in_progress",
       "branch": "claude/sanitube-autonomous-v1-5pycx0",
-      "report": "docs/reports/ENR-004.md",
-      "notes": "Accept / edit-before-accept / reject / regenerate. Acceptance goes through SetTrackMetadata in Catalog. Found that the audit scrubber silently drops list-valued context."
+      "report": "docs/reports/ENR-005.md",
+      "notes": "The review screen. Four levels as four server-named objects; canonical stays empty rather than being filled from the suggestion. Refusal codes are not translated yet."
     }
   },
   "architecture_amendments": [

@@ -52,6 +52,7 @@ return [
         'artists' => 'Künstler',
         'assets' => 'Dateien',
         'duplicates' => 'Duplikate',
+        'suggestions' => 'Vorschläge',
         'releases' => 'Veröffentlichungen',
         'distribution' => 'Vertrieb',
         'rights' => 'Rechte',
@@ -1006,6 +1007,64 @@ return [
             'MIXER' => 'Mix',
             'MASTERING' => 'Mastering',
             'PROGRAMMER' => 'Programmierung',
+        ],
+    ],
+
+    'enrichment' => [
+        'title' => 'Vorschläge',
+        'description' => 'Was ein Modell über Ihre Aufnahmen vorgeschlagen hat. Nichts davon steht im Katalog, bis Sie es dorthin setzen.',
+        'empty' => 'Keine Vorschläge',
+        'empty_description' => 'Es wurde noch nichts vorgeschlagen. Fordern Sie einen Vorschlag für eine Datei mit Transkript an.',
+        'produced_by' => 'Erstellt von :provider (:model)',
+        'evidence_stale' => 'Das zugrunde liegende Transkript hat sich seitdem geändert.',
+        'no_track' => 'Noch kein Titel. Ein Vorschlag kann keinen anlegen — übernehmen Sie die Aufnahme zuerst.',
+        'not_analysed' => 'Nicht analysiert.',
+        'no_transcript' => 'Kein Transkript.',
+        'contradicts_hint' => 'Das Modell hat eine andere Sprache gehört als erwartet.',
+
+        'filter' => [
+            'any_status' => 'Jeder Zustand',
+        ],
+
+        'column' => [
+            'status' => 'Zustand',
+        ],
+
+        'status' => [
+            'PROPOSED' => 'Wartet auf Sie',
+            'ACCEPTED' => 'Angenommen',
+            'REJECTED' => 'Abgelehnt',
+            'SUPERSEDED' => 'Überholt',
+        ],
+
+        'level' => [
+            'canonical' => 'Im Katalog',
+            'canonical_note' => 'Was der Katalog sagt. Ein Mensch hat es eingetragen.',
+            'measured' => 'Gemessen',
+            'measured_note' => 'Aus der Datei selbst gelesen. Fakten.',
+            'proposed' => 'Gehört',
+            'proposed_note' => 'Was ein Sprachmodell gehört hat. Eng gefasst und trotzdem eine Vermutung.',
+            'suggested' => 'Vorgeschlagen',
+            'suggested_note' => 'Was ein Sprachmodell aus dem Transkript gemacht hat. Das schwächste der vier — bearbeiten Sie es, bevor Sie es annehmen.',
+        ],
+
+        'field' => [
+            'title' => 'Titel',
+            'language' => 'Sprache',
+            'genres' => 'Genres',
+            'moods' => 'Stimmungen',
+            'themes' => 'Themen',
+            'duration' => 'Länge',
+            'codec' => 'Codec',
+            'covered' => 'Abgedeckt',
+            'confidence' => 'Zuversicht des Modells',
+            'rationale' => 'Warum',
+        ],
+
+        'action' => [
+            'accept' => 'Annehmen',
+            'reject' => 'Ablehnen',
+            'regenerate' => 'Erneut fragen',
         ],
     ],
 

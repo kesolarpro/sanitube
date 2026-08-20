@@ -52,6 +52,7 @@ return [
         'artists' => 'Artistas',
         'assets' => 'Ficheiros',
         'duplicates' => 'Duplicados',
+        'suggestions' => 'Sugestões',
         'releases' => 'Lançamentos',
         'distribution' => 'Distribuição',
         'rights' => 'Direitos',
@@ -1006,6 +1007,64 @@ return [
             'MIXER' => 'Mistura',
             'MASTERING' => 'Masterização',
             'PROGRAMMER' => 'Programação',
+        ],
+    ],
+
+    'enrichment' => [
+        'title' => 'Sugestões',
+        'description' => 'O que um modelo propôs sobre as suas gravações. Nada disto entra no catálogo até que o coloque lá.',
+        'empty' => 'Sem sugestões',
+        'empty_description' => 'Ainda não foi sugerido nada. Peça uma sugestão para um ficheiro que tenha transcrição.',
+        'produced_by' => 'Produzido por :provider (:model)',
+        'evidence_stale' => 'A transcrição em que se baseou mudou entretanto.',
+        'no_track' => 'Ainda não há faixa. Uma sugestão não pode criar uma — promova primeiro a gravação.',
+        'not_analysed' => 'Não analisado.',
+        'no_transcript' => 'Sem transcrição.',
+        'contradicts_hint' => 'O modelo ouviu uma língua diferente da esperada.',
+
+        'filter' => [
+            'any_status' => 'Qualquer estado',
+        ],
+
+        'column' => [
+            'status' => 'Estado',
+        ],
+
+        'status' => [
+            'PROPOSED' => 'À sua espera',
+            'ACCEPTED' => 'Aceite',
+            'REJECTED' => 'Recusada',
+            'SUPERSEDED' => 'Ultrapassada',
+        ],
+
+        'level' => [
+            'canonical' => 'No catálogo',
+            'canonical_note' => 'O que o catálogo diz. Foi uma pessoa que o colocou.',
+            'measured' => 'Medido',
+            'measured_note' => 'Lido do próprio ficheiro. Factos.',
+            'proposed' => 'Ouvido',
+            'proposed_note' => 'O que um modelo de fala ouviu. Restrito, e ainda assim um palpite.',
+            'suggested' => 'Sugerido',
+            'suggested_note' => 'O que um modelo de linguagem tirou da transcrição. O mais fraco dos quatro — corrija antes de aceitar.',
+        ],
+
+        'field' => [
+            'title' => 'Título',
+            'language' => 'Língua',
+            'genres' => 'Géneros',
+            'moods' => 'Ambientes',
+            'themes' => 'Temas',
+            'duration' => 'Duração',
+            'codec' => 'Codec',
+            'covered' => 'Coberto',
+            'confidence' => 'Confiança do modelo',
+            'rationale' => 'Porquê',
+        ],
+
+        'action' => [
+            'accept' => 'Aceitar',
+            'reject' => 'Recusar',
+            'regenerate' => 'Perguntar de novo',
         ],
     ],
 

@@ -52,6 +52,7 @@ return [
         'artists' => 'Artistas',
         'assets' => 'Archivos',
         'duplicates' => 'Duplicados',
+        'suggestions' => 'Sugerencias',
         'releases' => 'Lanzamientos',
         'distribution' => 'Distribución',
         'rights' => 'Derechos',
@@ -1006,6 +1007,64 @@ return [
             'MIXER' => 'Mezcla',
             'MASTERING' => 'Masterización',
             'PROGRAMMER' => 'Programación',
+        ],
+    ],
+
+    'enrichment' => [
+        'title' => 'Sugerencias',
+        'description' => 'Lo que un modelo ha propuesto sobre sus grabaciones. Nada de esto entra en el catálogo hasta que usted lo ponga.',
+        'empty' => 'Sin sugerencias',
+        'empty_description' => 'Todavía no se ha sugerido nada. Pida una sugerencia para un archivo que tenga transcripción.',
+        'produced_by' => 'Producido por :provider (:model)',
+        'evidence_stale' => 'La transcripción en la que se basó ha cambiado desde entonces.',
+        'no_track' => 'No hay pista. Una sugerencia no puede crearla — promueva primero la grabación.',
+        'not_analysed' => 'Sin analizar.',
+        'no_transcript' => 'Sin transcripción.',
+        'contradicts_hint' => 'El modelo escuchó un idioma distinto del esperado.',
+
+        'filter' => [
+            'any_status' => 'Cualquier estado',
+        ],
+
+        'column' => [
+            'status' => 'Estado',
+        ],
+
+        'status' => [
+            'PROPOSED' => 'Pendiente',
+            'ACCEPTED' => 'Aceptada',
+            'REJECTED' => 'Rechazada',
+            'SUPERSEDED' => 'Sustituida',
+        ],
+
+        'level' => [
+            'canonical' => 'En el catálogo',
+            'canonical_note' => 'Lo que dice el catálogo. Lo puso una persona.',
+            'measured' => 'Medido',
+            'measured_note' => 'Leído del propio archivo. Hechos.',
+            'proposed' => 'Escuchado',
+            'proposed_note' => 'Lo que oyó un modelo de voz. Limitado, y aún así una conjetura.',
+            'suggested' => 'Sugerido',
+            'suggested_note' => 'Lo que un modelo de lenguaje dedujo de la transcripción. El más débil de los cuatro — corríjalo antes de aceptarlo.',
+        ],
+
+        'field' => [
+            'title' => 'Título',
+            'language' => 'Idioma',
+            'genres' => 'Géneros',
+            'moods' => 'Ambientes',
+            'themes' => 'Temas',
+            'duration' => 'Duración',
+            'codec' => 'Códec',
+            'covered' => 'Cubierto',
+            'confidence' => 'Confianza del modelo',
+            'rationale' => 'Por qué',
+        ],
+
+        'action' => [
+            'accept' => 'Aceptar',
+            'reject' => 'Rechazar',
+            'regenerate' => 'Preguntar de nuevo',
         ],
     ],
 

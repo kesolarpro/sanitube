@@ -26,6 +26,7 @@ use SaniTube\Ui\Http\Controllers\Distribution\DistributionActionController;
 use SaniTube\Ui\Http\Controllers\Distribution\ReleaseDistributionController;
 use SaniTube\Ui\Http\Controllers\Enrichment\EnrichmentRequestController;
 use SaniTube\Ui\Http\Controllers\Enrichment\SuggestionActionController;
+use SaniTube\Ui\Http\Controllers\Enrichment\SuggestionIndexController;
 use SaniTube\Ui\Http\Controllers\Ingestion\BatchDetailController;
 use SaniTube\Ui\Http\Controllers\Ingestion\BatchIndexController;
 use SaniTube\Ui\Http\Controllers\Ingestion\CandidateDetailController;
@@ -207,6 +208,15 @@ Route::middleware(['web', HandleInertiaRequests::class, 'auth', 'active'])->grou
      * on a queue; this endpoint asks, and answers with a refusal code or
      * nothing.
      */
+    /*
+     * The enrichment review queue. ENR-005.
+     *
+     * Readable by anyone signed in -- knowing what a model proposed about a
+     * recording is not a privilege. Acting on it is, and those routes below
+     * carry the guard.
+     */
+    Route::get('enrichment/suggestions', SuggestionIndexController::class)->name('enrichment.suggestions');
+
     Route::middleware('can.role:catalogue')->group(function (): void {
         Route::post('assets/{asset}/transcription', TranscriptionRequestController::class)
             ->name('assets.transcription');

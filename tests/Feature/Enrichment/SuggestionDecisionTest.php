@@ -686,8 +686,19 @@ final class SuggestionDecisionTest extends TestCase
 
         // Applied after creation rather than merged into the literal, so the
         // create() call keeps the typed attribute list static analysis can
-        // check. A merged array is `array<string, mixed>` and tells it nothing.
-        return $overrides === [] ? $suggestion : $suggestion->forceFill($overrides);
+        // check -- a merged array is `array<string, mixed>` and tells it
+        // nothing.
+        //
+        // **Saved, not merely filled.** `forceFill` alone leaves the override
+        // in memory and the database holding the original, so a fixture asking
+        // for a REJECTED row hands back an object that says REJECTED and a
+        // table that says PROPOSED. Every query-side assertion then reads the
+        // wrong row while every in-memory one passes.
+        if ($overrides !== []) {
+            $suggestion->forceFill($overrides)->save();
+        }
+
+        return $suggestion;
     }
 
     private function transcript(?int $assetId): Transcript

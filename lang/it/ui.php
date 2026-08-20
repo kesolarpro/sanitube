@@ -52,6 +52,7 @@ return [
         'artists' => 'Artisti',
         'assets' => 'File',
         'duplicates' => 'Duplicati',
+        'suggestions' => 'Suggerimenti',
         'releases' => 'Pubblicazioni',
         'distribution' => 'Distribuzione',
         'rights' => 'Diritti',
@@ -1006,6 +1007,64 @@ return [
             'MIXER' => 'Missaggio',
             'MASTERING' => 'Mastering',
             'PROGRAMMER' => 'Programmazione',
+        ],
+    ],
+
+    'enrichment' => [
+        'title' => 'Suggerimenti',
+        'description' => 'Ciò che un modello ha proposto sulle vostre registrazioni. Nulla entra nel catalogo finché non ce lo mettete voi.',
+        'empty' => 'Nessun suggerimento',
+        'empty_description' => 'Non è stato ancora suggerito nulla. Chiedete un suggerimento per un file che abbia una trascrizione.',
+        'produced_by' => 'Prodotto da :provider (:model)',
+        'evidence_stale' => 'La trascrizione su cui si basava è cambiata da allora.',
+        'no_track' => 'Nessun brano. Un suggerimento non può crearne uno — promuovete prima la registrazione.',
+        'not_analysed' => 'Non analizzato.',
+        'no_transcript' => 'Nessuna trascrizione.',
+        'contradicts_hint' => 'Il modello ha sentito una lingua diversa da quella attesa.',
+
+        'filter' => [
+            'any_status' => 'Qualsiasi stato',
+        ],
+
+        'column' => [
+            'status' => 'Stato',
+        ],
+
+        'status' => [
+            'PROPOSED' => 'In attesa',
+            'ACCEPTED' => 'Accettato',
+            'REJECTED' => 'Rifiutato',
+            'SUPERSEDED' => 'Superato',
+        ],
+
+        'level' => [
+            'canonical' => 'Nel catalogo',
+            'canonical_note' => 'Ciò che dice il catalogo. Ce lo ha messo una persona.',
+            'measured' => 'Misurato',
+            'measured_note' => 'Letto dal file stesso. Fatti.',
+            'proposed' => 'Ascoltato',
+            'proposed_note' => 'Ciò che un modello vocale ha sentito. Circoscritto, e comunque una supposizione.',
+            'suggested' => 'Suggerito',
+            'suggested_note' => 'Ciò che un modello linguistico ha ricavato dalla trascrizione. Il più debole dei quattro — correggetelo prima di accettarlo.',
+        ],
+
+        'field' => [
+            'title' => 'Titolo',
+            'language' => 'Lingua',
+            'genres' => 'Generi',
+            'moods' => 'Atmosfere',
+            'themes' => 'Temi',
+            'duration' => 'Durata',
+            'codec' => 'Codec',
+            'covered' => 'Coperto',
+            'confidence' => 'Fiducia del modello',
+            'rationale' => 'Perché',
+        ],
+
+        'action' => [
+            'accept' => 'Accetta',
+            'reject' => 'Rifiuta',
+            'regenerate' => 'Chiedi di nuovo',
         ],
     ],
 
