@@ -185,8 +185,20 @@ final class PackageFromTheReleaseScreenTest extends TestCase
 
         $this->assign($release, ExternalIdentifierType::Upc, '088515001233');
 
+        // Numbered from a counter, never from `$track->id`. An ISRC is exactly
+        // twelve characters, and building one by interpolating a primary key
+        // produces a thirteenth as soon as ids reach double figures — which
+        // never happens on SQLite, where RefreshDatabase resets the sequence,
+        // and always happens on MySQL and MariaDB, where it does not. A test
+        // that passes on one engine for that reason is testing the engine.
+        $designation = 0;
+
         foreach ($release->tracks()->get() as $track) {
-            $this->assign($track, ExternalIdentifierType::Isrc, 'FRX0'.$track->id.'2400001');
+            $this->assign(
+                $track,
+                ExternalIdentifierType::Isrc,
+                'FRZ0324'.sprintf('%05d', ++$designation),
+            );
         }
 
         $this->assertSame([], $this->prepare($release)['blocking_identifiers']);
