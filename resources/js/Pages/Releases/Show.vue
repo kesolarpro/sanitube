@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue';
 import { Link, router, useForm, usePage } from '@inertiajs/vue3';
+import IdentifierEditor from '@/Components/Catalog/IdentifierEditor.vue';
 import DataTable from '@/Components/Data/DataTable.vue';
 import TableCell from '@/Components/Data/TableCell.vue';
 import TableHeaderCell from '@/Components/Data/TableHeaderCell.vue';
@@ -313,6 +314,13 @@ function setCover(row: Record<string, unknown>): void {
         },
     );
 }
+
+/** CAT-005. The identifier editor's own refusal, kept apart from the release's. */
+const identifierRefusal = computed(() => {
+    const errors = page.props.errors as Record<string, string> | undefined;
+
+    return errors?.identifier ?? null;
+});
 
 /* ---------------------------------------------------------------- package */
 
@@ -688,16 +696,18 @@ const editable = computed(() => props.release.actions.can_edit_details);
 
             <p class="mb-3 text-caption text-muted">{{ trans('ui.releases.identifiers_description') }}</p>
 
-            <p v-if="release.identifiers.length === 0" class="text-small text-muted">
-                {{ trans('ui.releases.no_identifiers') }}
-            </p>
-
-            <dl v-else class="grid gap-3 sm:grid-cols-3">
-                <div v-for="identifier in release.identifiers" :key="`${identifier.type}-${identifier.value}`">
-                    <dt class="text-caption text-muted">{{ identifier.type }}</dt>
-                    <dd class="text-small"><CodeValue :value="identifier.value" /></dd>
-                </div>
-            </dl>
+            <!-- CAT-005. A table until this ticket: REL-004 had just made "no
+                 UPC" the thing that blocks every delivery, and there was no way
+                 in the product to supply one. Telling somebody what is wrong
+                 while withholding the fix is worse than saying nothing, because
+                 it looks like the platform is working. -->
+            <IdentifierEditor
+                :identifiers="release.identifiers"
+                :assignable-types="release.assignable_identifier_types"
+                :endpoint="`/releases/${release.uuid}`"
+                :can-assign="release.actions.can_assign_identifier"
+                :refusal="identifierRefusal"
+            />
         </AppCard>
 
         <!-- 6. What is still wrong.

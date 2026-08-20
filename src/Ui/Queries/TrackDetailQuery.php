@@ -8,6 +8,7 @@ use App\Models\User;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use SaniTube\Assets\Models\Asset;
 use SaniTube\Catalog\Enums\TrackStatus;
+use SaniTube\Catalog\ManuallyAssignableIdentifiers;
 use SaniTube\Catalog\Models\ExternalIdentifier;
 use SaniTube\Catalog\Models\Track;
 use SaniTube\Catalog\Models\TrackArtist;
@@ -114,6 +115,11 @@ final readonly class TrackDetailQuery
                 'assigned_at' => $identifier->assigned_at->toAtomString(),
             ])->values()->all(),
 
+            // CAT-005. Which identifiers a *person* may type in here. Asked of
+            // the catalogue rather than restated in the browser; the controller
+            // asks the same question again and refuses anything else.
+            'assignable_identifier_types' => ManuallyAssignableIdentifiers::valuesFor($track),
+
             'releases' => $placements->map(fn (ReleaseTrack $placement): array => [
                 'uuid' => (string) $placement->release?->uuid,
                 'title' => (string) $placement->release?->title,
@@ -141,6 +147,12 @@ final readonly class TrackDetailQuery
                 'can_mark_ready' => $mayWrite
                     && $track->status === TrackStatus::Draft
                     && $problems === [],
+
+                // Not gated on the track's status. An ISRC is routinely issued
+                // after a recording is finished, and refusing it on a READY
+                // track would leave the number a store keys on unenterable for
+                // exactly the tracks that are about to be delivered.
+                'can_assign_identifier' => $mayWrite,
             ],
         ];
     }

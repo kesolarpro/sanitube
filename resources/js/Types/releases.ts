@@ -1,3 +1,5 @@
+import type { CatalogIdentifier } from '@/Types/catalog';
+
 /**
  * The shapes the release read models produce.
  *
@@ -69,12 +71,14 @@ export interface ReleaseTrackRow {
     isrc: string | null;
 }
 
-/** Read from the catalogue. Never minted here. */
-export interface ReleaseIdentifier {
-    type: string;
-    value: string;
-    source: string;
-}
+/**
+ * Recorded from what somebody holds. Never minted here.
+ *
+ * `uuid` names one for revocation — CAT-005. `source` is what separates a
+ * number a person typed from one a distributor sent back, and after the fact
+ * nothing else does.
+ */
+export type ReleaseIdentifier = CatalogIdentifier;
 
 /**
  * REL-002. One thing wrong with a release, as data rather than as a sentence.
@@ -105,6 +109,13 @@ export interface ReleaseActions {
     can_edit_cover: boolean;
     can_mark_ready: boolean;
     can_reopen: boolean;
+    /**
+     * Not gated on the release's status. A UPC is routinely issued after a
+     * release is submitted, and locking the field then would leave the one
+     * identifier a store keys on unenterable for exactly the releases that
+     * need it.
+     */
+    can_assign_identifier: boolean;
 }
 
 export interface ReleaseDetail {
@@ -126,6 +137,8 @@ export interface ReleaseDetail {
     artists: ReleaseArtistCredit[];
     tracks: ReleaseTrackRow[];
     identifiers: ReleaseIdentifier[];
+    /** Which types a person may type in here. Decided by the server. */
+    assignable_identifier_types: string[];
     validation: ReleaseValidation;
     readiness_problems: ValidationIssue[];
     actions: ReleaseActions;

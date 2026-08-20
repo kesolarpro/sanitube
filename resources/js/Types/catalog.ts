@@ -80,6 +80,36 @@ export interface TrackMaster {
     analysis: TrackAnalysis | null;
 }
 
+/**
+ * CAT-005. An identifier as the editor sees it.
+ *
+ * `uuid` is what names one for revocation — a uuid rather than the row id,
+ * which is a counter somebody can walk. `source` is shown because it is what
+ * separates a number a person typed from one a distributor sent back, and after
+ * the fact nothing else does.
+ */
+export interface CatalogIdentifier {
+    uuid: string;
+    type: string;
+    value: string;
+    source: string;
+    /**
+     * Optional because a release carries only globally-issued identifiers,
+     * where the namespace is always empty. A track can also carry a vendor's,
+     * and two vendors' ids are the same string until the namespace names who
+     * issued them — so where it exists it is shown.
+     */
+    namespace?: string;
+    is_authoritative?: boolean;
+}
+
+/** What the track and artist screens hold: the above, plus the registry detail. */
+export interface CatalogIdentifierDetail extends CatalogIdentifier {
+    namespace: string;
+    is_authoritative: boolean;
+    assigned_at: string | null;
+}
+
 export interface TrackDetail {
     uuid: string;
     title: string;
@@ -102,15 +132,9 @@ export interface TrackDetail {
     contributors: (ArtistRef & { role: string })[];
     composition: { uuid: string; title: string; status: string } | null;
     master: TrackMaster | null;
-    identifiers: {
-        uuid: string;
-        type: string;
-        namespace: string;
-        value: string;
-        is_authoritative: boolean;
-        source: string;
-        assigned_at: string | null;
-    }[];
+    identifiers: CatalogIdentifierDetail[];
+    /** Which types a person may type in here. Decided by the server. */
+    assignable_identifier_types: string[];
     releases: {
         uuid: string;
         title: string;
@@ -135,6 +159,7 @@ export interface TrackDetail {
         may_edit: boolean;
         can_edit_credits: boolean;
         can_mark_ready: boolean;
+        can_assign_identifier: boolean;
     };
 }
 
@@ -181,15 +206,7 @@ export interface ArtistDetail {
     release_count: number;
     created_at: string | null;
     updated_at: string | null;
-    identifiers: {
-        uuid: string;
-        type: string;
-        namespace: string;
-        value: string;
-        is_authoritative: boolean;
-        source: string;
-        assigned_at: string | null;
-    }[];
+    identifiers: CatalogIdentifierDetail[];
     tracks: { uuid: string; title: string; status: string; role: string }[];
     /** True when the server capped the list; stated so a short list is not read as a complete one. */
     tracks_truncated: boolean;

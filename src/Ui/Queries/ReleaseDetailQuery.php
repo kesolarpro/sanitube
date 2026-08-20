@@ -7,6 +7,7 @@ namespace SaniTube\Ui\Queries;
 use App\Models\User;
 use SaniTube\Artwork\Services\MeasuredDimensions;
 use SaniTube\Catalog\Enums\ExternalIdentifierType;
+use SaniTube\Catalog\ManuallyAssignableIdentifiers;
 use SaniTube\Catalog\Models\ExternalIdentifier;
 use SaniTube\Foundation\Validation\ValidationIssue;
 use SaniTube\Releases\Enums\ReleaseArtistRole;
@@ -34,9 +35,13 @@ use SaniTube\Releases\Services\ValidateRelease;
  *     `Release::readinessProblems()` — the same list `markReady()` throws on.
  *     The button is disabled by the same facts that would refuse the request.
  *
- * Identifiers are read, never minted. A UPC belongs to the catalogue and is
- * assigned through `AssignExternalIdentifier`; a release builder that could
- * create one would be a second place identifiers come from.
+ * **Identifiers are recorded, never minted**, and CAT-005 did not change that.
+ * A person may now type in a UPC they hold and it goes through
+ * `AssignExternalIdentifier` like every other assignment — but nothing here
+ * generates one. The distinction is the whole rule: a recording already
+ * distributed elsewhere already has an identifier, and a platform that invented
+ * a second one would split its earnings across two numbers, which surfaces
+ * months later in a royalty report that no longer reconciles.
  */
 final readonly class ReleaseDetailQuery
 {
@@ -77,6 +82,13 @@ final readonly class ReleaseDetailQuery
             'tracks' => $this->tracks($release),
             'identifiers' => $this->identifiers($release),
 
+            // CAT-005. Which identifiers a *person* may type in here — a
+            // narrower list than the registries allow, and asked of the
+            // catalogue rather than restated in the browser. The screen builds
+            // its select from this; the controller re-asks the same question
+            // and refuses anything else.
+            'assignable_identifier_types' => ManuallyAssignableIdentifiers::valuesFor($release),
+
             'validation' => $validation->toArray(),
 
             // The same list markReady() throws on. Not a second opinion about
@@ -104,6 +116,12 @@ final readonly class ReleaseDetailQuery
                     && $release->readinessProblems() === [],
 
                 'can_reopen' => $mayWrite && ReleaseMutationPolicy::allowsReopen($release->status),
+
+                // Not gated on `$structural`. A UPC is routinely issued after a
+                // release is submitted, and locking the field at that point
+                // would leave the one identifier a store keys on unenterable
+                // for exactly the releases that need it.
+                'can_assign_identifier' => $mayWrite,
             ],
         ];
     }
@@ -236,6 +254,9 @@ final readonly class ReleaseDetailQuery
 
         foreach ($identifiers as $identifier) {
             $rows[] = [
+                // CAT-005 needs it to name one for revocation. A uuid rather
+                // than the row id, which is a counter somebody can walk.
+                'uuid' => $identifier->uuid,
                 'type' => $identifier->type->value,
                 'value' => $identifier->value,
                 'source' => $identifier->source->value,

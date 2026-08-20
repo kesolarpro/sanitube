@@ -48,6 +48,16 @@ enum AuditAction: string
     case CandidateRejected = 'catalogue.candidate.rejected';
     case TrackUpdated = 'catalogue.track.updated';
 
+    /*
+     * CAT-005. An ISRC or a UPC is the number a store, a collecting society and
+     * a royalty statement all key on, and assigning one by hand is the one
+     * place in the catalogue where a person supplies a value the platform
+     * cannot check against anything but a checksum. Who typed it is worth
+     * knowing years later, when a report no longer reconciles.
+     */
+    case IdentifierAssigned = 'catalogue.identifier.assigned';
+    case IdentifierRevoked = 'catalogue.identifier.revoked';
+
     // ------------------------------------------------------------- releases
 
     case ReleaseCreated = 'release.release.created';
@@ -148,6 +158,9 @@ enum AuditAction: string
             self::CandidateRejected => AuditSubject::TrackCandidate,
 
             self::TrackUpdated => AuditSubject::Track,
+
+            self::IdentifierAssigned,
+            self::IdentifierRevoked => AuditSubject::ExternalIdentifier,
 
             self::ReleaseCreated,
             self::ReleaseMarkedReady,
