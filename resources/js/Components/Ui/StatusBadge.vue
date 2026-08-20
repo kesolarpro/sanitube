@@ -25,6 +25,7 @@ const TONES: Record<string, Tone> = {
     UNKNOWN: 'neutral',
     SKIPPED: 'neutral',
     OPTIONAL: 'neutral',
+    WAITING: 'neutral',
 
     // Work is under way, or somebody else owes an answer.
     PROCESSING: 'progress',
@@ -42,6 +43,7 @@ const TONES: Record<string, Tone> = {
     COMPLETED: 'success',
     DONE: 'success',
     IMPORTED: 'success',
+    UPLOADED: 'success',
     VERIFIED: 'success',
     PROMOTED: 'success',
     LIVE: 'success',

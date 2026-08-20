@@ -123,6 +123,15 @@ enum AuditAction: string
     case BackgroundWorkResumed = 'operations.background_work.resumed';
     case IngestionBatchStarted = 'ingestion.batch.started';
 
+    /*
+     * BULK-001. Emptying the inbox is the one bulk delete in the application.
+     * It touches nothing the catalogue depends on — an imported file already
+     * has its own managed copy — but "several hundred objects went away and
+     * nobody knows who asked" is not a sentence an operator should ever have
+     * to say.
+     */
+    case IngestionInboxDiscarded = 'ingestion.inbox.discarded';
+
     // ------------------------------------------------------------ generation
 
     case GenerationStarted = 'generation.generation.started';
@@ -184,6 +193,11 @@ enum AuditAction: string
             self::BackgroundWorkPaused,
             self::BackgroundWorkResumed => AuditSubject::System,
             self::IngestionBatchStarted => AuditSubject::IngestionBatch,
+
+            // No batch, and no row at all: the subject is the installation's
+            // own inbox. `System` is the honest answer rather than a missing
+            // one, which is why the column is not simply nullable.
+            self::IngestionInboxDiscarded => AuditSubject::System,
 
             self::GenerationStarted,
             self::GenerationResultSelected => AuditSubject::Generation,

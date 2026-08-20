@@ -36,6 +36,9 @@ use SaniTube\Ui\Http\Controllers\Ingestion\CandidateDetailController;
 use SaniTube\Ui\Http\Controllers\Ingestion\CandidateIndexController;
 use SaniTube\Ui\Http\Controllers\Ingestion\CandidateReviewController;
 use SaniTube\Ui\Http\Controllers\Ingestion\ImportActionController;
+use SaniTube\Ui\Http\Controllers\Ingestion\ImportScreenController;
+use SaniTube\Ui\Http\Controllers\Ingestion\InboxDepositController;
+use SaniTube\Ui\Http\Controllers\Ingestion\InboxDiscardController;
 use SaniTube\Ui\Http\Controllers\Releases\ReleaseActionController;
 use SaniTube\Ui\Http\Controllers\Releases\ReleaseBuilderController;
 use SaniTube\Ui\Http\Controllers\Releases\ReleaseIndexController;
@@ -178,6 +181,32 @@ Route::middleware(['web', HandleInertiaRequests::class, 'auth', 'active'])->grou
         // twenty new masters in a folder needed SSH to bring them in. Nothing
         // is imported inside the request: the batch is created and the work is
         // queued.
+        /*
+         * BULK-001. The catalogue import tool.
+         *
+         * `ManualUploadReader` has always described bytes arriving "through
+         * the ordinary storage pipeline into a reserved inbox prefix", and
+         * everything downstream of that sentence was built — reader, batch,
+         * per-item job, retries, candidate, screens. Nothing could put a byte
+         * in the inbox from a browser, and the route below that starts a batch
+         * from references had no caller at all.
+         *
+         * Behind `can.role:catalogue`: depositing several hundred files is a
+         * write, and a read-only member has no business starting one.
+         */
+        Route::get('ingestion/import', ImportScreenController::class)->name('ingestion.import');
+
+        Route::post('ingestion/import/capabilities', [InboxDepositController::class, 'capabilities'])
+            ->name('ingestion.import.capabilities');
+        Route::post('ingestion/import/relay', [InboxDepositController::class, 'relay'])
+            ->name('ingestion.import.relay');
+
+        // Emptying the inbox. DELETE because it deletes; the objects here are
+        // ones no batch has referred to yet, and every key is re-checked
+        // against the inbox prefix before it goes.
+        Route::delete('ingestion/import/inbox', InboxDiscardController::class)
+            ->name('ingestion.import.discard');
+
         Route::post('ingestion/batches', [ImportActionController::class, 'start'])
             ->name('ingestion.batches.store');
 
