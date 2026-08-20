@@ -28,6 +28,8 @@ const TONES: Record<string, Tone> = {
 
     // Work is under way, or somebody else owes an answer.
     PROCESSING: 'progress',
+    UPLOADING: 'progress',
+    VERIFYING: 'progress',
     VALIDATING: 'progress',
     SUBMITTING: 'progress',
     SUBMITTED: 'progress',
@@ -38,6 +40,7 @@ const TONES: Record<string, Tone> = {
     // Finished, and finished well.
     READY: 'success',
     COMPLETED: 'success',
+    DONE: 'success',
     IMPORTED: 'success',
     VERIFIED: 'success',
     PROMOTED: 'success',

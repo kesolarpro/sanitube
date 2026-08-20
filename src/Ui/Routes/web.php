@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 use Illuminate\Support\Facades\Route;
 use SaniTube\Ui\Http\Controllers\Assets\DirectUploadController;
+use SaniTube\Ui\Http\Controllers\Assets\RelayedUploadController;
+use SaniTube\Ui\Http\Controllers\Assets\UploadScreenController;
 use SaniTube\Ui\Http\Controllers\Catalog\ArtistDetailController;
 use SaniTube\Ui\Http\Controllers\Catalog\ArtistIndexController;
 use SaniTube\Ui\Http\Controllers\Catalog\AssetDetailController;
@@ -114,6 +116,15 @@ Route::middleware(['web', HandleInertiaRequests::class, 'auth', 'active'])->grou
          * asks the server to measure what arrived. A GET for either would be
          * prefetched and replayed.
          */
+        // The screen. Before UPL-001 no `<input type="file">` existed anywhere
+        // in the application, so nothing could enter from a browser.
+        Route::get('assets/upload', UploadScreenController::class)->name('assets.upload');
+
+        // Through the application, for installations whose provider cannot take
+        // a direct write — which includes the shipped default, local storage.
+        Route::post('assets/uploads/relay', RelayedUploadController::class)
+            ->name('assets.uploads.relay');
+
         Route::post('assets/uploads', [DirectUploadController::class, 'begin'])
             ->name('assets.uploads.begin');
         Route::post('assets/uploads/{asset}/complete', [DirectUploadController::class, 'complete'])

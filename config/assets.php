@@ -40,6 +40,42 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Accepted media types on upload
+    |--------------------------------------------------------------------------
+    |
+    | Which media types a browser may hand to this installation, per kind.
+    |
+    | **This is admission, not conformance.** Whether an image is a usable
+    | release cover is `config/artwork.php`'s question and it is asked later,
+    | on measured bytes. This list answers a narrower and earlier one: is this
+    | the sort of file that belongs under this kind at all. A ZIP offered as a
+    | master is refused here rather than stored, analysed and puzzled over.
+    |
+    | The type is read from the file's own bytes, never from its extension and
+    | never from the `Content-Type` the browser claimed. Both are the
+    | uploader's word for it.
+    |
+    | An empty list for a kind means "any type", which is deliberate for the
+    | kinds SaniTube does not interpret. It is never the default for audio or
+    | artwork.
+    |
+    */
+
+    'accepted_upload_types' => [
+        AssetKind::AudioMaster->value => [
+            'audio/wav', 'audio/x-wav', 'audio/wave', 'audio/vnd.wave',
+            'audio/flac', 'audio/x-flac',
+            'audio/aiff', 'audio/x-aiff',
+            'audio/mpeg', 'audio/mp4', 'audio/x-m4a', 'audio/aac',
+            'audio/ogg', 'audio/opus',
+        ],
+        AssetKind::Artwork->value => [
+            'image/jpeg', 'image/png', 'image/webp', 'image/tiff',
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Staging
     |--------------------------------------------------------------------------
     |
