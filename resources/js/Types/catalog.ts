@@ -385,4 +385,16 @@ export interface AssetDetail {
         available: boolean;
         reason: string | null;
     };
+    /**
+     * The optional work this asset could still be put through, and why not.
+     *
+     * A refusal code rather than a disabled button with no explanation: the
+     * difference between "this installation has no AI account" and "this file
+     * is not audio" is the difference between changing a setting and choosing
+     * another file.
+     */
+    work: {
+        transcription: { held: boolean; refusal: string | null };
+        enrichment: { waiting: boolean; refusal: string | null };
+    };
 }

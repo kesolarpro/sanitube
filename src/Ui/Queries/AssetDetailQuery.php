@@ -7,7 +7,12 @@ namespace SaniTube\Ui\Queries;
 use App\Models\User;
 use SaniTube\Artwork\Services\MeasuredDimensions;
 use SaniTube\Assets\Models\Asset;
+use SaniTube\Enrichment\Enums\SuggestionStatus;
+use SaniTube\Enrichment\Models\MetadataSuggestion;
+use SaniTube\Enrichment\Services\EnrichmentEligibility;
 use SaniTube\Media\Models\AudioAnalysis;
+use SaniTube\Transcription\Models\Transcript;
+use SaniTube\Transcription\Services\TranscriptionEligibility;
 use SaniTube\Ui\Assets\AssetPreviewPolicy;
 
 /**
@@ -27,7 +32,47 @@ final readonly class AssetDetailQuery
     public function __construct(
         private AssetPreviewPolicy $policy,
         private MeasuredDimensions $dimensions,
+        private TranscriptionEligibility $transcription,
+        private EnrichmentEligibility $enrichment,
     ) {}
+
+    /**
+     * The optional work this asset could still be put through, and why not.
+     *
+     * **A refusal code rather than a disabled button with no explanation.**
+     * Transcription and enrichment both cost money and both refuse for several
+     * different reasons — no supplier configured, nothing to reason from, an
+     * answer already held, a file nobody verified. A greyed-out button tells a
+     * person none of that, and the difference between "this installation has no
+     * AI account" and "this file is not audio" is the difference between
+     * changing a setting and choosing another file.
+     *
+     * `held` and `pending` are facts about the database; `refusal` is the
+     * eligibility service's own answer, asked rather than re-derived here. Two
+     * copies of "may this be transcribed" would drift, and the one that costs
+     * money is the one that must not.
+     *
+     * @return array<string, mixed>
+     */
+    private function work(Asset $asset): array
+    {
+        $transcriptionRefusal = $this->transcription->refusalFor($asset);
+        $enrichmentRefusal = $this->enrichment->refusalFor($asset);
+
+        return [
+            'transcription' => [
+                'held' => Transcript::query()->where('asset_id', $asset->getKey())->exists(),
+                'refusal' => $transcriptionRefusal?->value,
+            ],
+            'enrichment' => [
+                'waiting' => MetadataSuggestion::query()
+                    ->where('asset_id', $asset->getKey())
+                    ->where('status', SuggestionStatus::Proposed)
+                    ->exists(),
+                'refusal' => $enrichmentRefusal?->value,
+            ],
+        ];
+    }
 
     /**
      * @return array<string, mixed>
@@ -96,6 +141,8 @@ final readonly class AssetDetailQuery
                 'available' => $decision->isAllowed(),
                 'reason' => $decision->isAllowed() ? null : $decision->value,
             ],
+
+            'work' => $this->work($asset),
         ];
     }
 }
