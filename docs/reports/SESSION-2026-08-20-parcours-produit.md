@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | SHA de base (`main` au début) | `6c3b97b` |
-| SHA final (`main` à la fin) | `71325d2`, plus PR #96 en attente de fusion |
+| SHA final (`main` à la fin) | `1db89dd` |
 | Branche de développement | `claude/sanitube-autonomous-v1-5pycx0` |
 
 ## B. Tickets, PR, CI, fusion
@@ -17,7 +17,7 @@
 | UPL-002 — transcription et enrichissement demandables | #93 | 10/10 | `198d60d` |
 | REL-004 — préparer le package depuis l'écran | #94 | 10/10 (après correction) | `83ec1b9` |
 | CAT-005 — un identifiant devient saisissable | #95 | 10/10 | `71325d2` |
-| UPL-003 — un fichier déposé devient un morceau | #96 | en cours | en attente |
+| UPL-003 — un fichier déposé devient un morceau | #96 | 10/10 | `1db89dd` |
 
 ## C. Le parcours produit, mesuré
 
