@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SaniTube\Ui\Queries;
 
 use App\Models\User;
+use SaniTube\Artwork\Services\MeasuredDimensions;
 use SaniTube\Assets\Models\Asset;
 use SaniTube\Media\Models\AudioAnalysis;
 use SaniTube\Ui\Assets\AssetPreviewPolicy;
@@ -23,7 +24,10 @@ use SaniTube\Ui\Assets\AssetPreviewPolicy;
  */
 final readonly class AssetDetailQuery
 {
-    public function __construct(private AssetPreviewPolicy $policy) {}
+    public function __construct(
+        private AssetPreviewPolicy $policy,
+        private MeasuredDimensions $dimensions,
+    ) {}
 
     /**
      * @return array<string, mixed>
@@ -51,8 +55,10 @@ final readonly class AssetDetailQuery
             'sample_rate' => $asset->sample_rate,
             'bit_depth' => $asset->bit_depth,
             'channels' => $asset->channels,
-            'width' => $asset->width,
-            'height' => $asset->height,
+            // Measured, never the never-written `assets.width`. See
+            // MeasuredDimensions.
+            'width' => $this->dimensions->for($asset)['width'],
+            'height' => $this->dimensions->for($asset)['height'],
             'stored_at' => $asset->stored_at?->toAtomString(),
             'verified_at' => $asset->verified_at?->toAtomString(),
             'created_at' => $asset->created_at?->toAtomString(),

@@ -7,6 +7,7 @@ namespace SaniTube\Ui\Queries;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use SaniTube\Artists\Models\Artist;
+use SaniTube\Artwork\Services\MeasuredDimensions;
 use SaniTube\Assets\Enums\AssetKind;
 use SaniTube\Assets\Enums\AssetStatus;
 use SaniTube\Assets\Models\Asset;
@@ -43,6 +44,8 @@ use SaniTube\Releases\Models\Release;
 final readonly class ReleasePickerQuery
 {
     public const LIMIT = 20;
+
+    public function __construct(private MeasuredDimensions $dimensions) {}
 
     /**
      * Catalogue tracks that could be added to this release.
@@ -124,13 +127,21 @@ final readonly class ReleasePickerQuery
         $this->matching($query, 'original_filename', $term);
 
         $rows = [];
+        $assets = $query->orderBy('original_filename')->limit(self::LIMIT)->get();
 
-        foreach ($query->orderBy('original_filename')->limit(self::LIMIT)->get() as $asset) {
+        // Loaded in one query for the whole page. Asking per row would be a
+        // query per cover on a picker built to show many.
+        $measured = $this->dimensions->forAssetIds(
+            array_values(array_map(static fn (Asset $asset): int => $asset->id, $assets->all())),
+        );
+
+        foreach ($assets as $asset) {
             $rows[] = [
                 'uuid' => $asset->uuid,
                 'original_filename' => $asset->original_filename,
-                'width' => $asset->width,
-                'height' => $asset->height,
+                // Measured, never the never-written `assets.width`.
+                'width' => $measured[$asset->id]['width'] ?? null,
+                'height' => $measured[$asset->id]['height'] ?? null,
                 'byte_size' => $asset->byte_size,
             ];
         }
