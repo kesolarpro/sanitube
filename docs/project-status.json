@@ -1,8 +1,8 @@
 {
   "$comment": "Machine-readable project state. Any new session reads this first, then verifies it against GitHub before trusting it. Written at the end of each ticket, so a stale entry means a session ended mid-ticket — check the branch and CI rather than the status field.",
   "updated_at": "2026-08-20",
-  "current_phase": "Phase 2 order: eighteen of twenty items merged. Items 17 and 18 (DDEX, first distributor adapter) are blocked by ENVIRONMENT_EGRESS — the specifications are public but unreachable from this environment.",
-  "last_completed_ticket": "ENR-006",
+  "current_phase": "Product usability. Audit du parcours produit fait ; le chemin critique est UPL-001 (dépôt navigateur), UPL-002 (transcription + enrichissement déclenchables), REL-004 (package de release depuis l'UI).",
+  "last_completed_ticket": "AUDIT product-path",
   "default_branch": "main (locally and for every merge). GitHub's configured default branch is still \"claude/verifier-repertoire-git-k29ft2\" — see EXTERNAL_ADMIN_ACTION_REQUIRED.",
   "tickets": {
     "ARCH-001": {
@@ -623,6 +623,12 @@
       "branch": "claude/sanitube-autonomous-v1-5pycx0",
       "pr": 89,
       "ci": "green"
+    },
+    "UPL-001": {
+      "status": "in review",
+      "branch": "claude/sanitube-autonomous-v1-5pycx0",
+      "pr": null,
+      "ci": "pending"
     }
   },
   "architecture_amendments": [
@@ -719,9 +725,9 @@
     "since": "UI-001",
     "note": "Nine tickets (ING/MED/CAT/AI/GEN/REL/DIST/SEC-001 and PR #12) were merged under an earlier autonomous-chaining instruction that bypassed review. A retroactive audit is under way; they stay in main and any correction becomes a follow-up ticket, not a revert. BULK-001b, UI-004 and UI-005 were merged under the session's explicit merge policy for read-only UI, ingestion tooling and documentation: none changes authentication, authorization, rights, money, identifier lifecycle, destructive storage behaviour or any external action."
   },
-  "main_sha": "83aeece",
-  "current_ticket": null,
-  "tests": "1676 passed, 1 skipped, 14710 assertions",
+  "main_sha": "cef3582",
+  "current_ticket": "UPL-001",
+  "tests": "1690 passed, 1 skipped, 14854 assertions",
   "phpstan": {
     "level": 6,
     "baseline": false,
@@ -737,7 +743,7 @@
   },
   "next_action": {
     "$comment": "Read this first. In order. Every item of the Phase 2 order is merged except 17 and 18, which are blocked by ENVIRONMENT_EGRESS. What remains below are standing items an earlier session left.",
-    "1": "Items 17 and 18 — DDEX and a first distributor adapter — the moment ENVIRONMENT_EGRESS lifts. REL-003's ReleasePackage is the input both consume, so the remaining work is a mapping rather than an archaeology of the catalogue. See docs/research/distribution-2026-08.md.",
+    "1": "UPL-002 : déclencher transcription et enrichissement depuis l'interface. Deux routes orphelines (POST assets/{a}/transcription, POST assets/{a}/enrichment), deux boutons, une tranche fermée.",
     "2": "Accessibility, the part jsdom cannot reach: per-screen keyboard walkthroughs on real assistive technology, and responsive/long-content behaviour at four breakpoints across six locales. Needs a rendered browser.",
     "3": "AUDIT-002 — an honest actor identity for src/Api. A shared token names no person; recording those calls as guest misleads and as a user is false.",
     "4": "Real-host certification: CPANEL_CERTIFICATION and VPS_CERTIFICATION, including the settings config-cache rebuild branch that no suite can reach.",
