@@ -258,6 +258,24 @@ the code first, then run it. See [deploying.md](deploying.md) for what each
 stage does and why. If npm is missing the script says so and carries on, which
 is the expected case here.
 
+## Large uploads
+
+cPanel's PHP limits are the reason SaniTube supports uploading straight to
+object storage. `upload_max_filesize`, `post_max_size`, `memory_limit` and
+`max_execution_time` all have to be generous at once for a large master to
+reach PHP, and on a shared account at least one of them is not.
+
+With an object storage provider configured, the browser writes to storage
+directly and the application only measures what landed. Two things must be set
+on the bucket — a CORS rule for your origin, and lifecycle rules for abandoned
+staging objects and incomplete multipart uploads. Both are in
+[storage.md](../storage.md#direct-uploads); the second one is easy to skip and
+costs storage that never appears in an object listing.
+
+With the local disk, uploads go through PHP as before and the interface does
+not offer the direct path. That is a supported configuration, not a degraded
+one — it is simply bounded by the PHP limits above.
+
 ## Storage
 
 The default is local storage under `storage/app`. That is fine, and it is
