@@ -15,6 +15,7 @@ use SaniTube\Ui\Http\Controllers\Catalog\CompositionDetailController;
 use SaniTube\Ui\Http\Controllers\Catalog\CompositionIndexController;
 use SaniTube\Ui\Http\Controllers\Catalog\ContributorDetailController;
 use SaniTube\Ui\Http\Controllers\Catalog\ContributorIndexController;
+use SaniTube\Ui\Http\Controllers\Catalog\IdentifierActionController;
 use SaniTube\Ui\Http\Controllers\Catalog\TrackActionController;
 use SaniTube\Ui\Http\Controllers\Catalog\TrackDetailController;
 use SaniTube\Ui\Http\Controllers\Catalog\TrackIndexController;
@@ -130,6 +131,19 @@ Route::middleware(['web', HandleInertiaRequests::class, 'auth', 'active'])->grou
             ->name('assets.uploads.begin');
         Route::post('assets/uploads/{asset}/complete', [DirectUploadController::class, 'complete'])
             ->name('assets.uploads.complete');
+
+        /*
+         * CAT-005. Identifiers, assigned by hand and withdrawn by hand.
+         *
+         * The identifier is bound by uuid and then checked against the track it
+         * was reached through — binding alone would let anybody with this role
+         * revoke any identifier in the installation by putting its uuid on a
+         * track they can see.
+         */
+        Route::post('catalog/tracks/{track}/identifiers', [IdentifierActionController::class, 'assignToTrack'])
+            ->name('catalog.tracks.identifiers.assign');
+        Route::delete('catalog/tracks/{track}/identifiers/{identifier}', [IdentifierActionController::class, 'revokeFromTrack'])
+            ->name('catalog.tracks.identifiers.revoke');
 
         Route::post('catalog/tracks/{track}/credits', [TrackActionController::class, 'setCredits'])
             ->name('catalog.tracks.credits');
@@ -360,6 +374,14 @@ Route::middleware(['web', HandleInertiaRequests::class, 'auth', 'active'])->grou
         Route::post('releases/{release}/artists', [ReleaseActionController::class, 'setArtists'])->name('releases.artists');
         Route::post('releases/{release}/cover', [ReleaseActionController::class, 'setCover'])->name('releases.cover');
         Route::post('releases/{release}/ready', [ReleaseActionController::class, 'markReady'])->name('releases.ready');
+
+        // CAT-005. A UPC or an EAN, typed in by somebody holding one. SaniTube
+        // never mints either; REL-004 made their absence the thing that blocks
+        // every delivery, and this is where it gets fixed.
+        Route::post('releases/{release}/identifiers', [IdentifierActionController::class, 'assignToRelease'])
+            ->name('releases.identifiers.assign');
+        Route::delete('releases/{release}/identifiers/{identifier}', [IdentifierActionController::class, 'revokeFromRelease'])
+            ->name('releases.identifiers.revoke');
         Route::post('releases/{release}/reopen', [ReleaseActionController::class, 'reopen'])->name('releases.reopen');
 
         /*

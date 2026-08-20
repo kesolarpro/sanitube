@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Link, router, usePage } from '@inertiajs/vue3';
 import { computed, reactive, ref, watch } from 'vue';
+import IdentifierEditor from '@/Components/Catalog/IdentifierEditor.vue';
 import AppAlert from '@/Components/Ui/AppAlert.vue';
 import AppButton from '@/Components/Ui/AppButton.vue';
 import AppCard from '@/Components/Ui/AppCard.vue';
@@ -41,6 +42,13 @@ const refusal = computed(() => {
     const errors = page.props.errors as Record<string, string> | undefined;
 
     return errors?.track ?? null;
+});
+
+/** CAT-005. The identifier editor's own refusal, kept apart from the track's. */
+const identifierRefusal = computed(() => {
+    const errors = page.props.errors as Record<string, string> | undefined;
+
+    return errors?.identifier ?? null;
 });
 
 /* ---------------------------------------------------------------- credits */
@@ -306,24 +314,16 @@ function markReady(): void {
 
             <AppCard>
                 <template #header>{{ trans('ui.catalog.identifiers') }}</template>
-                <EmptyState
-                    v-if="track.identifiers.length === 0"
-                    :title="trans('ui.catalog.no_identifiers')"
-                    :description="trans('ui.catalog.no_identifiers_description')"
+                <!-- CAT-005. Read-only until this ticket, which meant an ISRC
+                     — the number a store and a royalty statement both key on —
+                     could only be put in through a service with no caller. -->
+                <IdentifierEditor
+                    :identifiers="track.identifiers"
+                    :assignable-types="track.assignable_identifier_types"
+                    :endpoint="`/catalog/tracks/${track.uuid}`"
+                    :can-assign="track.actions.can_assign_identifier"
+                    :refusal="identifierRefusal"
                 />
-                <ul v-else class="divide-y divide-border">
-                    <li v-for="identifier in track.identifiers" :key="identifier.uuid" class="flex items-center justify-between gap-3 py-2 first:pt-0">
-                        <div class="min-w-0">
-                            <p class="text-caption text-muted">
-                                {{ identifier.type }}<template v-if="identifier.namespace"> · {{ identifier.namespace }}</template>
-                            </p>
-                            <CodeValue :value="identifier.value" />
-                        </div>
-                        <span v-if="identifier.is_authoritative" class="shrink-0 text-caption text-success">
-                            {{ trans('ui.catalog.authoritative') }}
-                        </span>
-                    </li>
-                </ul>
             </AppCard>
         </div>
 

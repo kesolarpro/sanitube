@@ -28,6 +28,17 @@ enum AuditSubject: string
     case DuplicateRelation = 'duplicate_relation';
 
     /**
+     * Filed under the identifier, not the track or release it names.
+     *
+     * The identifier row is the thing with a history: it is assigned once,
+     * revoked at most once, and never edited. Filing under the entity would
+     * scatter that history through everything else that happened to a track,
+     * and would lose which of two ISRCs the entry was about once a replacement
+     * exists — which is exactly the moment somebody goes looking.
+     */
+    case ExternalIdentifier = 'external_identifier';
+
+    /**
      * Filed under the suggestion rather than the asset or the track.
      *
      * The question an audit answers here is "what did somebody decide about

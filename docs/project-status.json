@@ -1,8 +1,8 @@
 {
     "$comment": "Machine-readable project state. Any new session reads this first, then verifies it against GitHub before trusting it. Written at the end of each ticket, so a stale entry means a session ended mid-ticket — check the branch and CI rather than the status field.",
     "updated_at": "2026-08-20",
-    "current_phase": "Product usability. Audit du parcours produit fait. UPL-001 (dépôt navigateur) et UPL-002 (transcription + enrichissement déclenchables) sont fusionnés ; REL-004 (package de release depuis l'UI) est le ticket en cours.",
-    "last_completed_ticket": "UPL-002",
+    "current_phase": "Product usability. UPL-001, UPL-002 et REL-004 sont fusionnés. CAT-005 (saisie des identifiants depuis l'écran) est le ticket en cours : c'est le correctif que REL-004 rendait nécessaire en nommant l'UPC et l'ISRC manquants comme bloquants.",
+    "last_completed_ticket": "REL-004",
     "default_branch": "main (locally and for every merge). GitHub's configured default branch is still \"claude/verifier-repertoire-git-k29ft2\" — see EXTERNAL_ADMIN_ACTION_REQUIRED.",
     "tickets": {
         "ARCH-001": {
@@ -636,7 +636,8 @@
             "pr": null,
             "ci": "pending"
         },
-        "REL-004": "Préparer le package de distribution depuis l'écran de release, et montrer ce qui bloque toute livraison. PackageRelease (REL-003) avait zéro appelant de production. Extrait ValidateReleaseIdentifiers de ValidateDelivery : sans distributeur configuré — le défaut livré — une sortie sans aucun ISRC passait la validation, devenait READY et ne disait rien. 12 tests / 53 assertions ; 9 mutations, 0 survivante."
+        "REL-004": "Préparer le package de distribution depuis l'écran de release, et montrer ce qui bloque toute livraison. PackageRelease (REL-003) avait zéro appelant de production. Extrait ValidateReleaseIdentifiers de ValidateDelivery : sans distributeur configuré — le défaut livré — une sortie sans aucun ISRC passait la validation, devenait READY et ne disait rien. 12 tests / 53 assertions ; 9 mutations, 0 survivante.",
+        "CAT-005": "Assigner et révoquer un identifiant depuis l'écran. AssignExternalIdentifier et RevokeExternalIdentifier (ARCH-002) n'avaient aucun appelant : ni écran, ni API, ni commande. Ajoute un code lisible par machine à ExternalIdentifierException, qui n'en avait aucun, et AuditSubject::ExternalIdentifier. 15 tests / 53 assertions ; 8 mutations, 0 survivante."
     },
     "architecture_amendments": [
         {
@@ -732,9 +733,9 @@
         "since": "UI-001",
         "note": "Nine tickets (ING/MED/CAT/AI/GEN/REL/DIST/SEC-001 and PR #12) were merged under an earlier autonomous-chaining instruction that bypassed review. A retroactive audit is under way; they stay in main and any correction becomes a follow-up ticket, not a revert. BULK-001b, UI-004 and UI-005 were merged under the session's explicit merge policy for read-only UI, ingestion tooling and documentation: none changes authentication, authorization, rights, money, identifier lifecycle, destructive storage behaviour or any external action."
     },
-    "main_sha": "198d60d",
-    "current_ticket": "REL-004",
-    "tests": "1713 passed, 1 skipped, 15009 assertions",
+    "main_sha": "83ec1b9",
+    "current_ticket": "CAT-005",
+    "tests": "1728 passed, 1 skipped, 15129 assertions",
     "phpstan": {
         "level": 6,
         "baseline": false,
@@ -750,7 +751,7 @@
     },
     "next_action": {
         "$comment": "Read this first. In order. Every item of the Phase 2 order is merged except 17 and 18, which are blocked by ENVIRONMENT_EGRESS. What remains below are standing items an earlier session left.",
-        "1": "Le parcours §31 du mandat : un fichier audio réel, du navigateur jusqu'à une release validée. Restent à câbler côté produit — création/association d'un morceau depuis un asset déposé, et attribution d'identifiants (UPC/ISRC) depuis l'écran, que REL-004 rend enfin visibles comme bloquants mais ne permet pas encore de poser.",
+        "1": "Le parcours §31 du mandat : un fichier audio réel, du navigateur jusqu'à une release validée. Reste à câbler côté produit la création/association d'un morceau depuis un asset déposé — aujourd'hui un morceau ne peut naître que d'un candidat d'ingestion promu, donc un fichier déposé par le navigateur n'a aucun chemin vers un morceau.",
         "2": "Accessibility, the part jsdom cannot reach: per-screen keyboard walkthroughs on real assistive technology, and responsive/long-content behaviour at four breakpoints across six locales. Needs a rendered browser.",
         "3": "AUDIT-002 — an honest actor identity for src/Api. A shared token names no person; recording those calls as guest misleads and as a user is false.",
         "4": "Real-host certification: CPANEL_CERTIFICATION and VPS_CERTIFICATION, including the settings config-cache rebuild branch that no suite can reach.",
