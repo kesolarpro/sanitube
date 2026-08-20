@@ -12,6 +12,7 @@ use SaniTube\Deployment\ProductionCheck;
 use SaniTube\Observability\Capabilities\CapabilityRegistry;
 use SaniTube\Observability\Capabilities\CapabilityStatus;
 use SaniTube\Observability\SchedulerHeartbeat;
+use SaniTube\Production\Enums\AutonomyMode;
 use Throwable;
 
 /**
@@ -58,6 +59,7 @@ final readonly class DiagnoseProduction
             ...$this->storage(),
             ...$this->workers(),
             ...$this->operations(),
+            ...$this->assistedFeatures(),
             ...$this->server(),
         ];
     }
@@ -326,6 +328,140 @@ final readonly class DiagnoseProduction
                 'Schedule `sanitube:backup`. A week-old backup is a week of work to re-do.',
             )
             : ProductionCheck::ready('Backup', 'freshness', 'A recent backup exists.')];
+    }
+
+    /**
+     * The optional, assisted features — transcription, enrichment, artwork,
+     * generation.
+     *
+     * **Nothing here is ever a blocker.** Every one of these is optional by
+     * design: an installation with no AI account imports, catalogues, validates
+     * and delivers exactly as before. Reporting an absent optional feature as a
+     * blocker would make a correctly-configured shared host look broken, which
+     * is the failure the whole capability model exists to avoid.
+     *
+     * What they *do* report is the difference between "not configured" and
+     * "configured and cannot work", because those need different actions and
+     * only one of them is a mistake.
+     *
+     * @return list<ProductionCheck>
+     */
+    private function assistedFeatures(): array
+    {
+        $checks = [
+            $this->providerCheck('Transcription', 'provider', 'transcription.default'),
+            $this->providerCheck('AI', 'provider', 'ai.default'),
+        ];
+
+        $checks[] = $this->artworkGenerationCheck();
+        $checks[] = $this->unattendedReleaseCheck();
+
+        return $checks;
+    }
+
+    /**
+     * Whether an optional provider is configured — never which one's key.
+     */
+    private function providerCheck(string $section, string $key, string $setting): ProductionCheck
+    {
+        $configured = $this->config->get($setting);
+        $configured = is_string($configured) ? trim($configured) : '';
+
+        if ($configured === '' || $configured === 'none' || $configured === 'null') {
+            return ProductionCheck::ready(
+                $section,
+                $key,
+                'No provider is configured. This feature is optional and everything else works without it.',
+            );
+        }
+
+        // Named, not valued. The provider's *name* is a configuration choice an
+        // operator made; its key is a secret, and this output is exactly what
+        // somebody pastes into a support thread.
+        return ProductionCheck::ready($section, $key, sprintf('Provider configured: %s.', $configured));
+    }
+
+    /**
+     * Whether artwork generation could ever produce something this installation
+     * would accept.
+     *
+     * The check ART-002 exists to make visible. A provider can be configured,
+     * credentialled and working, and still be unable to satisfy this
+     * installation's own artwork requirements — because the sizes it produces
+     * are smaller than `artwork.requirements.minimum_pixels`. Left unreported,
+     * that is discovered as a refusal at the moment somebody wanted a cover.
+     */
+    private function artworkGenerationCheck(): ProductionCheck
+    {
+        $provider = $this->config->get('artwork.default_provider');
+        $provider = is_string($provider) ? trim($provider) : '';
+
+        if ($provider === '' || $provider === 'none') {
+            return ProductionCheck::ready(
+                'Artwork',
+                'generation',
+                'No image provider is configured. Covers are attached by hand, which is the default.',
+            );
+        }
+
+        $minimum = (int) $this->config->get('artwork.requirements.minimum_pixels', 0);
+        $sizes = $this->config->get('artwork.providers.'.$provider.'.sizes');
+        $largest = 0;
+
+        foreach (is_array($sizes) ? $sizes : [] as $size) {
+            if (! is_string($size) || preg_match('/^(\d+)x(\d+)$/', trim($size), $matches) !== 1) {
+                continue;
+            }
+
+            $largest = max($largest, min((int) $matches[1], (int) $matches[2]));
+        }
+
+        if ($minimum > 0 && $largest > 0 && $largest < $minimum) {
+            return ProductionCheck::warning(
+                'Artwork',
+                'generation',
+                sprintf(
+                    'The image provider is configured but cannot satisfy this installation: it produces '
+                        .'at most %dpx and the artwork requirement is %dpx.',
+                    $largest,
+                    $minimum,
+                ),
+                'Nothing is spent — generation refuses before sending. Either lower '
+                    .'SANITUBE_ARTWORK_MINIMUM_PIXELS, or declare a larger size your account and model '
+                    .'actually support in config/artwork.php.',
+            );
+        }
+
+        return ProductionCheck::ready('Artwork', 'generation', 'The image provider can meet the artwork requirements.');
+    }
+
+    /**
+     * That unattended release is unavailable.
+     *
+     * Reported as a *reassurance* rather than a problem, and reported at all
+     * because it is the one thing an operator most needs to be able to confirm
+     * without reading the source: nothing on this platform hands a release to a
+     * distributor without a person.
+     */
+    private function unattendedReleaseCheck(): ProductionCheck
+    {
+        foreach (AutonomyMode::cases() as $mode) {
+            if ($mode->mayReleaseUnattended()) {
+                return ProductionCheck::blocker(
+                    'Production',
+                    'unattended_release',
+                    'An autonomy mode reports that it may release without a person.',
+                    'This must never be true. AutonomyMode::AutonomousRelease is locked in code; if this '
+                        .'check fails, that lock has been removed and delivery is no longer supervised.',
+                );
+            }
+        }
+
+        return ProductionCheck::ready(
+            'Production',
+            'unattended_release',
+            'No autonomy mode can hand a release to a distributor without a person.',
+        );
     }
 
     /**

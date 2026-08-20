@@ -194,6 +194,14 @@ final class DoctorTest extends TestCase
             'app.key' => 'base64:S3CR3TAPPLICATIONKEYVALUE0000000000000000000=',
             'database.connections.sqlite.password' => 'the-database-password',
             'app.env' => 'production',
+            // The assisted features report *which provider* is configured,
+            // which is a choice an operator made — never its key, which is not.
+            'transcription.default' => 'openai',
+            'transcription.providers.openai.key' => 'sk-transcription-should-never-appear',
+            'ai.default' => 'openai',
+            'ai.providers.openai.key' => 'sk-enrichment-should-never-appear',
+            'artwork.default_provider' => 'openai',
+            'artwork.providers.openai.key' => 'sk-artwork-should-never-appear',
         ]);
 
         $rendered = json_encode(
@@ -203,6 +211,107 @@ final class DoctorTest extends TestCase
 
         $this->assertStringNotContainsString('S3CR3TAPPLICATIONKEY', $rendered);
         $this->assertStringNotContainsString('the-database-password', $rendered);
+        $this->assertStringNotContainsString('sk-transcription-should-never-appear', $rendered);
+        $this->assertStringNotContainsString('sk-enrichment-should-never-appear', $rendered);
+        $this->assertStringNotContainsString('sk-artwork-should-never-appear', $rendered);
+
+        // And the provider names *are* there, or the assertions above would
+        // pass on output that simply never mentioned these features.
+        $this->assertStringContainsString('openai', $rendered);
+    }
+
+    #[Test]
+    public function an_absent_optional_provider_is_never_a_blocker(): void
+    {
+        // The failure the whole capability model exists to avoid: a
+        // correctly-configured shared host with no AI account must not look
+        // broken. Every one of these features is optional by design.
+        config([
+            'transcription.default' => 'none',
+            'ai.default' => 'none',
+            'artwork.default_provider' => 'none',
+        ]);
+
+        foreach (['provider', 'generation'] as $key) {
+            foreach ($this->diagnose() as $check) {
+                if ($check->key === $key) {
+                    $this->assertFalse($check->isBlocking(), $key.' blocked on an optional feature.');
+                }
+            }
+        }
+    }
+
+    #[Test]
+    public function an_image_provider_that_cannot_meet_the_requirement_is_reported(): void
+    {
+        // ART-002's mismatch, made visible. A provider can be configured,
+        // credentialled and working and still be unable to satisfy this
+        // installation's own artwork requirements. Unreported, that is
+        // discovered as a refusal at the moment somebody wanted a cover.
+        config([
+            'artwork.default_provider' => 'openai',
+            'artwork.providers.openai.sizes' => ['1024x1024'],
+            'artwork.requirements.minimum_pixels' => 3000,
+        ]);
+
+        $check = $this->check('generation');
+
+        $this->assertFalse($check->isBlocking(), 'A size mismatch is a warning, not a blocker.');
+        $this->assertStringContainsString('1024', $check->summary);
+        $this->assertStringContainsString('3000', $check->summary);
+
+        // Says which way to resolve it, rather than only that something is
+        // wrong. Both directions are legitimate.
+        $this->assertNotNull($check->remediation);
+        $this->assertStringContainsString('lower', strtolower((string) $check->remediation));
+    }
+
+    #[Test]
+    public function an_image_provider_that_can_meet_the_requirement_is_not_warned_about(): void
+    {
+        config([
+            'artwork.default_provider' => 'openai',
+            'artwork.providers.openai.sizes' => ['1024x1024', '4000x4000'],
+            'artwork.requirements.minimum_pixels' => 3000,
+        ]);
+
+        $check = $this->check('generation');
+
+        $this->assertStringNotContainsString('cannot', strtolower($check->summary));
+    }
+
+    #[Test]
+    public function an_oblong_size_is_judged_on_its_shortest_side(): void
+    {
+        // The case square fixtures cannot catch, and a mutation found it: with
+        // only square sizes configured, taking the longest edge and taking the
+        // shortest are the same number. A provider offering 1792x1024 has a
+        // shortest side of 1024, and reading the 1792 would report that it can
+        // meet a 1500px requirement it cannot meet — a cover is square, so the
+        // short edge is the one that has to clear the bar.
+        config([
+            'artwork.default_provider' => 'openai',
+            'artwork.providers.openai.sizes' => ['1792x1024'],
+            'artwork.requirements.minimum_pixels' => 1500,
+        ]);
+
+        $check = $this->check('generation');
+
+        $this->assertStringContainsString('1024', $check->summary);
+        $this->assertStringNotContainsString('1792', $check->summary);
+    }
+
+    #[Test]
+    public function the_doctor_confirms_that_nothing_releases_unattended(): void
+    {
+        // Reported as reassurance rather than a problem, and reported at all
+        // because it is the thing an operator most needs to confirm without
+        // reading the source. If AutonomousRelease is ever unlocked, this
+        // becomes a blocker on a live server.
+        $check = $this->check('unattended_release');
+
+        $this->assertFalse($check->isBlocking());
+        $this->assertStringContainsString('without a person', $check->summary);
     }
 
     #[Test]
