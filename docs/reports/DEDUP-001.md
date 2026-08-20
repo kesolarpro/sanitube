@@ -145,6 +145,26 @@ is removed: the platform's scope excludes royalties, revenue, payouts, balances
 and reconciliation entirely, and a registered module name is a standing
 invitation to build one.
 
+## A third finding — CI caught a second engine trap in the same PR
+
+The first push of this ticket failed MariaDB 10.6 alone, before a single test
+ran:
+
+```
+SQLSTATE[42000]: 1067 Invalid default value for 'detected_at'
+```
+
+MySQL and MariaDB give the **first** `TIMESTAMP` column in a table an implicit
+`DEFAULT CURRENT_TIMESTAMP` and every later `NOT NULL` one an implicit zero-date
+default, which strict mode rejects. `decided_at` is nullable and declared first,
+so `detected_at` inherited the broken default purely by being second.
+
+The column now states its default. A repo-wide scan found no other migration
+relying on the implicit one, so the rule is cheap to keep. ADR-0017 records both
+this and the unsigned-arithmetic trap together, because the lesson is the same
+one twice: **neither was reachable from a local SQLite run, and both would have
+reached production on the one engine the platform actually deploys to.**
+
 ## Not in this ticket
 
 - **The review screen.** Findings are recorded; answering them is DEDUP-002.

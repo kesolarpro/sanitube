@@ -43,4 +43,4 @@ true at the time remains readable.
 | [0014](ADR-0014-operational-audit-log.md) | The operational audit log | Accepted |
 | [0015](ADR-0015-reimport-storage-amplification.md) | Re-import storage amplification accepted for V1 | Accepted |
 | [0016](ADR-0016-three-levels-of-truth.md) | Measured, proposed, suggested | Accepted |
-| [0017](ADR-0017-unsigned-columns-and-raw-arithmetic.md) | Unsigned columns and raw arithmetic | Accepted |
+| [0017](ADR-0017-engine-traps-the-matrix-caught.md) | Engine traps the matrix caught | Accepted |

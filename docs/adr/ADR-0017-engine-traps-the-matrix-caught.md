@@ -1,11 +1,21 @@
-# ADR-0017 — Unsigned columns and raw arithmetic
+# ADR-0017 — Engine traps the matrix caught
 
 **Status:** accepted
 **Date:** 2026-08-20
-**Ticket:** MED-003 / DEDUP-001
+**Tickets:** MED-003, DEDUP-001
 **Extends:** ADR-0002 (portability baseline)
 
 ## Context
+
+Two defects, one ticket apart, with the same shape: **correct on SQLite, fatal
+on MySQL and MariaDB, invisible to every local test run.** Neither was a typo.
+Both were the obvious way to write the thing, and both were wrong for a reason
+that only exists on engines the developer was not using.
+
+They are recorded together because the lesson is the same one twice, and
+because the next one will not look like either of these.
+
+## Trap 1 — arithmetic on an unsigned column
 
 MED-003 shipped a candidate query that ordered results by their distance from a
 target duration, in the obvious way:
@@ -39,9 +49,29 @@ Two things about how this was found are worth recording:
   other candidate query in the suite happened to compare against rows at or
   above the target. The defect was not rare; the fixtures were one-sided.
 
+## Trap 2 — the implicit default on a second TIMESTAMP column
+
+DEDUP-001 created a table with a nullable `decided_at` and a NOT NULL
+`detected_at`, in that order. MariaDB 10.6 refused it:
+
+```
+SQLSTATE[42000]: Syntax error or access violation: 1067
+Invalid default value for 'detected_at'
+```
+
+MySQL and MariaDB give the **first** `TIMESTAMP` column in a table an implicit
+`DEFAULT CURRENT_TIMESTAMP`, and every later `NOT NULL` `TIMESTAMP` column an
+implicit zero-date default — which strict mode then rejects. The column was
+fine; being the *second* timestamp was the defect.
+
+The trap here is worse than the first one, because the failure depends on **the
+order two columns happen to appear in**. Moving `detected_at` above
+`decided_at` would have made it work, and nothing at the call site would
+explain why the order mattered. SQLite has no such rule and cannot warn.
+
 ## Decision
 
-Three rules, all narrow enough to follow without thinking about them.
+Four rules, all narrow enough to follow without thinking about them.
 
 **1. Raw SQL never subtracts an unsigned column.** Where a distance is needed,
 subtract the smaller value from the larger explicitly:
@@ -62,7 +92,12 @@ non-negativity was documentation the application was already enforcing.
 `duplicate_relations.similarity_basis_points` and `overlap_frames` are signed
 for exactly this reason, though neither is ever negative.
 
-**3. A comparison ordering has a deterministic tiebreak.** Two rows equidistant
+**3. Every non-nullable `timestamp()` states its default.** `->useCurrent()` or
+an explicit `->default(...)`, always — never the implicit one, and never a
+correct-by-accident column order. A repo-wide scan when this was found showed
+no other migration relying on the implicit default; the rule keeps it that way.
+
+**4. A comparison ordering has a deterministic tiebreak.** Two rows equidistant
 from a target are otherwise returned in whatever order the engine chooses, and
 when the list is capped that decides which row survives. Truncation must not be
 a coin toss.
@@ -72,8 +107,9 @@ a coin toss.
 **Accepted:**
 
 - Distance ordering is portable and needs no per-engine branch.
-- The failure mode is now written down, so the next person reaching for
-  `ABS(col - ?)` finds out here rather than from CI.
+- Schema correctness no longer depends on the order columns are declared in.
+- Both failure modes are written down, so the next person reaching for
+  `ABS(col - ?)` or a bare `timestamp()` finds out here rather than from CI.
 
 **Costs:**
 
@@ -86,14 +122,23 @@ a coin toss.
 
 **Not addressed:**
 
-No scanner enforces this. A textual guard cannot tell which columns in a raw
-expression are unsigned, and a rule that fires on every `whereRaw` containing a
-minus sign would be turned off within a week. The CI matrix is the enforcement
-— which is what caught it, one commit after it was written.
+No scanner enforces either rule. A textual guard cannot tell which columns in a
+raw expression are unsigned, and a rule firing on every `whereRaw` containing a
+minus sign would be switched off within a week. The timestamp rule is more
+checkable, but a guard for it would have caught one defect in the project's
+history and is not obviously worth the false positives.
+
+**The CI matrix is the enforcement, and it works.** It caught both of these
+within one commit of their being written, which is the argument for keeping four
+database engines in the pipeline despite the minutes they cost. Neither defect
+was reachable from a local run, and both would have reached production on the
+one engine the platform actually deploys to.
 
 ## Revisit when
 
 - The support matrix drops MySQL and MariaDB, which is the only change that
-  makes unsigned arithmetic uniform again.
+  makes unsigned arithmetic uniform and implicit timestamp defaults harmless.
 - A static analyser gains column-type awareness for raw SQL, at which point
   rule 1 becomes checkable rather than conventional.
+- A third trap of this shape appears, which would make a schema linter worth
+  the false positives it brings.

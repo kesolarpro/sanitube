@@ -49,7 +49,20 @@ return new class extends Migration
 
             $table->foreignId('decided_by_user_id')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamp('decided_at')->nullable();
-            $table->timestamp('detected_at');
+
+            // The default is explicit because the implicit one is invalid.
+            // MySQL and MariaDB give the *first* TIMESTAMP column in a table
+            // an implicit DEFAULT CURRENT_TIMESTAMP and every later NOT NULL
+            // one an implicit zero-date default, which strict mode then
+            // rejects outright:
+            //
+            //   1067 Invalid default value for 'detected_at'
+            //
+            // `decided_at` is declared above, so this column is the second and
+            // inherits the broken default. Writing the default out means the
+            // schema does not depend on the order two columns happen to appear
+            // in -- and SQLite, which has no such rule, cannot warn about it.
+            $table->timestamp('detected_at')->useCurrent();
             $table->timestamps();
 
             // One finding per pair per route. The same two assets can be found
