@@ -1,8 +1,8 @@
 {
   "$comment": "Machine-readable project state. Any new session reads this first, then verifies it against GitHub before trusting it. Written at the end of each ticket, so a stale entry means a session ended mid-ticket — check the branch and CI rather than the status field.",
-  "updated_at": "2026-08-16",
-  "current_phase": "BULK-001c measured and REVIEW_REQUIRED; A11Y-001 merged. Remaining internal gaps are audits, not features.",
-  "last_completed_ticket": "A11Y-001",
+  "updated_at": "2026-08-20",
+  "current_phase": "Phase 2 foundations merged: direct uploads (STO-003) and acoustic fingerprinting (MED-003). Phase 3 opened with DEDUP-001 — duplicate findings recorded, not acted on.",
+  "last_completed_ticket": "DEDUP-001",
   "default_branch": "main",
   "tickets": {
     "ARCH-001": {
@@ -413,6 +413,30 @@
       "pr": 53,
       "ci": "green 10/10 — run 31979953742",
       "note": "61 of 65 form fields rendered a label pointing at nothing. FormField now provides its wiring and the controls inject it; all call sites fixed without editing one. A second bug found while fixing it: Vue casts absent Boolean props to false, so the nullish coalescing never fell through and aria-invalid would have been absent everywhere."
+    },
+    "STO-003": {
+      "status": "merged",
+      "branch": "claude/sto-003-direct-uploads",
+      "pr": 58,
+      "ci": "green 10/10",
+      "report": "docs/reports/STO-003.md",
+      "merge_commit": "3a107fb"
+    },
+    "MED-003": {
+      "status": "merged",
+      "branch": "claude/media-worker-contract",
+      "pr": 59,
+      "ci": "green 10/10 (run 32324889572)",
+      "report": "docs/reports/MED-003.md",
+      "merge_commit": "6869592",
+      "note": "Shipped ordering by ABS(unsigned - ?), which aborts on MySQL and MariaDB and only works on SQLite. Caught by the engine matrix and fixed before merge; see ADR-0017."
+    },
+    "DEDUP-001": {
+      "status": "in_review",
+      "branch": "claude/sanitube-autonomous-v1-5pycx0",
+      "ci": "pending",
+      "report": "docs/reports/DEDUP-001.md",
+      "note": "Fingerprint comparison, three duplicate levels, findings recorded as PROPOSED only. Chromaprint switched to raw output (VERSION 2) because the compressed form cannot be compared. No deletion, no review UI — DEDUP-002 next."
     }
   },
   "architecture_amendments": [

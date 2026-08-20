@@ -7,6 +7,7 @@ namespace SaniTube\Media\Testing;
 use SaniTube\Media\Contracts\AudioFingerprinter;
 use SaniTube\Media\Exceptions\FingerprintFailed;
 use SaniTube\Media\FingerprintResult;
+use SaniTube\Media\Fingerprints\FingerprintPoints;
 
 /**
  * A fingerprinter that does not need Chromaprint installed.
@@ -17,6 +18,13 @@ use SaniTube\Media\FingerprintResult;
  * acoustic model: it cannot tell that a WAV and an MP3 of the same recording
  * match, and pretending otherwise would let tests assert behaviour the real
  * tool provides and this one does not.
+ *
+ * **It emits the same shape as the real tool** — a list of 32-bit words in
+ * {@see FingerprintPoints} form — because the comparator measures agreement
+ * bit by bit. A double that returned a hex digest would still be a string, and
+ * every similarity measured against it would be a number computed over the
+ * wrong thing. Two unrelated files land near 50% agreement here, which is
+ * where two unrelated recordings land in reality.
  *
  * Tests that need "same recording, different encoding" set the fingerprint
  * explicitly with {@see self::willReturn()}. That keeps the fixture honest
@@ -79,9 +87,32 @@ final class FakeAudioFingerprinter implements AudioFingerprinter
         $contents = (string) @file_get_contents($localPath);
 
         return new FingerprintResult(
-            fingerprint: hash('sha256', $contents),
+            fingerprint: FingerprintPoints::encode(self::pointsFrom($contents)),
             durationSeconds: max(1, strlen($contents)),
             algorithm: $this->name().':'.$this->version(),
         );
+    }
+
+    /**
+     * A fingerprint-shaped answer derived from the bytes.
+     *
+     * Long enough to clear the comparator's minimum overlap, so a test that
+     * fingerprints two files gets a real measurement rather than a refusal to
+     * measure.
+     *
+     * @return list<int>
+     */
+    public static function pointsFrom(string $contents, int $frames = 200): array
+    {
+        $seed = hash('sha256', $contents, true);
+        $points = [];
+
+        for ($frame = 0; $frame < $frames; $frame++) {
+            /** @var array{1: int} $word */
+            $word = unpack('N', substr(hash('sha256', $seed.$frame, true), 0, 4));
+            $points[] = $word[1];
+        }
+
+        return $points;
     }
 }
