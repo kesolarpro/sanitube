@@ -931,6 +931,13 @@
    "ci": "pending",
    "branch": "claude/sanitube-autonomous-v1-5pycx0",
    "note": "sanitube:host — lire la machine, jamais la supposer. Inspection par lectures de fichiers et recherches PATH uniquement, aucun processus execute. Cinq profils d'installation ; le conseiller ne suggere que les trois detectables et nomme les deux qui sont des choix. La preuve cPanel l'emporte sur tout ce qu'un VPS aurait."
+  },
+  "DEP-008": {
+   "status": "in_review",
+   "pr": null,
+   "ci": "pending",
+   "branch": "claude/sanitube-autonomous-v1-5pycx0",
+   "note": "Le journal d'installation : chaque etape des deux installeurs (shell et web) est enregistree dans storage/installer/journal.json, 0600, details passes par la regle de censure partagee. --status le lit ; --profile enregistre la forme choisie et le message final parle sa langue. Le journal enregistre et n'autorise jamais ; un journal corrompu est preserve a cote, pas remplace."
   }
  },
  "architecture_amendments": [
@@ -1031,7 +1038,7 @@
   }
  },
  "main_sha": "96ebebe",
- "current_ticket": "DEP-007",
+ "current_ticket": "DEP-008",
  "tests": "1820 passed, 1 skipped, 23189 assertions",
  "phpstan": {
   "level": 6,

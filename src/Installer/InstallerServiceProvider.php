@@ -20,6 +20,7 @@ use SaniTube\Installer\Http\Controllers\InstallController;
 use SaniTube\Installer\Http\Middleware\EnsureInstallable;
 use SaniTube\Installer\Http\Middleware\UseFilesystemState;
 use SaniTube\Installer\Services\EnvironmentFile;
+use SaniTube\Installer\Services\InstallationJournal;
 use SaniTube\Installer\Services\InstallationLock;
 use SaniTube\Installer\Services\InstallationService;
 use SaniTube\Observability\Capabilities\CapabilityRegistry;
@@ -36,6 +37,10 @@ final class InstallerServiceProvider extends ServiceProvider
         ));
 
         $this->app->bind(InstallationLock::class, fn (Application $app): InstallationLock => new InstallationLock(
+            $app->storagePath(),
+        ));
+
+        $this->app->bind(InstallationJournal::class, fn (Application $app): InstallationJournal => new InstallationJournal(
             $app->storagePath(),
         ));
 

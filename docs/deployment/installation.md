@@ -54,6 +54,30 @@ it in place.
 There is no rollback. Undoing a successful migration because a later stage
 failed would turn a recoverable situation into a lost database.
 
+## Profiles, and what previous runs recorded
+
+```
+php artisan sanitube:install --profile=CPANEL
+php artisan sanitube:install --status
+```
+
+`--profile` records the installation shape — `CPANEL`, `VPS_CORE`,
+`VPS_CORE_AND_WORKER`, or `CORE_ONLY_GENERIC` — and the completion message
+speaks that profile's language: the cron line to paste on cPanel, the service
+homes to arrange on a VPS. `WORKER_ONLY` is refused here because this command
+installs Core; a worker host is set up per `worker.md`. No profile is ever
+chosen *for* you: with no `--profile` the run behaves exactly as before.
+
+Every run — shell or web installer, success or failure — is journaled to
+`storage/installer/journal.json` (mode `0600`, details passed through the same
+credential scrubbing as every failure message). `--status` prints it without
+running anything. The journal records; it never authorises: whether a stage
+may be skipped is re-decided from the machine on every run, so a stale journal
+cannot make the installer believe something the filesystem contradicts.
+
+Re-profiling an installation warns instead of pretending: the cron lines and
+service units configured for the old profile do not remove themselves.
+
 ## What it will not do
 
 **It will not overwrite your `.env`.** If one exists the stage is skipped and
