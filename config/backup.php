@@ -34,6 +34,22 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Schedule
+    |--------------------------------------------------------------------------
+    |
+    | When the nightly backup runs, as HH:MM in the application timezone, or
+    | empty to not schedule one at all. On by default because the default
+    | destination always exists: a platform that backs up only when somebody
+    | remembers to is a platform that stops backing up the week everybody is
+    | busy. The doctor still judges backup *freshness* separately — a
+    | scheduled backup that has stopped succeeding must not look scheduled.
+    |
+    */
+
+    'schedule_at' => env('SANITUBE_BACKUP_AT', '02:40'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Tables whose contents are not worth restoring
     |--------------------------------------------------------------------------
     |

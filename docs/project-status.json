@@ -2,7 +2,7 @@
  "$comment": "Machine-readable project state. Any new session reads this first, then verifies it against GitHub before trusting it. Written at the end of each ticket, so a stale entry means a session ended mid-ticket — check the branch and CI rather than the status field.",
  "updated_at": "2026-08-21",
  "current_phase": "Mission finalisation + deploiement automatise : d'INTERNAL_PHASE2_COMPLETE vers une installation de production reproductible. Installeur a point d'entree unique, profils, machine a etats reprenable, generation de services, artefact frontend, mise a jour/retour arriere, cadre de certification des fournisseurs.",
- "last_completed_ticket": "DEP-014",
+ "last_completed_ticket": "DEP-015",
  "default_branch": "main — confirmed by API this session. The EXTERNAL_ADMIN_ACTION_REQUIRED blocker is cleared.",
  "tickets": {
   "ARCH-001": {
@@ -982,11 +982,11 @@
    "recorded_from": "git log origin/main (d381fd7)"
   },
   "DEP-015": {
-   "status": "in_review",
-   "pr": null,
-   "ci": "pending",
-   "branch": "claude/sanitube-autonomous-v1-5pycx0",
-   "note": "Le fil a une version, distincte de celle de l'application. Un desaccord connu refuse les travaux avant tout envoi ; une annonce absente vaut version 1 par definition, donc chaque worker qui marchait hier marche encore. worker:check nomme les deux numeros. sanitube:worker:token frappe une fois vers le terminal et ne retient rien ; le port nginx devient une entree."
+   "status": "merged",
+   "pr": 143,
+   "ci": "green 10/10",
+   "note": "Le fil a une version, distincte de celle de l'application. Un desaccord connu refuse les travaux avant tout envoi ; une annonce absente vaut version 1 par definition, donc chaque worker qui marchait hier marche encore. worker:check nomme les deux numeros. sanitube:worker:token frappe une fois vers le terminal et ne retient rien ; le port nginx devient une entree.",
+   "recorded_from": "git log origin/main (274ae01)"
   },
   "DEP-016": {
    "status": "in_review",
@@ -994,6 +994,13 @@
    "ci": "pending",
    "branch": "claude/sanitube-autonomous-v1-5pycx0",
    "note": "bin/bootstrap.sh — la detection avant l'action, rien pipe dans un shell, l'installeur Composer verifie SHA-384. L'hygiene des scripts est un garde-fou decouvert, pas une liste. La detection est prouvee en CI sur Ubuntu 24.04, Debian 12 et AlmaLinux 9 — etroit expres : la convergence complete est l'etape de certification sur vrai VPS. Index docs/deployment/README.md."
+  },
+  "DEP-017": {
+   "status": "in_review",
+   "pr": null,
+   "ci": "pending",
+   "branch": "claude/sanitube-autonomous-v1-5pycx0",
+   "note": "La sauvegarde nocturne est planifiee (SANITUBE_BACKUP_AT, vide desactive), la fraicheur jugee a part. Les seuils disque atteignent le docteur — volumes application et sauvegarde juges separement, en megaoctets absolus, le bloqueur arrete un deploiement. sanitube:self-test : un chef d'orchestre, aucune duplication. Le plan de certification reel A-K est ecrit et executable sans edition de code."
   }
  },
  "architecture_amendments": [
@@ -1093,7 +1100,7 @@
    "history": "Not rewritten. PRs #111-#122 were merged by earlier sessions and #123-#129 by the 2026-08-21 session while this policy still read active:true. That happened and stays on the record; the policy is superseded from today rather than retroactively."
   }
  },
- "main_sha": "d381fd7",
+ "main_sha": "274ae01",
  "current_ticket": "DEP-009",
  "tests": "1820 passed, 1 skipped, 23189 assertions",
  "phpstan": {

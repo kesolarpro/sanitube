@@ -615,6 +615,58 @@ final class DoctorTest extends TestCase
             ->assertFailed();
     }
 
+    // ---------------------------------------------------------------- disk
+
+    #[Test]
+    public function a_roomy_disk_is_ready_and_says_how_roomy(): void
+    {
+        // Thresholds at zero disable the verdicts; the real machine running
+        // this test has whatever space it has, so the assertion is about the
+        // shape: both volumes reported, neither blocking.
+        config(['operations.disk.warn_below_mb' => 0, 'operations.disk.blocker_below_mb' => 0]);
+
+        $check = $this->check('application_disk');
+
+        $this->assertSame(ProductionCheck::READY, $check->verdict);
+        $this->assertMatchesRegularExpression('/\d+ MB free/', $check->summary);
+    }
+
+    #[Test]
+    public function a_disk_below_the_warning_threshold_warns_with_both_numbers(): void
+    {
+        // A warn threshold no real machine satisfies, so this machine is
+        // "low" by construction — the verdict logic is what is under test.
+        config(['operations.disk.warn_below_mb' => PHP_INT_MAX, 'operations.disk.blocker_below_mb' => 0]);
+
+        $check = $this->check('application_disk');
+
+        $this->assertSame(ProductionCheck::WARNING, $check->verdict);
+        $this->assertStringContainsString('warning threshold', $check->summary);
+    }
+
+    #[Test]
+    public function a_disk_below_the_blocker_threshold_blocks_the_deploy(): void
+    {
+        config(['operations.disk.blocker_below_mb' => PHP_INT_MAX]);
+
+        $check = $this->check('application_disk');
+
+        $this->assertSame(ProductionCheck::BLOCKER, $check->verdict);
+        $this->assertStringContainsString('fails halfway', $check->summary);
+    }
+
+    #[Test]
+    public function the_backup_volume_is_judged_separately_when_it_exists(): void
+    {
+        $destination = storage_path('framework/testing/doctor-disk-'.uniqid());
+        mkdir($destination, 0755, true);
+        config(['backup.destination' => $destination, 'operations.disk.warn_below_mb' => 0, 'operations.disk.blocker_below_mb' => 0]);
+
+        $this->assertSame(ProductionCheck::READY, $this->check('backup_disk')->verdict);
+
+        rmdir($destination);
+    }
+
     // -------------------------------------------------------------- fixtures
 
     private function configureForProduction(): void

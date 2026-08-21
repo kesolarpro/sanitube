@@ -13,6 +13,7 @@ use SaniTube\Deployment\Console\FrontendInstallCommand;
 use SaniTube\Deployment\Console\HostCommand;
 use SaniTube\Deployment\Console\ProvisionCommand;
 use SaniTube\Deployment\Console\RestoreCommand;
+use SaniTube\Deployment\Console\SelfTestCommand;
 use SaniTube\Deployment\Console\SmokeCommand;
 use SaniTube\Deployment\Frontend\FrontendBuildInstaller;
 use SaniTube\Deployment\Host\HostProbe;
@@ -51,7 +52,7 @@ final class DeploymentServiceProvider extends ServiceProvider
     public function boot(): void
     {
         if ($this->app->runningInConsole()) {
-            $this->commands([BackupCommand::class, RestoreCommand::class, DoctorCommand::class, HostCommand::class, ProvisionCommand::class, FrontendInstallCommand::class, SmokeCommand::class]);
+            $this->commands([BackupCommand::class, RestoreCommand::class, DoctorCommand::class, HostCommand::class, ProvisionCommand::class, FrontendInstallCommand::class, SmokeCommand::class, SelfTestCommand::class]);
         }
     }
 }

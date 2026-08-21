@@ -46,6 +46,19 @@ Schedule::command('sanitube:assets:cleanup-staging')
     ->name('sanitube:cleanup-staging')
     ->withoutOverlapping();
 
+// The nightly backup. The time is data (SANITUBE_BACKUP_AT), empty disables;
+// the destination is config/backup.php's. Nothing here checks the backup
+// worked — that is the doctor's freshness check, deliberately separate, so a
+// backup that stopped succeeding cannot hide behind being scheduled.
+$backupAt = trim((string) config('backup.schedule_at'));
+
+if ($backupAt !== '') {
+    Schedule::command('sanitube:backup')
+        ->dailyAt($backupAt)
+        ->name('sanitube:backup')
+        ->withoutOverlapping();
+}
+
 // Re-reads stored assets and confirms their checksums. Not scheduled by
 // default: on a large catalogue this is real egress and real money, and an
 // installation should choose when to pay it. Uncomment, or run it by hand.

@@ -303,6 +303,10 @@ written down.
 | `bin/bootstrap.sh` — detection before action, nothing piped to a shell | READY | DEP-016. Reads the machine, prints the exact commands, installs nothing without --yes-install-packages + root + a recognised package manager. The one download it can perform (Composer's installer) is SHA-384-verified per the publisher's documented procedure and removed on mismatch. Hands over to sanitube:host / sanitube:install — it is not a second installer. |
 | Script hygiene held as a guardrail, not a review | READY | DEP-016. Every bin/*.sh, discovered not listed: set -euo pipefail, no eval, no backticks in code, no download piped to a shell, executable, bash shebang. The audit is a test, so the script somebody adds next year is in scope the moment it exists. |
 | Bootstrap detection proven on real distros in CI | READY | DEP-016. Ubuntu 24.04, Debian 12 and AlmaLinux 9 containers run the bootstrap: it names the right package manager, notices PHP is absent, and refuses to act unasked. Deliberately narrow — the full converge is the real-VPS certification step, not a CI step. |
+| Nightly backup scheduled, freshness judged separately | READY | DEP-017. SANITUBE_BACKUP_AT (empty disables); the doctor's freshness check stays separate so a scheduled backup that stopped succeeding cannot hide behind being scheduled. |
+| Disk thresholds reach the doctor | READY | DEP-017. Application and backup volumes judged separately, in absolute megabytes (what the platform needs is measured in MB, not fractions of somebody's disk); warn and blocker levels configurable, blocker stops a deploy because migrating on a full disk fails halfway in the worst way. |
+| `sanitube:self-test` — one sitting, no duplication | READY | DEP-017. A conductor only: health, doctor, providers, and smoke when APP_URL is usable. Fails if the doctor or the smoke failed. |
+| The real-world certification plan | READY | DEP-017. docs/deployment/certification-plan.md — A through K, runnable with shipped code, no development edits. Until executed on a real host the automation is CODE_READY and says so. |
 
 ## Security
 
