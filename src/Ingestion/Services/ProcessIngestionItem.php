@@ -20,6 +20,7 @@ use SaniTube\Ingestion\Manifest\ManifestRow;
 use SaniTube\Ingestion\Models\IngestionItem;
 use SaniTube\Ingestion\Models\TrackCandidate;
 use SaniTube\Ingestion\Sources\SourceReaderFactory;
+use SaniTube\Storage\CredentialRedactor;
 use Throwable;
 
 /**
@@ -281,12 +282,25 @@ final readonly class ProcessIngestionItem
         return $trackId;
     }
 
+    /**
+     * The one place a failure is written, and the one place it is scrubbed.
+     *
+     * Two of the three callers hand this an exception's own words, and one of
+     * those is a bare `Throwable` from the storage client. An S3 403 arrives
+     * as `GET https://…?X-Amz-Signature=… resulted in a 403`, and this column
+     * is durable: it survives the run, it is read by the internal API, and it
+     * goes into every database backup taken afterwards. A transient leak is a
+     * leak; a stored one is a leak with a copy.
+     *
+     * The failure *code* is what the platform acts on and is untouched — the
+     * message is only ever read by a person deciding what to do next.
+     */
     private function fail(IngestionItem $item, IngestionFailureCode $code, string $message): IngestionItem
     {
         $item->forceFill([
             'status' => IngestionItemStatus::Failed,
             'failure_code' => $code,
-            'failure_message' => $message,
+            'failure_message' => CredentialRedactor::scrub($message),
         ])->save();
 
         return $item->refresh();

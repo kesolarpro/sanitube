@@ -9,7 +9,9 @@ use Illuminate\Database\Connection;
 use Illuminate\Database\Migrations\Migrator;
 use SaniTube\Assets\Enums\AssetStatus;
 use SaniTube\Assets\Models\Asset;
+use SaniTube\Deployment\BackupContents;
 use SaniTube\Deployment\BackupManifest;
+use SaniTube\Deployment\Exceptions\BackupException;
 use SaniTube\Deployment\ProductionCheck;
 use SaniTube\Media\Services\FingerprintAsset;
 use SaniTube\Observability\Capabilities\CapabilityRegistry;
@@ -49,6 +51,7 @@ final readonly class DiagnoseProduction
         private CapabilityRegistry $capabilities,
         private SchedulerHeartbeat $heartbeat,
         private BackupRepository $backups,
+        private BackupContents $contents,
     ) {}
 
     /**
@@ -288,10 +291,12 @@ final readonly class DiagnoseProduction
      */
     private function operations(): array
     {
+        $checks = $this->backupConfiguration();
+
         try {
             $backups = $this->backups->complete();
         } catch (Throwable) {
-            return [ProductionCheck::unknown(
+            return [...$checks, ProductionCheck::unknown(
                 'Backup',
                 'freshness',
                 'The backup directory could not be read.',
@@ -300,7 +305,7 @@ final readonly class DiagnoseProduction
         }
 
         if ($backups === []) {
-            return [ProductionCheck::warning(
+            return [...$checks, ProductionCheck::warning(
                 'Backup',
                 'freshness',
                 'This installation has never been backed up.',
@@ -319,12 +324,12 @@ final readonly class DiagnoseProduction
         $createdAt = strtotime($newest['manifest']->createdAt);
 
         if ($createdAt === false) {
-            return [ProductionCheck::unknown('Backup', 'freshness', 'The age of the newest backup could not be read.')];
+            return [...$checks, ProductionCheck::unknown('Backup', 'freshness', 'The age of the newest backup could not be read.')];
         }
 
         $age = time() - $createdAt;
 
-        return [$age > 7 * 86400
+        return [...$checks, $age > 7 * 86400
             ? ProductionCheck::warning(
                 'Backup',
                 'freshness',
@@ -332,6 +337,51 @@ final readonly class DiagnoseProduction
                 'Schedule `sanitube:backup`. A week-old backup is a week of work to re-do.',
             )
             : ProductionCheck::ready('Backup', 'freshness', 'A recent backup exists.')];
+    }
+
+    /**
+     * Whether the next backup can run at all.
+     *
+     * Freshness answers "when was the last one"; this answers "will there be
+     * another". DEP-005 refuses an include path that resolves outside the
+     * installation, that is the application root, or that touches the backup
+     * destination — and it refuses *at backup time*, which on a shared account
+     * means a cron line that fails quietly at three in the morning. The
+     * operator's first sign is the freshness warning a week later, by which
+     * point they have a week of work to re-do.
+     *
+     * Asked here because this is the command somebody runs when they want to
+     * know what is wrong before it costs them something. It resolves paths and
+     * writes nothing, which keeps this class read-only.
+     *
+     * A warning rather than a blocker: a broken backup configuration does not
+     * stop the platform serving, and the doctor's blockers are the things that
+     * do. It is the loudest warning here all the same — every other backup
+     * problem is about one missed run, and this one is about all of them.
+     *
+     * @return list<ProductionCheck>
+     */
+    private function backupConfiguration(): array
+    {
+        /** @var list<string> $configured */
+        $configured = (array) $this->config->get('backup.include_paths', []);
+
+        try {
+            $this->contents->directories($configured);
+        } catch (BackupException $exception) {
+            return [ProductionCheck::warning(
+                'Backup',
+                'include_paths',
+                // The refusal's own sentence, which names the path and says
+                // why. It quotes a configured *path*, never a value from a
+                // credential-shaped setting.
+                $exception->getMessage(),
+                'Every backup will fail until this is corrected. See the include-path rules in '
+                    .'docs/deployment/backup.md.',
+            )];
+        }
+
+        return [];
     }
 
     /**

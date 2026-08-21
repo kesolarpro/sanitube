@@ -22,6 +22,7 @@ use SaniTube\Distribution\Models\DistributionAttempt;
 use SaniTube\Distribution\Models\DistributionDelivery;
 use SaniTube\Releases\Enums\ReleaseStatus;
 use SaniTube\Releases\Models\Release;
+use SaniTube\Storage\CredentialRedactor;
 use Throwable;
 
 /**
@@ -230,16 +231,18 @@ final readonly class SubmitDelivery
      */
     private function unconfirmed(DistributionDelivery $delivery, string $reason, int $startedAt): DistributionDelivery
     {
+        $clean = CredentialRedactor::scrub($reason);
+
         $delivery->forceFill([
             'status' => DistributionDeliveryStatus::SubmittedUnconfirmed,
-            'failure_reason' => $reason,
+            'failure_reason' => $clean,
         ])->save();
 
         $this->record(
             $delivery,
             DistributionAction::Submit,
             DistributionAttemptOutcome::Unknown,
-            $reason,
+            $clean,
             $startedAt,
         );
 
@@ -262,12 +265,14 @@ final readonly class SubmitDelivery
         int $startedAt,
         DistributionAction $action = DistributionAction::Submit,
     ): DistributionDelivery {
+        $clean = CredentialRedactor::scrub($reason);
+
         $delivery->forceFill([
             'status' => DistributionDeliveryStatus::Failed,
-            'failure_reason' => $reason,
+            'failure_reason' => $clean,
         ])->save();
 
-        $this->record($delivery, $action, DistributionAttemptOutcome::Failed, $reason, $startedAt);
+        $this->record($delivery, $action, DistributionAttemptOutcome::Failed, $clean, $startedAt);
 
         return $delivery->refresh();
     }
@@ -286,7 +291,13 @@ final readonly class SubmitDelivery
             'idempotency_key' => $delivery->idempotency_key,
             // A summary, never the raw payload: distributor responses quote
             // the request, and the request is signed.
-            'response_summary' => $summary,
+            //
+            // Scrubbed here as well as at the two callers that set
+            // `failure_reason`, because `poll()`, `reconcile()` and
+            // `takedown()` reach this directly with an exception's own words.
+            // Doing it twice costs a string comparison; missing one of the
+            // three costs a credential in a durable column.
+            'response_summary' => CredentialRedactor::scrub($summary),
             'duration_ms' => $startedAt === null ? null : (int) round((hrtime(true) - $startedAt) / 1_000_000),
         ]);
     }

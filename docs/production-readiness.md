@@ -255,6 +255,7 @@ written down.
 | Restore never accidental | READY | Explicit confirmation; `--force` for scripts. |
 | Catalogue *and* delivery history recovered | READY | Asserted end to end. |
 | Backup freshness surfaced | READY | Doctor and Operations screen. |
+| A backup configuration that can never run is reported before it fails | READY | DEP-006. The doctor resolves the include paths and reports the refusal. Freshness answers when the last backup was; this answers whether there will be another. |
 | Included paths contained | READY | DEP-005. An include path that resolves outside the installation, that is the application root, or that touches the backup destination is refused before the directory is created. |
 | A backup never contains a backup | READY | DEP-005. `storage` is the obvious entry and used to copy every previous backup into the new one, doubling each run. |
 | `.env` never in a backup | READY | DEP-005. Never copied, whatever the configuration says; stated on every manifest; and a backup naming one is refused on restore before anything is written. |
@@ -289,6 +290,11 @@ written down.
 | No internal ids in URLs | READY | |
 | CSRF on every write | READY | Laravel `web` group. |
 | No secrets in logs, payloads or diagnostics | READY | Asserted, including in the doctor. |
+| No secret or address in a failure message a person reads | READY | OBS-001. The failed-jobs screen rendered an S3 client's 403 verbatim — presigned signature and all — because the first line was truncated rather than scrubbed. One rule now, `CredentialRedactor::scrub()`: configured secrets masked, every address removed, at four boundaries. |
+| Delivery failure text carries no address | READY | OBS-001. `SubmitDelivery` stores a provider's own words in `failure_reason` and `response_summary`; `sync`, `reconcile` and `takedown` reach the recorder without passing the failure path, so it is scrubbed there too. Read boundaries scrubbed for rows written earlier. |
+| A bare hostname is *not* removed from a failure message | NOT_READY | OBS-001, deliberately. The rule is anchored on a scheme, because a heuristic loose enough to catch `distributor.example port 443` catches every dotted word in every message. What it removes is what carries a credential. |
+| Capability details carry no credential | READY | OBS-001. `CapabilityRegistry` wraps every detector including object storage, and resolving an S3-compatible provider builds a client from the configured key and secret. Scrubbed in the one `Capability` constructor, like `StorageHealth` and `CertificationCheck`. |
+| Stored failure text carries no address | READY | OBS-001. `ingestion_items.failure_message` and `audio_analyses.failure_message` are durable and go into every backup, so they are scrubbed on write *and* on read — rows written before the rule are already in the column. |
 | Preview URLs signed, expiring, throttled | READY | |
 | No permanent public URL for any asset | READY | STO-005. The contract has no such method; no disk declares `url`. |
 | Every storage disk declares private visibility | READY | STO-005. Asserted per configured provider. |
@@ -314,13 +320,14 @@ written down.
 | Distribution → submit → live | READY | |
 | Unknown outcome → reconcile | READY | |
 | Backup → destroy → restore | READY | |
-| Install → OWNER → login | NOT_READY | Covered by installer tests, not by the walk. |
+| Install → OWNER → login | READY | E2E-003. The walk cannot install — it would rebuild the database the suite is connected to, and it names that exclusion. The joint after it is walked in `InstallerTest`: the owner the installer created signs in through the real form and opens an administrator's screen. Neither suite held that seam before; a mutation writing the wrong password passed every other test in both. |
 
 ## Scale
 
 | Control | Verdict | Notes |
 |---|---|---|
 | No screen costs more queries as the catalogue grows | READY | PERF-001, measured at two sizes. |
+| The payload comparison measures the catalogue and not the fixture | READY | PERF-003. Two artefacts together came to almost exactly the old kilobyte tolerance: the second seeding wrote audit rows carrying an address the first one's lacked, and it created a second ingestion batch. Removed rather than tolerated; growth is now nought to five bytes and the bound is 256. |
 | Every measured screen is measured with rows in it | READY | PERF-002. Five of the nine screens had been measured against empty tables; a guard now fails by name when a listed screen renders nothing. |
 | Index screens this test does not reach | NOT_READY | PERF-002 names five — enrichment, distribution, production, generations, projects — with what each would need. Each requires a chain of domain objects the catalogue fixture does not build. |
 

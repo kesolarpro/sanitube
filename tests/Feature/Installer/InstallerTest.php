@@ -238,6 +238,48 @@ final class InstallerTest extends TestCase
         $this->assertNotSame('a-long-enough-passphrase', $user->password);
     }
 
+    /**
+     * The joint between installing and using, which neither side held.
+     *
+     * `it_creates_an_active_owner` proves the row looks right: role OWNER,
+     * active, a password that is not the one typed. `AuthenticationTest`
+     * proves signing in works — for a user `User::factory()` made. **Nobody
+     * signed in as the owner the installer created**, and that is a seam both
+     * suites stay green across.
+     *
+     * The installer sets the password through the model's cast. If the cast
+     * moved, or the hasher changed, or the installer started writing an
+     * already-hashed value, it would still produce a row that passes every
+     * assertion above and nobody could get in. The first person to find out
+     * would be the operator, on a fresh installation, with no account to fix
+     * it from.
+     *
+     * So this walks the whole seam: install the owner, sign in through the
+     * real form, and open a screen only an administrator may see. Installation
+     * itself cannot run here — it would rebuild the database the suite is
+     * connected to, which is why the acceptance walk names it as excluded —
+     * but the part that matters after it, does.
+     */
+    #[Test]
+    public function the_owner_the_installer_created_can_sign_in_and_reach_an_administrators_screen(): void
+    {
+        $passphrase = 'a-long-enough-passphrase';
+
+        $this->installer()->createOwner('Label', 'owner@example.test', $passphrase);
+
+        $owner = User::query()->where('email', 'owner@example.test')->firstOrFail();
+
+        $this->post('/login', ['email' => 'owner@example.test', 'password' => $passphrase])
+            ->assertRedirect('/');
+
+        $this->assertAuthenticatedAs($owner);
+
+        // And the role the installer wrote is one the routes accept. A row
+        // saying OWNER that no `can.role:` guard recognises is the same
+        // failure one layer along.
+        $this->get('/system/operations')->assertOk();
+    }
+
     #[Test]
     public function the_owner_password_never_appears_in_the_stage_detail(): void
     {

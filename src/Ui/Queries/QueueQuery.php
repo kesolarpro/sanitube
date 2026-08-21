@@ -8,6 +8,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use SaniTube\Foundation\Concerns\SafelyRetryable;
+use SaniTube\Storage\CredentialRedactor;
 use Throwable;
 
 /**
@@ -27,8 +28,18 @@ use Throwable;
  * application's directory layout, often the arguments that were being passed.
  * The **first line** — the exception class and its message — is what tells an
  * operator whether this is a provider outage or a bug, and it is the only part
- * that travels. Even that is truncated, because a message can be arbitrarily
- * long and some of them quote what they were given.
+ * that travels.
+ *
+ * **And the first line is scrubbed, not merely shortened.** It used to be only
+ * truncated, and a truncation removes the end of a message rather than
+ * anything dangerous in it: an S3 client's 403 arrives here as
+ * `GET https://…?X-Amz-Signature=… resulted in a 403`, well inside two hundred
+ * characters, and that signature is a bearer credential. {@see
+ * CredentialRedactor::scrub()} masks the values this installation is
+ * configured with and removes every address, because a signed URL's signature
+ * is derived per request and is in no config file for a redactor to find. The
+ * same rule already governed a generation provider's failure text; this
+ * boundary had never been given it.
  *
  * The tables are read directly rather than through a model. They are Laravel's,
  * not the domain's, and giving them Eloquent models would invite somebody to
@@ -193,7 +204,13 @@ final readonly class QueueQuery
     {
         $line = trim(strtok($exception, "\n") ?: '');
 
-        if ($line === '') {
+        // Then scrubbed, and truncating is not a substitute for it. A limit
+        // shortens a message; it does not remove anything from the front of
+        // one, and both a storage key and a presigned URL's signature fit
+        // inside two hundred characters with room to spare.
+        $line = CredentialRedactor::scrub($line);
+
+        if ($line === null) {
             return null;
         }
 

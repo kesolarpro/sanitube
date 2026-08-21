@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature\Ingestion;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Queue;
 use PHPUnit\Framework\Attributes\Test;
 use SaniTube\Catalog\Models\Track;
@@ -221,6 +222,40 @@ final class CandidateReviewApiTest extends TestCase
         $response = $this->authenticated()->getJson('/api/v1/ingestion/candidates/'.$candidate->uuid)->assertOk();
 
         $this->assertArrayNotHasKey('raw', (array) $response->json('data.analysis'));
+    }
+
+    /**
+     * The read boundary covers the rows the write boundary came too late for.
+     *
+     * `failure_message` is written from an analyser's own words — ffprobe's
+     * exception, or a worker's refusal — and is scrubbed on the way in from
+     * now on. Rows written before that are already in the column, and no
+     * migration can know which of them held an address. So the way out is
+     * scrubbed too, which is the only check that covers both.
+     */
+    #[Test]
+    public function an_analysis_failure_written_before_this_rule_is_scrubbed_where_it_is_read(): void
+    {
+        $candidate = $this->readyCandidate();
+
+        // Written straight to the column, as a row taken before the write
+        // boundary existed would hold it.
+        DB::table('audio_analyses')
+            ->where('asset_id', $candidate->asset_id)
+            ->update([
+                'succeeded' => false,
+                'failure_message' => 'probe failed: https://bucket.r2.cloudflarestorage.com/x.wav'
+                    .'?X-Amz-Signature=deadbeefcafe returned 403',
+            ]);
+
+        $message = (string) $this->authenticated()
+            ->getJson('/api/v1/ingestion/candidates/'.$candidate->uuid)
+            ->assertOk()
+            ->json('data.analysis.failure_message');
+
+        $this->assertStringNotContainsString('X-Amz-Signature', $message);
+        $this->assertStringNotContainsString('bucket.r2.cloudflarestorage.com', $message);
+        $this->assertStringContainsString('403', $message, 'Scrubbed to nothing says less than an empty cell.');
     }
 
     #[Test]

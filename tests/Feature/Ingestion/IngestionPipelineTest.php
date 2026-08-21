@@ -193,6 +193,44 @@ final class IngestionPipelineTest extends TestCase
         $this->assertNotNull($item->failure_message);
     }
 
+    /**
+     * A stored failure is a leak with a copy.
+     *
+     * `failure_message` takes an exception's own words, and one of the two
+     * callers that fills it catches a bare `Throwable` from the storage
+     * client. An S3 403 arrives as
+     * `GET https://…?X-Amz-Signature=… resulted in a 403`, and unlike a log
+     * line this column is durable: it is read by the internal API and it goes
+     * into every database backup taken afterwards.
+     *
+     * The *code* is untouched — that is what a retry policy reads, and it is
+     * a closed vocabulary rather than somebody's words.
+     */
+    #[Test]
+    public function a_storage_failure_does_not_store_the_address_it_failed_at(): void
+    {
+        $this->store->put('library/01 - Opening.wav', 'the recording itself');
+
+        $this->store->failWith(
+            'GET https://bucket.r2.cloudflarestorage.com/library/01.wav'
+                .'?X-Amz-Credential=AKIAEXAMPLE&X-Amz-Signature=deadbeefcafe resulted in a 403',
+        );
+
+        $batch = $this->start(references: ['library/01 - Opening.wav']);
+        $this->runQueue();
+
+        $item = $batch->items()->firstOrFail();
+
+        $this->assertSame(IngestionItemStatus::Failed, $item->status);
+        $this->assertNotNull($item->failure_code, 'The code is what a retry policy reads, and it must survive.');
+
+        $stored = (string) $item->failure_message;
+
+        $this->assertStringNotContainsString('X-Amz-Signature', $stored);
+        $this->assertStringNotContainsString('bucket.r2.cloudflarestorage.com', $stored);
+        $this->assertStringContainsString('403', $stored, 'Scrubbed to nothing is the same as not recording it.');
+    }
+
     // ---------------------------------------------------------- idempotence
 
     #[Test]

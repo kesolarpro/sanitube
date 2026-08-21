@@ -130,6 +130,35 @@ final class CatalogueScaleTest extends TestCase
     ];
 
     /**
+     * One request before anything is seeded, and it is load-bearing.
+     *
+     * `RecordAuditEvent` writes `ip_address` and `user_agent` when an action
+     * arrived over HTTP and null when it did not — console work is not given
+     * an invented `127.0.0.1`. This test seeds twice, once at each size, and
+     * the *second* seeding runs after the first measurement's requests: it
+     * looks like HTTP to the recorder and the first one did not. Fifty audit
+     * rows then differ by an address and a user-agent apiece, and the payload
+     * comparison reads that as the catalogue having grown.
+     *
+     * It came to about a kilobyte, which was exactly the tolerance, so the
+     * test passed or failed on how long a faker happened to make a name. It
+     * failed once in CI and passed on the next commit, which is the shape of
+     * thing that gets called flaky and re-run. The temptation there is to
+     * raise the tolerance, and that would have buried a real measurement under
+     * an artefact.
+     *
+     * Warming the request here makes both seedings identical, and it is also
+     * the truer shape: audit rows on a running installation are written during
+     * requests.
+     */
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->get('/login');
+    }
+
+    /**
      * The guard that makes every other assertion here mean something.
      *
      * PERF-002 found four screens measured against empty tables. "The same
@@ -238,10 +267,21 @@ final class CatalogueScaleTest extends TestCase
             // A small tolerance rather than equality, and the reason is the
             // dashboard: it displays counts, and `400` is two characters more
             // than `60`. That is a page reporting a bigger catalogue, not a
-            // page serialising one. A kilobyte is far more than any number of
-            // digits can account for and far less than one extra row of
-            // catalogue data.
-            $this->assertLessThan(1024, $growth, sprintf(
+            // page serialising one.
+            //
+            // What this measures is growth *with size*, so a screen that is
+            // uniformly fat is invisible here — that is what the per-screen
+            // ceiling below is for. What it catches is a payload that carries
+            // more because the catalogue holds more.
+            //
+            // It was a kilobyte, and a kilobyte was wide enough to hide two
+            // fixture artefacts that together came to almost exactly one: see
+            // `setUp()` and the batch in `seedCatalogue()`. With those gone,
+            // every screen here grows by between nought and five bytes.
+            // Two hundred and fifty-six leaves room for a different engine
+            // ordering rows differently, and closes the gap where a leak of a
+            // dozen extra rows' worth used to pass.
+            $this->assertLessThan(256, $growth, sprintf(
                 '[%s] grew by %d bytes between %d and %d tracks. The page is not bounded.',
                 $screen,
                 $growth,
@@ -411,12 +451,20 @@ final class CatalogueScaleTest extends TestCase
             ? Artist::query()->orderBy('id')->take(10)->get()
             : Artist::factory()->count(10)->create();
 
-        $batch = IngestionBatch::query()->create([
+        // And the same batch both times, for the reason directly above. A
+        // second batch is a second *row* on `/ingestion/batches` — a page
+        // legitimately reporting a bigger catalogue, except that this is the
+        // one screen here that does not fill a page at either size, so the
+        // extra row shows up as growth and reads as an unbounded payload.
+        // Two hundred and eighty-five bytes of it, consistently.
+        $batch = IngestionBatch::query()->first() ?? IngestionBatch::query()->create([
             'source' => IngestionSource::CloudImport,
             'status' => IngestionBatchStatus::Completed,
         ]);
 
-        $operator = $this->user();
+        // And the same operator, whose name is the `actor_label` on fifty
+        // audit rows.
+        $operator = User::query()->where('name', 'Measured Operator')->first() ?? $this->user();
         $previous = Asset::query()->orderByDesc('id')->first();
 
         // Every track credited, because an uncredited catalogue is the one
@@ -495,8 +543,21 @@ final class CatalogueScaleTest extends TestCase
         return $this->app->make(RecordAuditEvent::class);
     }
 
-    private function user(): User
+    /**
+     * A named operator, because the name is measured.
+     *
+     * `audit_events.actor_label` is a snapshot of whoever acted, it is
+     * rendered on `/system/audit`, and a factory name is a random number of
+     * characters. Fifty rows of those differ by hundreds of bytes between one
+     * seeding and the next — which the payload comparison reads as the
+     * catalogue having grown.
+     */
+    private function user(string $name = 'Measured Operator'): User
     {
-        return User::factory()->create(['role' => UserRole::Admin, 'is_active' => true]);
+        return User::factory()->create([
+            'name' => $name,
+            'role' => UserRole::Admin,
+            'is_active' => true,
+        ]);
     }
 }

@@ -307,6 +307,36 @@ final class DistributionTest extends TestCase
         $this->assertSame(DistributionDeliveryStatus::Submitted, $synced->status);
     }
 
+    /**
+     * The three paths that write an attempt without going through `fail()`.
+     *
+     * `sync()`, `reconcile()` and `requestTakedown()` reach `record()`
+     * directly with an exception's own words, so the scrub in `fail()` does
+     * not cover them. A mutation proved it: removing the one in `record()`
+     * changed nothing any test could see.
+     *
+     * `response_summary` is durable — read by the detail screen and carried
+     * into every database backup.
+     */
+    #[Test]
+    public function an_outage_during_sync_does_not_record_the_address_it_failed_at(): void
+    {
+        $delivery = $this->submitter()->handle($this->readyRelease());
+
+        $this->distributor->down(
+            'GET https://api.distributor.example/submissions/abc'
+                .'?X-Amz-Signature=deadbeefcafe timed out',
+        );
+
+        $this->submitter()->sync($delivery);
+
+        $summary = (string) $delivery->attempts()->latest('id')->firstOrFail()->response_summary;
+
+        $this->assertStringNotContainsString('X-Amz-Signature', $summary);
+        $this->assertStringNotContainsString('api.distributor.example', $summary);
+        $this->assertStringContainsString('timed out', $summary, 'Scrubbed to nothing records nothing.');
+    }
+
     #[Test]
     public function syncing_a_delivery_that_was_never_handed_over_asks_nothing(): void
     {

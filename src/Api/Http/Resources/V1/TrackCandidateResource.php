@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use SaniTube\Ingestion\Models\TrackCandidate;
 use SaniTube\Media\Models\AudioAnalysis;
+use SaniTube\Storage\CredentialRedactor;
 
 /**
  * The public face of a proposal.
@@ -108,7 +109,11 @@ final class TrackCandidateResource extends JsonResource
             // `raw` is deliberately absent. It is the analyser's own output,
             // kept for diagnosis, and it names codecs, paths and tooling that
             // the platform does not publish.
-            'failure_message' => $analysis->failure_message,
+            // Scrubbed on the way out as well as on the way in. Writes are
+            // clean from now on; rows written before they were are already in
+            // the column, and a migration cannot know which of them held
+            // anything. The read boundary is the one that covers both.
+            'failure_message' => CredentialRedactor::scrub($analysis->failure_message),
             'analyzed_at' => $analysis->analyzed_at?->toIso8601String(),
         ];
     }

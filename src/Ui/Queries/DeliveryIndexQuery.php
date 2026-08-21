@@ -20,10 +20,9 @@ use SaniTube\Distribution\Models\DistributionDelivery;
  * `has_external_reference` instead, because the question a label actually has
  * is *"did this reach them"*, not *"what did they call it"*.
  *
- * `failure_reason` is kept, truncated to its first line. It is a distributor's
- * statement about its own service, which is the one class of provider message
- * this platform passes through — but the SubmitDelivery outage path stores a
- * raw exception message, and those quote URLs.
+ * `failure_reason` is **not** on this screen at all. The index answers "which
+ * deliveries need attention"; why one failed is a question the detail screen
+ * takes, where the reason is scrubbed and shortened before it is shown.
  */
 final readonly class DeliveryIndexQuery
 {

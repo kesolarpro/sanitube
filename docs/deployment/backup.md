@@ -149,6 +149,12 @@ beside it.
 
 Everything else in an included directory is taken, hidden files included.
 
+`php artisan sanitube:doctor` reports a refused configuration **before** the
+next backup runs into it. Freshness tells you when the last backup was; this
+tells you whether there will be another — which on a shared account otherwise
+surfaces as a cron line failing quietly at three in the morning, and a
+freshness warning a week later.
+
 ## On cPanel
 
 Add a cron entry:

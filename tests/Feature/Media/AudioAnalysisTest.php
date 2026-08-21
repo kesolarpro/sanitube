@@ -223,6 +223,33 @@ final class AudioAnalysisTest extends TestCase
         $this->assertSame('The file contains no audio stream.', $analysis->failure_message);
     }
 
+    /**
+     * The analyser's words are stored, and they are not the analyser's to choose.
+     *
+     * `FfprobeAudioAnalyzer` hands over `$exception->getMessage()` and
+     * `RemoteAudioAnalyzer` a worker's refusal reason. This column is durable
+     * — read by the internal API, and carried into every database backup taken
+     * afterwards — so an address that reaches it is not a transient leak but a
+     * leak with copies.
+     */
+    #[Test]
+    public function an_analysis_failure_is_not_stored_with_the_address_it_failed_at(): void
+    {
+        $this->analyzer->willReturn(AudioAnalysisResult::failed(
+            'probe failed: https://bucket.r2.cloudflarestorage.com/masters/x.wav'
+                .'?X-Amz-Signature=deadbeefcafe returned 403',
+        ));
+
+        $candidate = $this->importOne();
+        $this->runAnalysis($candidate);
+
+        $stored = (string) AudioAnalysis::query()->firstOrFail()->failure_message;
+
+        $this->assertStringNotContainsString('X-Amz-Signature', $stored);
+        $this->assertStringNotContainsString('bucket.r2.cloudflarestorage.com', $stored);
+        $this->assertStringContainsString('403', $stored, 'Scrubbed to nothing says less than an empty cell.');
+    }
+
     #[Test]
     public function a_failed_analysis_is_reported_even_when_analysis_is_not_required(): void
     {
