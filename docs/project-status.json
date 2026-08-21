@@ -2,7 +2,7 @@
  "$comment": "Machine-readable project state. Any new session reads this first, then verifies it against GitHub before trusting it. Written at the end of each ticket, so a stale entry means a session ended mid-ticket — check the branch and CI rather than the status field.",
  "updated_at": "2026-08-21",
  "current_phase": "Audit et durcissement. Le registre de production (docs/production-readiness.md) est la source sous test, et docs/final-report.md le resume — ses quatre comptes sont tenus par ProductionReadinessLedgerTest. Il reste huit lignes NOT_READY, toutes nommees, et dix BLOCKED_EXTERNAL qui attendent un identifiant, un fournisseur reel ou un hote reel.",
- "last_completed_ticket": "UI-A11Y-001",
+ "last_completed_ticket": "DIST-007",
  "default_branch": "main — confirmed by API this session. The EXTERNAL_ADMIN_ACTION_REQUIRED blocker is cleared.",
  "tickets": {
   "ARCH-001": {
@@ -873,6 +873,14 @@
    "ci": "green 10/10",
    "note": "l'écran des réglages nomme les variables que cette installation lit",
    "recorded_from": "git log origin/main (27da55c)"
+  },
+  "DIST-007": {
+   "status": "in_review",
+   "pr": null,
+   "ci": "pending",
+   "branch": "claude/sanitube-autonomous-v1-5pycx0",
+   "note": "Le distributeur recoit le ReleasePackage, jamais l'agregat. ADR-0020. A attrape des sa premiere execution une sortie avec une piste sans master audio que la suite soumettait depuis toujours.",
+   "adr": "docs/adr/ADR-0020-the-delivery-boundary-is-the-package.md"
   }
  },
  "architecture_amendments": [
@@ -940,17 +948,9 @@
   "translation_gate": "tests/Feature/Localization walks EVERY file in lang/en and checks all configured locales both directions. Any new UI string needs en/fr/es/it/pt/de or CI fails.",
   "design_system": "Semantic tokens only (--color-surface, never --color-zinc-900). Status colour is decided in StatusBadge alone; labels always come from translations. Navigation is built server-side and unbuilt sections show as disabled — 'available' is presentation, never authorisation. MetricCard takes number|null and renders null as an em dash, never 0.",
   "frontend_toolchain": "@vitejs/plugin-vue@5 peers Vite ^5||^6; the project is on Vite 7. Resolved with plugin-vue@6 (which supports Vite 7), NOT --force or --legacy-peer-deps: a peer conflict is compatibility information, and overriding it keeps the incompatibility. Same for vue-tsc@3. npm run types runs in CI.",
-  "review_policy_conflict": "review_policy.active est true et dit « ne pas fusionner » : l'owner envoie le rapport en revue architecturale et rapporte le verdict, et seulement alors on fusionne. La politique porte since=UI-001. Elle n'est pas respectee depuis longtemps : les PR #111 a #122 ont ete fusionnees par des sessions anterieures, et #123 a #128 par la session du 2026-08-21, sans verdict de revue enregistre. Sept des vingt tickets concernes ont un docs/reports/*.md ; pour les autres le rapport existe comme corps de PR. Le champ n'a PAS ete modifie pour correspondre au comportement — ce serait la pire des corrections. Soit la politique est levee et le champ doit passer a false, soit elle tient et #129 attend un verdict. C'est une decision de l'owner."
+  "review_policy_history": "La politique « ne pas fusionner sans verdict de revue » (since UI-001) a ete explicitement remplacee par le mandat de developpement autonome le 2026-08-21. L'historique n'est pas reecrit : les PR #111 a #129 ont bien ete fusionnees pendant que le champ disait encore active:true, et review_policy.previous le conserve. Ce qui change est la regle a partir d'aujourd'hui, pas le recit de ce qui s'est passe."
  },
- "open_pull_requests": [
-  {
-   "pr": 129,
-   "ticket": "DOC-001",
-   "title": "le rapport final, et ses chiffres tenus par la table",
-   "ci": "green 10/10",
-   "state": "open — NOT merged, pending the owner (see notes.review_policy_conflict)"
-  }
- ],
+ "open_pull_requests": [],
  "next_session": {
   "start_with": "Rien n'est en attente cote interne. Lire notes.review_policy_conflict avant de fusionner quoi que ce soit.",
   "awaiting_owner": [
@@ -960,10 +960,26 @@
   "blocked_external": "Dix lignes, chacune nommee dans docs/final-report.md section 5."
  },
  "review_policy": {
-  "active": true,
-  "rule": "Implement, get CI green, open the PR, write the report — then STOP. Do not merge. The owner sends the report to architectural review and reports the verdict; only then merge.",
-  "since": "UI-001",
-  "note": "Nine tickets (ING/MED/CAT/AI/GEN/REL/DIST/SEC-001 and PR #12) were merged under an earlier autonomous-chaining instruction that bypassed review. A retroactive audit is under way; they stay in main and any correction becomes a follow-up ticket, not a revert. BULK-001b, UI-004 and UI-005 were merged under the session's explicit merge policy for read-only UI, ingestion tooling and documentation: none changes authentication, authorization, rights, money, identifier lifecycle, destructive storage behaviour or any external action."
+  "active": false,
+  "superseded_on": "2026-08-21",
+  "superseded_by": "The autonomous-development mandate. The owner replaced it explicitly.",
+  "rule": "Implement on a ticket branch, run focused tests, run the full gate, open the PR, wait for real CI. If fully green and no REVIEW_REQUIRED invariant is touched: merge autonomously, verify main, continue. Stop for review only when the change affects a REVIEW_REQUIRED area.",
+  "review_required_areas": [
+   "core identity invariants",
+   "destructive storage semantics",
+   "authorization / security trust model",
+   "identifier lifecycle",
+   "irreversible external submission semantics",
+   "provider secret architecture",
+   "major domain redesign"
+  ],
+  "previous": {
+   "active_until": "2026-08-21",
+   "since": "UI-001",
+   "rule": "Implement, get CI green, open the PR, write the report — then STOP. Do not merge. The owner sends the report to architectural review and reports the verdict; only then merge.",
+   "note": "Nine tickets (ING/MED/CAT/AI/GEN/REL/DIST/SEC-001 and PR #12) were merged under an earlier autonomous-chaining instruction that bypassed review. A retroactive audit is under way; they stay in main and any correction becomes a follow-up ticket, not a revert. BULK-001b, UI-004 and UI-005 were merged under the session's explicit merge policy for read-only UI, ingestion tooling and documentation: none changes authentication, authorization, rights, money, identifier lifecycle, destructive storage behaviour or any external action.",
+   "history": "Not rewritten. PRs #111-#122 were merged by earlier sessions and #123-#129 by the 2026-08-21 session while this policy still read active:true. That happened and stays on the record; the policy is superseded from today rather than retroactively."
+  }
  },
  "main_sha": "445264c",
  "current_ticket": "ART-004",

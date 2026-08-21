@@ -44,3 +44,6 @@ true at the time remains readable.
 | [0015](ADR-0015-reimport-storage-amplification.md) | Re-import storage amplification accepted for V1 | Accepted |
 | [0016](ADR-0016-three-levels-of-truth.md) | Measured, proposed, suggested | Accepted |
 | [0017](ADR-0017-engine-traps-the-matrix-caught.md) | Engine traps the matrix caught | Accepted |
+| [0018](ADR-0018-no-adapter-without-a-published-contract.md) | No adapter without a published contract | Accepted |
+| [0019](ADR-0019-a-provider-may-be-synchronous.md) | A generation provider may be synchronous | Accepted |
+| [0020](ADR-0020-the-delivery-boundary-is-the-package.md) | A distributor receives the package, never the aggregate | Accepted |

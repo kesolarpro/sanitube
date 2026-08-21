@@ -7,7 +7,9 @@ namespace SaniTube\Distribution\Services;
 use SaniTube\Distribution\Contracts\Distributor;
 use SaniTube\Foundation\Validation\ValidationIssue;
 use SaniTube\Foundation\Validation\ValidationResult;
+use SaniTube\Releases\Exceptions\ReleasePackagingException;
 use SaniTube\Releases\Models\Release;
+use SaniTube\Releases\Packaging\PackageRelease;
 use SaniTube\Releases\Services\ValidateRelease;
 use Throwable;
 
@@ -27,12 +29,19 @@ use Throwable;
  * The second layer lives in {@see ValidateReleaseIdentifiers} rather than here,
  * because it does not depend on the destination and a label needs it before
  * choosing one. This composes it; it is not a second copy.
+ *
+ * **The third layer is asked about a {@see ReleasePackage}, not the release.**
+ * DIST-007 moved that boundary: the question is whether the distributor would
+ * accept *what would actually be sent*, and the package is that. A release that
+ * cannot be packaged never reaches a distributor, and says so in its own code
+ * rather than as an outage.
  */
 final readonly class ValidateDelivery
 {
     public function __construct(
         private ValidateRelease $releases,
         private ValidateReleaseIdentifiers $identifiers,
+        private PackageRelease $packager,
     ) {}
 
     public function handle(Release $release, Distributor $distributor): ValidationResult
@@ -58,7 +67,18 @@ final readonly class ValidateDelivery
 
         if ($distributor->isAvailable()) {
             try {
-                $verdict = $distributor->validateRelease($release);
+                // The package, never the aggregate. DIST-007: an adapter that
+                // walks the release is a second place deciding what a delivery
+                // contains, and it decides differently.
+                //
+                // Built here rather than passed in, because the answer to "will
+                // this distributor take it" is about the thing that would
+                // actually be sent. It can only be assembled from a release
+                // that already validates — which is what the two layers above
+                // just established — so a failure here is a release that layer
+                // one should have caught, and it is reported as one rather
+                // than thrown at a screen.
+                $verdict = $distributor->validateRelease($this->packager->handle($release));
 
                 foreach ($verdict->errors as $index => $message) {
                     // The distributor's own words, carried as context rather
@@ -81,6 +101,17 @@ final readonly class ValidateDelivery
                         ['distributor' => $distributor->name(), 'detail' => $message],
                     );
                 }
+            } catch (ReleasePackagingException $exception) {
+                // Not an outage and not a refusal: the release could not be
+                // turned into a package at all. Its own code, because
+                // "unpackageable" and "the distributor said no" are different
+                // things to a person deciding what to fix.
+                $issues[] = ValidationIssue::error(
+                    'RELEASE_NOT_PACKAGEABLE',
+                    'release',
+                    'This release could not be assembled into a delivery package, so no distributor was asked.',
+                    ['detail' => $exception->refusalCode()],
+                );
             } catch (Throwable $exception) {
                 // Unreachable is an *error*, not a pass. "We could not ask"
                 // and "it said yes" are opposite answers, and treating an

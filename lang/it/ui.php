@@ -33,6 +33,7 @@ return [
         'DISTRIBUTOR_NOT_CONFIGURED' => ':distributor non è configurato qui, quindi non gli si può chiedere un verdetto. Non configurato non è approvazione.',
         'DISTRIBUTOR_REFUSED' => ':distributor ha rifiutato: :detail',
         'DISTRIBUTOR_WARNED' => ':distributor ha segnalato: :detail',
+        'RELEASE_NOT_PACKAGEABLE' => 'Questa pubblicazione non è stata assemblata in un pacchetto di consegna, quindi nessun distributore è stato interpellato. Correggi prima gli errori qui sopra.',
         'DISTRIBUTOR_UNREACHABLE' => 'Non è stato possibile raggiungere :distributor, quindi il suo verdetto è ignoto. Non è la stessa cosa di un rifiuto.',
         'DISTRIBUTOR_SANDBOX' => ':distributor è in modalità di prova. Nulla di ciò che viene inviato raggiunge gli store.',
     ],

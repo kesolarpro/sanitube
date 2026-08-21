@@ -2,30 +2,30 @@
 
 declare(strict_types=1);
 
-namespace SaniTube\Distribution\Testing;
+namespace Tests\Support\Distribution;
 
 use SaniTube\Distribution\Contracts\Distributor;
-use SaniTube\Distribution\Contracts\SupportsSubmissionLookup;
 use SaniTube\Distribution\DeliveryStatus;
 use SaniTube\Distribution\DistributorSubmission;
 use SaniTube\Distribution\DistributorValidation;
+use SaniTube\Distribution\Testing\FakeDistributor;
 use SaniTube\Releases\Packaging\ReleasePackage;
 
 /**
- * A distributor whose provider cannot be asked what it holds.
+ * A distributor that keeps what it was handed.
  *
- * The shape of a real adapter for a provider with no lookup endpoint, which is
- * most of them: it delivers, it reports status, and it has no way to answer
- * "do you already have submission `abc`?". Written as a decorator rather than
- * a flag on {@see FakeDistributor} because that is the whole point of the
- * capability — **not implementing {@see SupportsSubmissionLookup}
- * is the answer**, checked by the service before any call is made. A boolean
- * that made the same object sometimes searchable would put the distinction
- * back inside a method body, where it was.
+ * A decorator around the platform's own fake rather than a fresh
+ * implementation, so the idempotency and outcome behaviour the rest of the
+ * suite is written against stays exactly that behaviour. The same shape
+ * `WithoutSubmissionLookup` uses.
  */
-final readonly class WithoutSubmissionLookup implements Distributor
+final class RecordingDistributor implements Distributor
 {
-    public function __construct(private Distributor $inner) {}
+    public ?ReleasePackage $prepared = null;
+
+    public ?ReleasePackage $submitted = null;
+
+    public function __construct(private readonly FakeDistributor $inner) {}
 
     public function name(): string
     {
@@ -54,11 +54,15 @@ final readonly class WithoutSubmissionLookup implements Distributor
 
     public function prepareRelease(ReleasePackage $package, string $idempotencyKey): DistributorSubmission
     {
+        $this->prepared = $package;
+
         return $this->inner->prepareRelease($package, $idempotencyKey);
     }
 
     public function submitRelease(ReleasePackage $package, string $idempotencyKey): DistributorSubmission
     {
+        $this->submitted = $package;
+
         return $this->inner->submitRelease($package, $idempotencyKey);
     }
 

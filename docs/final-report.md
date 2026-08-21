@@ -1,6 +1,6 @@
 # SaniTube — Final Status Report
 
-**Date** 2026-08-21 · **Branch** `main` · **Suite** 2117 PHP tests (27 581 assertions), 28 component tests · **CI** 10 checks, green
+**Date** 2026-08-21 · **Branch** `main` · **Suite** 2123 PHP tests (27 679 assertions), 28 component tests · **CI** 10 checks, green
 
 This is the report §83 asks for: every field named, with the verdict the
 platform can actually defend. It is derived from `docs/production-readiness.md`
@@ -27,9 +27,9 @@ summary.
 
 | Verdict | Count | Meaning |
 |---|---|---|
-| READY | 166 | Built, tested, exercised end to end inside the platform |
+| READY | 168 | Built, tested, exercised end to end inside the platform |
 | BLOCKED_EXTERNAL | 10 | Complete on our side; needs a credential, a real provider, or a real host |
-| NOT_READY | 8 | Internal work remains, each one named |
+| NOT_READY | 7 | Internal work remains, each one named |
 | NOT_REQUIRED | 3 | Deliberately out of scope for V1 |
 
 **BLOCKED_EXTERNAL is not NOT_READY**, and the distinction is the point. A
@@ -49,7 +49,7 @@ awaiting a certificate, not unfinished code.
 | Operator documentation | 132 files |
 | Mutation testing | **By hand, per ticket, not in CI.** There is no mutation harness; each ticket's guards were verified by breaking them deliberately and confirming a named test failed. Where a mutant survived because it was equivalent, that is recorded rather than counted as a kill — see the `hashed` cast in E2E-003. |
 
-## 4. The eight things that are not done
+## 4. The seven things that are not done
 
 Each is internal work, and each is named rather than hand-waved.
 
@@ -57,12 +57,11 @@ Each is internal work, and each is named rather than hand-waved.
 |---|---|---|
 | 1 | Artwork generation on the shipped configuration | Deliberate. The default 3000px requirement and GPT-image's only square size (1024) genuinely disagree, so generation declines out of the box rather than producing something too small. An operator resolves it by lowering the requirement or declaring a larger size. |
 | 2 | Colour-profile inspection | `getimagesize` cannot read an ICC profile, so "is this sRGB" is unanswered rather than guessed. Needs an image library this platform deliberately avoids. |
-| 3 | **`Distributor::submitRelease()` takes the aggregate** | It takes `Release`, not `ReleasePackage` — so a real adapter would walk tracks, credits and identifiers itself, which is the failure that type was created to prevent. Nothing is broken today: the only adapters are `none` and a fake. **Cheap now, expensive after the first real adapter.** Awaiting a decision. |
-| 4 | Backups encrypted at rest | They are not. The destination is to be treated as the database is; off-machine copies and their encryption are the operator's. |
-| 5 | A bare hostname is not scrubbed from a failure message | Deliberate. The rule is anchored on `scheme://`, because a heuristic loose enough to catch `distributor.example port 443` catches every dotted word in every message. |
-| 6 | Five index screens the scale test cannot reach | Each needs a chain of domain objects the catalogue fixture does not build. All five were read: one had a real N+1, now fixed and held where its objects live; the other four are eager-loaded. |
-| 7 | Keyboard navigation and tab order per screen | The primitives behave. Nothing checks that a given screen's controls come in a sensible order. 37 screens, and a scan cannot answer it. |
-| 8 | Screen-reader semantics beyond labelling | Landmarks, reading order and live regions are unaudited. A scan can hold "every control has a name"; it cannot hold "this page makes sense read aloud". |
+| 3 | Backups encrypted at rest | They are not. The destination is to be treated as the database is; off-machine copies and their encryption are the operator's. |
+| 4 | A bare hostname is not scrubbed from a failure message | Deliberate. The rule is anchored on `scheme://`, because a heuristic loose enough to catch `distributor.example port 443` catches every dotted word in every message. |
+| 5 | Five index screens the scale test cannot reach | Each needs a chain of domain objects the catalogue fixture does not build. All five were read: one had a real N+1, now fixed and held where its objects live; the other four are eager-loaded. |
+| 6 | Keyboard navigation and tab order per screen | The primitives behave. Nothing checks that a given screen's controls come in a sensible order. 37 screens, and a scan cannot answer it. |
+| 7 | Screen-reader semantics beyond labelling | Landmarks, reading order and live regions are unaudited. A scan can hold "every control has a name"; it cannot hold "this page makes sense read aloud". |
 
 ## 5. The ten things awaiting the outside world
 
@@ -133,18 +132,26 @@ No source change between them; each is a legitimate configuration.
 | PERF-004 | The enrichment queue cost 2 queries per row; it now costs the same for one row as for a page. |
 | CAT-003 | Nothing but the three granting methods may write an earned state. |
 | UI-A11Y-001 | Three raw inputs were orphaning their labels on the enrichment review screen; two file inputs sat unnamed in the accessibility tree. |
+| DOC-001 / DOC-002 | This report, with its counts held by a test; and the machine-readable status file, which was 20 tickets behind while carrying today's date. |
+| DIST-007 | A distributor receives the `ReleasePackage`, never the aggregate. ADR-0020. It immediately caught a release with a track that had no master audio being submitted by the suite's own fixture. |
 
-## 10. The one decision waiting
+## 10. The decision that was waiting, and what it changed
 
-**`Distributor::submitRelease()` takes the `Release` aggregate rather than
-`ReleasePackage`.**
+**`Distributor::submitRelease()` took the `Release` aggregate rather than
+`ReleasePackage`.** Approved and done in DIST-007; `ADR-0020` records it.
 
-`ReleasePackage` exists to be the single description of what crosses to a
-distributor, and DIST-006 was the ticket that fixed the exporter to render it
-rather than walk the aggregate. The submission path still takes the aggregate,
-so the first real adapter would repeat exactly that mistake.
+All three release-taking methods now take the package. `validateRelease()`
+changed with the other two deliberately — leaving it would have reopened the
+hole one method along, and *would you accept this?* is only meaningful about the
+thing that would actually be sent.
 
-Nothing is broken today — the only adapters are `none` and a fake. The contract
-is cheap to change now and expensive to change after the first real adapter
-exists. It is named here rather than left to be discovered, and it is not being
-changed unasked.
+It found something on its first run. `DistributionTest`'s fixture built a track
+by writing `TrackStatus::Ready` directly, with no master audio — the shape
+`TrackFactory`'s own comment calls impossible — and the suite had been
+submitting it for as long as that fixture existed. The manual export path
+already refused such a release; the submission path did not check, because the
+adapter was handed the aggregate and never looked. The two paths now agree.
+
+Nothing is waiting on a decision. What remains is in sections 4 and 5: seven
+things named as internal work, and ten that need a credential, a live endpoint
+or a real host.

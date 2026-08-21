@@ -7,7 +7,7 @@ namespace SaniTube\Distribution\Contracts;
 use SaniTube\Distribution\DeliveryStatus;
 use SaniTube\Distribution\DistributorSubmission;
 use SaniTube\Distribution\DistributorValidation;
-use SaniTube\Releases\Models\Release;
+use SaniTube\Releases\Packaging\ReleasePackage;
 
 /**
  * A music distributor, seen from inside SaniTube.
@@ -19,6 +19,25 @@ use SaniTube\Releases\Models\Release;
  * ARCH-001 fixed the identity and read-side and deferred the write-side to
  * DIST-001, when the Release aggregate would exist. It does now, and this is
  * that finalisation.
+ *
+ * **An adapter is handed a {@see ReleasePackage} and never the aggregate.**
+ * That is the whole boundary, and DIST-007 moved it here after DIST-004 proved
+ * the defect it prevents: the manual exporter walked the release itself —
+ * tracks, credits, identifiers, assets — and had to be rewritten in DIST-006 to
+ * render the package instead. An adapter that reaches into the aggregate is a
+ * second place that decides what a delivery contains, and every one of them
+ * reaches differently: its own chance to read a revoked identifier as current,
+ * its own answer to "what did we actually send".
+ *
+ * The package is assembled once, from a release that has already validated,
+ * and is immutable. It carries no secret and no location — assets are named by
+ * uuid, and an adapter needing bytes asks the storage service, which is the
+ * only thing that knows where anything lives.
+ *
+ * What an adapter *may* still hold is its own configuration and its own
+ * transport: an endpoint, a credential, a wire format. Those are the
+ * provider's, and they never enter the package. `ADR-0020` records the
+ * boundary.
  *
  * **Five methods.** `validateRelease` / `prepareRelease` / `submitRelease` /
  * `deliveryStatus` / `requestTakedown`, and nothing else. Royalties and
@@ -80,7 +99,7 @@ interface Distributor
      * created a draft release upstream would leave abandoned records behind on
      * every attempt.
      */
-    public function validateRelease(Release $release): DistributorValidation;
+    public function validateRelease(ReleasePackage $package): DistributorValidation;
 
     /**
      * Upload what the distributor needs before it can be given the release —
@@ -90,7 +109,7 @@ interface Distributor
      * retry must not re-upload masters it already sent. Repeatable under the
      * same key.
      */
-    public function prepareRelease(Release $release, string $idempotencyKey): DistributorSubmission;
+    public function prepareRelease(ReleasePackage $package, string $idempotencyKey): DistributorSubmission;
 
     /**
      * Hand the release over.
@@ -99,7 +118,7 @@ interface Distributor
      * key it must be safe to repeat: a distributor that honours the key
      * returns the original submission rather than creating a second.
      */
-    public function submitRelease(Release $release, string $idempotencyKey): DistributorSubmission;
+    public function submitRelease(ReleasePackage $package, string $idempotencyKey): DistributorSubmission;
 
     /**
      * Ask for the release to be removed from stores.

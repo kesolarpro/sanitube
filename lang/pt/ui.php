@@ -33,6 +33,7 @@ return [
         'DISTRIBUTOR_NOT_CONFIGURED' => ':distributor não está configurado aqui, por isso não lhe pode ser pedido um veredicto. Não configurado não é aprovação.',
         'DISTRIBUTOR_REFUSED' => ':distributor recusou: :detail',
         'DISTRIBUTOR_WARNED' => ':distributor assinalou: :detail',
+        'RELEASE_NOT_PACKAGEABLE' => 'Este lançamento não pôde ser montado num pacote de entrega, por isso nenhum distribuidor foi consultado. Corrija primeiro os erros acima.',
         'DISTRIBUTOR_UNREACHABLE' => 'Não foi possível contactar :distributor, por isso o seu veredicto é desconhecido. Não é o mesmo que uma recusa.',
         'DISTRIBUTOR_SANDBOX' => ':distributor está em modo de testes. Nada do que for enviado por ele chega às lojas.',
     ],
