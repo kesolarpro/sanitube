@@ -2,7 +2,7 @@
  "$comment": "Machine-readable project state. Any new session reads this first, then verifies it against GitHub before trusting it. Written at the end of each ticket, so a stale entry means a session ended mid-ticket — check the branch and CI rather than the status field.",
  "updated_at": "2026-08-21",
  "current_phase": "Mission deploiement automatise terminee cote interne : DEP-007 a DEP-018 fusionnes. INTERNAL_DEPLOYMENT_AUTOMATION_COMPLETE = YES, READY_FOR_REAL_VPS_CERTIFICATION = YES. Le reste demande un vrai hote, un vrai identifiant, ou une decision humaine — le plan A-K est docs/deployment/certification-plan.md.",
- "last_completed_ticket": "DEP-018",
+ "last_completed_ticket": "DEP-020",
  "default_branch": "main — confirmed by API this session. The EXTERNAL_ADMIN_ACTION_REQUIRED blocker is cleared.",
  "tickets": {
   "ARCH-001": {
@@ -1011,18 +1011,18 @@
    "recorded_from": "git log origin/main (9b440a1)"
   },
   "DEP-019": {
-   "status": "in_review",
-   "pr": null,
-   "ci": "pending",
-   "branch": "claude/sanitube-autonomous-v1-5pycx0",
-   "note": "sanitube:mail:certify — configure et livre sont deux faits differents. Un seul vrai message, a une adresse que l'operateur nomme, seulement quand il le demande. L'acceptation devient un enregistrement du registre, empreinte sur la configuration du mailer ; changer de relais de-certifie en silence. Les mots du transport ne sont pas cites — ils portent des hotes et parfois des identifiants."
+   "status": "merged",
+   "pr": 146,
+   "ci": "green 13/13",
+   "note": "sanitube:mail:certify — configure et livre sont deux faits differents. Un seul vrai message, a une adresse que l'operateur nomme, seulement quand il le demande. L'acceptation devient un enregistrement du registre, empreinte sur la configuration du mailer ; changer de relais de-certifie en silence. Les mots du transport ne sont pas cites — ils portent des hotes et parfois des identifiants.",
+   "recorded_from": "git log origin/main (28fa5c9)"
   },
   "DEP-020": {
-   "status": "in_review",
-   "pr": null,
-   "ci": "pending",
-   "branch": "claude/sanitube-autonomous-v1-5pycx0",
-   "note": "Independance multi-instances et faits GPU. Le prefixe de cache se cle sur SANITUBE_INSTANCE_NAME ; l'inspection lit le marqueur noyau NVIDIA (pas le binaire qu'un paquet laisse) et le conseil du profil worker l'enonce dans les deux sens sans jamais bloquer. Pare-feu/SSH, rotation des logs, desinstallation et stockage-objet-n'est-pas-une-sauvegarde documentes comme actes d'operateur."
+   "status": "merged",
+   "pr": 147,
+   "ci": "green 13/13",
+   "note": "Independance multi-instances et faits GPU. Le prefixe de cache se cle sur SANITUBE_INSTANCE_NAME ; l'inspection lit le marqueur noyau NVIDIA (pas le binaire qu'un paquet laisse) et le conseil du profil worker l'enonce dans les deux sens sans jamais bloquer. Pare-feu/SSH, rotation des logs, desinstallation et stockage-objet-n'est-pas-une-sauvegarde documentes comme actes d'operateur.",
+   "recorded_from": "git log origin/main (14879cd)"
   }
  },
  "architecture_amendments": [
@@ -1124,8 +1124,8 @@
    "history": "Not rewritten. PRs #111-#122 were merged by earlier sessions and #123-#129 by the 2026-08-21 session while this policy still read active:true. That happened and stays on the record; the policy is superseded from today rather than retroactively."
   }
  },
- "main_sha": "9b440a1",
- "current_ticket": "DEP-009",
+ "main_sha": "14879cd",
+ "current_ticket": null,
  "tests": "1820 passed, 1 skipped, 23189 assertions",
  "phpstan": {
   "level": 6,
@@ -1149,10 +1149,10 @@
   "5": "POST_V1_STORAGE_OPTIMIZATION — the ADR-0015 amendment. NOT a review: the decision was taken and accepted, the amplification factor is measured at 2 and pinned by a test, and every option that removes the second copy breaks AST-001's UUID-derived key or loses the record that a second import happened. A future session takes this only as deliberate post-V1 work."
  },
  "session_boundary": {
-  "reason": "Phase 2 order exhausted for this environment: eighteen of twenty items merged, and the remaining two are blocked by ENVIRONMENT_EGRESS rather than unstarted. Twenty-one functional tickets, twenty-three pull requests, all merged at 10/10.",
-  "repository_state": "green at 83aeece; no open PRs",
-  "main_sha": "25565b4e46f282733faa1b85f3339c98163c8ca8",
-  "note": "Merged this session: PROD-001, docs checkpoint, SYS-001b, AUTH-002, AUDIT-001, INS-002, SET-002, BULK-001c, A11Y-001. Resume from next_action; item 1 needs a human decision before code."
+  "reason": "Mission deploiement automatise epuisee cote interne : DEP-007 a DEP-020 plus DOC-004, onze pull requests (#137-#147), tout fusionne au vert complet — 13 checks CI depuis #144, dont l'amorce sur Ubuntu 24.04, Debian 12 et AlmaLinux 9. Ce qui reste demande un vrai hote, un vrai identifiant ou une decision humaine.",
+  "repository_state": "vert a 14879cd ; aucune PR ouverte",
+  "main_sha": "14879cd",
+  "note": "Reprendre par le plan de certification reel (docs/deployment/certification-plan.md, A d'abord) des qu'un hote existe. Chiffrement des sauvegardes toujours en attente de decision."
  },
  "v1_progress_percent": {
   "value": 66,
