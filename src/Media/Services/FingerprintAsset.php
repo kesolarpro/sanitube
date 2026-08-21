@@ -8,7 +8,9 @@ use Illuminate\Support\Carbon;
 use SaniTube\Assets\Models\Asset;
 use SaniTube\Assets\Services\AssetStorageService;
 use SaniTube\Media\Contracts\AudioFingerprinter;
+use SaniTube\Media\Contracts\FingerprintsStoredObject;
 use SaniTube\Media\Exceptions\FingerprintFailed;
+use SaniTube\Media\Fingerprinters\StrategyAudioFingerprinter;
 use SaniTube\Media\Models\AudioFingerprint;
 use Throwable;
 
@@ -59,21 +61,29 @@ final readonly class FingerprintAsset
             return $existing;
         }
 
-        $path = $this->spool($asset);
-
-        if ($path === null) {
-            return null;
-        }
-
         try {
-            $result = $this->fingerprinter->fingerprint($path);
+            // WRK-002: when the chosen path reads shared storage itself -- a
+            // worker does -- the object never touches this machine's disk.
+            if ($this->fingerprinter instanceof FingerprintsStoredObject && $this->readsStoredObjects()) {
+                $result = $this->fingerprinter->fingerprintStored($asset->path);
+            } else {
+                $path = $this->spool($asset);
+
+                if ($path === null) {
+                    return null;
+                }
+
+                try {
+                    $result = $this->fingerprinter->fingerprint($path);
+                } finally {
+                    @unlink($path);
+                }
+            }
         } catch (FingerprintFailed) {
             // Recorded as absent rather than as a broken asset. The operations
             // screen reports how much of the library is comparable; nothing
             // downstream treats a missing fingerprint as a missing file.
             return null;
-        } finally {
-            @unlink($path);
         }
 
         return AudioFingerprint::query()->updateOrCreate(
@@ -96,6 +106,19 @@ final readonly class FingerprintAsset
      * memory limit, and the fingerprinter only reads the opening of the file
      * anyway.
      */
+    /**
+     * Whether the chosen execution path reads storage rather than a file.
+     *
+     * Asked of the strategy rather than assumed from the interface: the
+     * dispatcher implements {@see FingerprintsStoredObject} whichever road it
+     * takes, because it cannot know at construction which that will be.
+     */
+    private function readsStoredObjects(): bool
+    {
+        return ! $this->fingerprinter instanceof StrategyAudioFingerprinter
+            || $this->fingerprinter->prefersStoredObject();
+    }
+
     private function spool(Asset $asset): ?string
     {
         $path = tempnam(sys_get_temp_dir(), 'sanitube-fp-');

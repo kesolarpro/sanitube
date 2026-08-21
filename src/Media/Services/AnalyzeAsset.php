@@ -9,6 +9,9 @@ use SaniTube\Assets\Enums\AssetKind;
 use SaniTube\Assets\Enums\AssetStatus;
 use SaniTube\Assets\Models\Asset;
 use SaniTube\Assets\Services\AssetStorageService;
+use SaniTube\Media\Analyzers\StrategyAudioAnalyzer;
+use SaniTube\Media\AudioAnalysisResult;
+use SaniTube\Media\Contracts\AnalyzesStoredObject;
 use SaniTube\Media\Contracts\AudioAnalyzer;
 use SaniTube\Media\Models\AudioAnalysis;
 use Throwable;
@@ -57,6 +60,16 @@ final readonly class AnalyzeAsset
             return null;
         }
 
+        // WRK-002: when the chosen analyser reads shared storage itself -- a
+        // worker does -- the object is never streamed to this machine at all.
+        // On a cPanel account talking to R2 the alternative was twice the
+        // egress for no benefit.
+        if ($this->analyzer instanceof AnalyzesStoredObject && $this->readsStoredObjects()) {
+            $result = $this->analyzer->analyzeStored($asset->path);
+
+            return $this->record($asset, $result);
+        }
+
         $temporary = $this->copyToDisk($asset);
 
         try {
@@ -65,6 +78,18 @@ final readonly class AnalyzeAsset
             @unlink($temporary);
         }
 
+        return $this->record($asset, $result);
+    }
+
+    /**
+     * Write the evidence down.
+     *
+     * One writer for both roads. A local probe and a worker measure the same
+     * facts with the same tool, and two places recording them would be two
+     * places that quietly stop agreeing.
+     */
+    private function record(Asset $asset, AudioAnalysisResult $result): AudioAnalysis
+    {
         return AudioAnalysis::query()->updateOrCreate(
             [
                 'asset_id' => $asset->id,
@@ -114,6 +139,18 @@ final readonly class AnalyzeAsset
             ->where('analyzer', $this->analyzer->name())
             ->where('analyzer_version', $this->analyzer->version())
             ->first();
+    }
+
+    /**
+     * Whether the chosen execution path reads storage rather than a file.
+     *
+     * Asked of the strategy rather than assumed from the interface: the
+     * dispatcher implements {@see AnalyzesStoredObject} whichever road it takes,
+     * because it cannot know at construction which that will be.
+     */
+    private function readsStoredObjects(): bool
+    {
+        return ! $this->analyzer instanceof StrategyAudioAnalyzer || $this->analyzer->prefersStoredObject();
     }
 
     /**

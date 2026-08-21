@@ -62,6 +62,44 @@ final readonly class AudioAnalysisResult
         );
     }
 
+    /**
+     * Rebuild a result a worker measured.
+     *
+     * WRK-002. The worker runs the same tool and returns the same facts; this
+     * is where they come back across the boundary, and every field is read
+     * defensively because it arrived over a network from another machine.
+     *
+     * @param  array<string, mixed>  $payload
+     */
+    public static function fromArray(array $payload): self
+    {
+        if (($payload['succeeded'] ?? false) !== true) {
+            $message = $payload['failure_message'] ?? null;
+
+            return self::failed(is_string($message) && trim($message) !== '' ? $message : 'WORKER_REPORTED_FAILURE');
+        }
+
+        return self::measured(
+            durationMs: self::integer($payload['duration_ms'] ?? null),
+            codec: self::text($payload['codec'] ?? null),
+            container: self::text($payload['container'] ?? null),
+            sampleRate: self::integer($payload['sample_rate'] ?? null),
+            bitDepth: self::integer($payload['bit_depth'] ?? null),
+            channels: self::integer($payload['channels'] ?? null),
+            bitrate: self::integer($payload['bitrate'] ?? null),
+        );
+    }
+
+    private static function integer(mixed $value): ?int
+    {
+        return is_int($value) && $value >= 0 ? $value : null;
+    }
+
+    private static function text(mixed $value): ?string
+    {
+        return is_string($value) && trim($value) !== '' ? mb_substr(trim($value), 0, 64) : null;
+    }
+
     public static function failed(string $message): self
     {
         return new self(succeeded: false, failureMessage: $message);

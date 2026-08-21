@@ -171,6 +171,55 @@ Core stops offering generation instead of offering it and failing.
 Use TLS. The token is a bearer credential and it buys GPU time and a write into
 your storage — which is why it is a *different* token from the internal API's.
 
+## Media processing on a worker
+
+A worker can also probe files and take fingerprints, which is the answer for a
+cPanel account with no FFmpeg. Nothing has to be migrated: local execution is
+unchanged and remains right for a VPS that has the tools.
+
+On Core, choose where the work runs:
+
+```dotenv
+# auto           prefer the worker when it advertises the capability, use this
+#                machine otherwise, report unavailable when neither can. The
+#                shipped default.
+# local          always this machine. A worker offering the capability is not
+#                an invitation — `local` means local.
+# remote_worker  always the worker, and report the capability unavailable when
+#                it cannot serve. It does not quietly fall back: an operator who
+#                chose a worker usually had a reason a silent fallback defeats.
+SANITUBE_MEDIA_EXECUTION=auto
+```
+
+The worker needs the binaries and nothing else — it registers `MEDIA_PROBE` and
+`AUDIO_FINGERPRINT` automatically and reports them as runnable only when the
+tools are actually present:
+
+```bash
+# Debian/Ubuntu
+sudo apt install ffmpeg libchromaprint-tools
+
+# AlmaLinux/Rocky
+sudo dnf install ffmpeg chromaprint-tools
+```
+
+**The bytes never pass through Core.** The worker is handed a storage key and
+reads the object from the storage both sides share, so an installation on cPanel
+talking to R2 does not stream a master down only to send it back up.
+
+`php artisan sanitube:doctor` reports what would actually happen rather than what
+is configured:
+
+| Reported | Means |
+| --- | --- |
+| `LOCAL_AVAILABLE` | the tools are here and being used |
+| `REMOTE_WORKER_AVAILABLE` | the worker is doing it |
+| `REMOTE_WORKER_UNAVAILABLE_LOCAL_AVAILABLE` | **degraded** — work is happening on the machine you did not choose |
+| `UNAVAILABLE` | neither; assets are stored and catalogued but not measured |
+
+A worker URL and token in a `.env` never produce a green tick on their own: the
+handshake has to succeed and advertise the capability.
+
 ## What a single host looks like
 
 Nothing changes structurally. One machine sets both halves of the configuration,

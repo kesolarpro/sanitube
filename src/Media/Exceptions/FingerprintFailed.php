@@ -38,6 +38,21 @@ final class FingerprintFailed extends RuntimeException
         );
     }
 
+    /**
+     * A worker refused, in its own machine-readable words.
+     *
+     * WRK-002. The code comes from a closed set this repository defines, so it
+     * cannot carry a credential and it is the only useful thing an operator can
+     * be told about a failure on the far side of a boundary.
+     */
+    public static function because(string $reason): self
+    {
+        return new self(
+            sprintf('The fingerprint worker refused: %s.', $reason),
+            $reason,
+        );
+    }
+
     public static function unreadableOutput(string $tool): self
     {
         return new self(
