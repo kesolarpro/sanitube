@@ -326,6 +326,7 @@ written down.
 | Control | Verdict | Notes |
 |---|---|---|
 | No screen costs more queries as the catalogue grows | READY | PERF-001, measured at two sizes. |
+| The payload comparison measures the catalogue and not the fixture | READY | PERF-003. Two artefacts together came to almost exactly the old kilobyte tolerance: the second seeding wrote audit rows carrying an address the first one's lacked, and it created a second ingestion batch. Removed rather than tolerated; growth is now nought to five bytes and the bound is 256. |
 | Every measured screen is measured with rows in it | READY | PERF-002. Five of the nine screens had been measured against empty tables; a guard now fails by name when a listed screen renders nothing. |
 | Index screens this test does not reach | NOT_READY | PERF-002 names five — enrichment, distribution, production, generations, projects — with what each would need. Each requires a chain of domain objects the catalogue fixture does not build. |
 
