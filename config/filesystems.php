@@ -53,9 +53,9 @@ return [
             'secret' => env('AWS_SECRET_ACCESS_KEY'),
             'region' => env('AWS_DEFAULT_REGION'),
             'bucket' => env('AWS_BUCKET'),
-            'url' => env('AWS_URL'),
             'endpoint' => env('AWS_ENDPOINT'),
             'use_path_style_endpoint' => env('AWS_USE_PATH_STYLE_ENDPOINT', false),
+            'visibility' => 'private',
             'throw' => false,
             'report' => false,
         ],
@@ -66,6 +66,14 @@ return [
          * These disks hold masters, derivatives, artwork and distribution
          * exports. They are private by design and `throw` is enabled: losing a
          * master to a silently failed write is not an acceptable outcome.
+         *
+         * **None of them declares a `url`, including the `s3` disk above.**
+         * That key is what makes `Storage::url()` return a permanent, public,
+         * unexpiring address for every object on a disk, and a master is only
+         * ever reached through a signed link that expires in minutes. STO-005
+         * removed the three `*_URL` variables that used to be read here; the
+         * storage contract no longer has a method that could return one, so
+         * putting the key back would configure something nothing asks for.
          */
 
         'sanitube' => [
@@ -83,9 +91,9 @@ return [
             'secret' => env('R2_SECRET_ACCESS_KEY'),
             'region' => env('R2_DEFAULT_REGION', 'auto'),
             'bucket' => env('R2_BUCKET'),
-            'url' => env('R2_URL'),
             'endpoint' => env('R2_ENDPOINT'),
             'use_path_style_endpoint' => env('R2_USE_PATH_STYLE_ENDPOINT', false),
+            'visibility' => 'private',
             'throw' => true,
             'report' => false,
         ],
@@ -96,9 +104,9 @@ return [
             'secret' => env('B2_SECRET_ACCESS_KEY'),
             'region' => env('B2_DEFAULT_REGION'),
             'bucket' => env('B2_BUCKET'),
-            'url' => env('B2_URL'),
             'endpoint' => env('B2_ENDPOINT'),
             'use_path_style_endpoint' => env('B2_USE_PATH_STYLE_ENDPOINT', true),
+            'visibility' => 'private',
             'throw' => true,
             'report' => false,
         ],

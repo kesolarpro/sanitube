@@ -231,6 +231,8 @@ blocks going live.
 | CSRF on every write | READY | Laravel `web` group. |
 | No secrets in logs, payloads or diagnostics | READY | Asserted, including in the doctor. |
 | Preview URLs signed, expiring, throttled | READY | |
+| No permanent public URL for any asset | READY | STO-005. The contract has no such method; no disk declares `url`. |
+| Every storage disk declares private visibility | READY | STO-005. Asserted per configured provider. |
 | Restore path traversal refused | READY | |
 | Full external penetration test | BLOCKED_EXTERNAL | Internal audit only. |
 
