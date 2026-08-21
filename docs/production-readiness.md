@@ -233,6 +233,7 @@ blocks going live.
 | Preview URLs signed, expiring, throttled | READY | |
 | No permanent public URL for any asset | READY | STO-005. The contract has no such method; no disk declares `url`. |
 | Every storage disk declares private visibility | READY | STO-005. Asserted per configured provider. |
+| Storage certified against the real service | READY | STO-006. `--certify` covers move, signed read, presigned write. CORS remains browser-only. |
 | Restore path traversal refused | READY | |
 | Full external penetration test | BLOCKED_EXTERNAL | Internal audit only. |
 

@@ -5,6 +5,10 @@ declare(strict_types=1);
 namespace SaniTube\Storage\Console;
 
 use Illuminate\Console\Command;
+use SaniTube\Storage\Certification\CertificationCheck;
+use SaniTube\Storage\Certification\CertificationOutcome;
+use SaniTube\Storage\Certification\CertificationReport;
+use SaniTube\Storage\Certification\CertifyStorage;
 use SaniTube\Storage\StorageHealth;
 use SaniTube\Storage\StorageManager;
 use Throwable;
@@ -19,21 +23,36 @@ use Throwable;
  *
  * Nothing here prints a credential. Provider names, bucket-free keys and
  * redacted messages only; the output of this command is what gets pasted into
- * support threads.
+ * support threads. `--certify` prints no signed URL either: the signature is
+ * the permission, and a report is read later and by more people than the
+ * operator who ran it.
+ *
+ * **`--certify` asks a harder question.** The default probe answers "can this
+ * install store a master?". Certification answers "can it do the things
+ * production actually asks of it?" — promote an object server-side, hand a
+ * browser a signed URL the service will accept, take a presigned upload. Each
+ * of those fails on its own, for its own reason, and none of them is visible
+ * to a write/read/delete probe. It is slower and it makes real requests, which
+ * is why it is a flag and not the default.
  */
 final class StorageCheckCommand extends Command
 {
     protected $signature = 'sanitube:storage:check
                             {provider?* : Providers to check; defaults to every configured one}
+                            {--certify : Also prove move, signed reads and presigned uploads against the real service}
                             {--json : Output the report as JSON}';
 
     protected $description = 'Verify that configured storage providers can be written, read and deleted';
 
-    public function handle(StorageManager $storage): int
+    public function handle(StorageManager $storage, CertifyStorage $certifier): int
     {
         /** @var list<string> $requested */
         $requested = (array) $this->argument('provider');
         $names = $requested === [] ? $storage->names() : $requested;
+
+        if ($this->option('certify')) {
+            return $this->certify($storage, $certifier, $names);
+        }
 
         $reports = [];
 
@@ -57,6 +76,89 @@ final class StorageCheckCommand extends Command
         }
 
         return self::SUCCESS;
+    }
+
+    /**
+     * @param  list<string>  $names
+     */
+    private function certify(StorageManager $storage, CertifyStorage $certifier, array $names): int
+    {
+        $reports = [];
+
+        foreach ($names as $name) {
+            try {
+                $reports[] = $certifier->certify($storage->provider($name));
+            } catch (Throwable $exception) {
+                // A configured name that cannot be resolved is itself a
+                // result, and exactly the failure this command exists to find.
+                $reports[] = new CertificationReport(
+                    $name,
+                    [CertificationCheck::failed('resolve', $exception->getMessage())],
+                );
+            }
+        }
+
+        if ($this->option('json')) {
+            $this->line((string) json_encode(
+                array_map(static fn (CertificationReport $report): array => $report->toArray(), $reports),
+                JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES,
+            ));
+        } else {
+            $this->renderCertification($reports);
+        }
+
+        foreach ($reports as $report) {
+            if (! $report->certified()) {
+                return self::FAILURE;
+            }
+        }
+
+        return self::SUCCESS;
+    }
+
+    /**
+     * @param  list<CertificationReport>  $reports
+     */
+    private function renderCertification(array $reports): void
+    {
+        $rows = [];
+
+        foreach ($reports as $report) {
+            foreach ($report->checks as $check) {
+                $rows[] = [
+                    $report->provider,
+                    $check->name,
+                    match ($check->outcome) {
+                        CertificationOutcome::Passed => '<fg=green>passed</>',
+                        CertificationOutcome::Failed => '<fg=red>failed</>',
+                        CertificationOutcome::Skipped => '<fg=yellow>skipped</>',
+                    },
+                    $check->detail ?? '',
+                ];
+            }
+        }
+
+        $this->newLine();
+        $this->table(['Provider', 'Check', 'Outcome', 'Detail'], $rows);
+
+        foreach ($reports as $report) {
+            $this->line(sprintf(
+                '  %s: %s',
+                $report->provider,
+                $report->certified() ? '<fg=green>certified</>' : '<fg=red>not certified</>',
+            ));
+        }
+
+        // Said once, plainly, because a green table invites the opposite
+        // conclusion: a browser refuses a cross-origin PUT before the request
+        // is made, so nothing reaches the service to be observed. No command
+        // can prove the bucket's CORS rule. Only an upload from the interface
+        // can.
+        $this->newLine();
+        $this->line('  <fg=yellow>Not covered:</> the bucket\'s CORS rule. A browser refuses a cross-origin');
+        $this->line('  PUT before it is sent, so no command can see it. Upload one file from the');
+        $this->line('  interface to finish certifying a direct-upload install.');
+        $this->newLine();
     }
 
     private function probe(StorageManager $storage, string $name): StorageHealth

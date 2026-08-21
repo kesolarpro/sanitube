@@ -272,6 +272,9 @@ staging objects and incomplete multipart uploads. Both are in
 [storage.md](../storage.md#direct-uploads); the second one is easy to skip and
 costs storage that never appears in an object listing.
 
+Prove the whole path before trusting it:
+[Certifying storage](storage-certification.md).
+
 With the local disk, uploads go through PHP as before and the interface does
 not offer the direct path. That is a supported configuration, not a degraded
 one — it is simply bounded by the PHP limits above.
