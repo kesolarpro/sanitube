@@ -10,6 +10,23 @@ bin/deploy.sh --dry-run     # report what would happen, change nothing
 bin/deploy.sh               # deploy
 ```
 
+## Updating to a named revision
+
+```
+bin/update.sh v1.4.2 --frontend=/path/to/sanitube-frontend-build.zip
+```
+
+The revision is required — a tag, a branch, or a SHA — and there is no
+default on purpose: an update that assumed "whatever main is now" would
+deploy somebody else's afternoon. The script refuses a dirty tree, backs the
+database up *before* maintenance mode, checks the revision out, installs
+dependencies, installs the frontend artifact tied to that revision, runs
+`sanitube:deploy` (which holds the deploy lock, so two updates cannot
+interleave migrations), and gives the doctor the last word after the site is
+back up. On success it prints the previous SHA — going back is
+`bin/update.sh <previous>`, because schema changes do not reverse; restoring
+the backup is a separate, deliberate act.
+
 ## The two halves, and why they are two
 
 `bin/deploy.sh` does what a shell has to do: `composer install`, `npm ci`,
@@ -79,9 +96,28 @@ run and the site stays down: `php artisan up`.
 
 ## Shared hosting without Node
 
-`npm` is optional. If it is not on the host the script says so and carries on —
-build the assets on a machine that has Node and upload `public/build`. See
-[cpanel.md](cpanel.md) when it lands.
+`npm` is optional, and on production it should stay absent. CI publishes the
+built bundle as the `sanitube-frontend-build` artifact on every green run —
+the exact contents of `public/build` for that commit. Download it (from the
+run's page, or `gh run download` on a machine with your credentials), get it
+to the server however files get to that server, and install it atomically:
+
+```
+php artisan sanitube:frontend:install /path/to/sanitube-frontend-build.zip --sha=<commit>
+```
+
+`--sha` ties the bundle to the code: hashed filenames only match the templates
+of the commit that produced them, so a mismatch against this checkout's HEAD
+is refused with both commits named. On a host that is not a git checkout (a
+cPanel upload), the sha is recorded instead of checked. The swap is two
+renames — a request during install sees the old build or the new one, never
+half — and the archive is treated as hostile until proven boring: entries are
+streamed to paths the installer chose, and traversal, absolute names or
+symlinks refuse with nothing installed.
+
+The command deliberately downloads nothing itself: a GitHub token with API
+scope living in a server's environment for the sake of a deploy step is a
+bigger door than the step is worth.
 
 ## When a deploy fails
 

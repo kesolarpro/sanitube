@@ -64,6 +64,23 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Instance name
+    |--------------------------------------------------------------------------
+    |
+    | What generated infrastructure calls this installation: systemd unit
+    | names, the nginx file name, log labels. Two SaniTubes sharing a VPS set
+    | two different names and their service files cannot collide.
+    |
+    | Operational identity only. It must never become business identity — not
+    | a catalogue name, not an artist, not a label — because renaming a
+    | service must never rename what the catalogue says.
+    |
+    */
+
+    'instance' => env('SANITUBE_INSTANCE_NAME', 'sanitube'),
+
+    /*
+    |--------------------------------------------------------------------------
     | HTTP surface
     |--------------------------------------------------------------------------
     |

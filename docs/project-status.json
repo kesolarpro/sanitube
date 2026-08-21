@@ -945,6 +945,27 @@
    "ci": "pending",
    "branch": "claude/sanitube-autonomous-v1-5pycx0",
    "note": "Installation sans surveillance depuis un fichier de configuration protege. Dialecte .env, liste blanche egale a celle de l'installeur web (tenue par un test par reflexion) ; un fichier lisible au-dela de son proprietaire est refuse avant d'en lire un octet ; une cle inconnue arrete l'execution par son nom ; le mot de passe du proprietaire vient du fichier ou de SANITUBE_OWNER_PASSWORD, jamais d'argv."
+  },
+  "DEP-010": {
+   "status": "in_review",
+   "pr": null,
+   "ci": "pending",
+   "branch": "claude/sanitube-autonomous-v1-5pycx0",
+   "note": "sanitube:provision — ligne cron, unites systemd et bloc nginx generes depuis des entrees validees. Une valeur qui pourrait passer une directive est refusee, jamais echappee, et le refus ne cite jamais la valeur. La file est une unite template : la concurrence est le nombre d'instances activees. Nomme par SANITUBE_INSTANCE_NAME. Genere seulement — installer dans /etc, nginx -t et systemd-analyze restent a root."
+  },
+  "DEP-011": {
+   "status": "in_review",
+   "pr": null,
+   "ci": "pending",
+   "branch": "claude/sanitube-autonomous-v1-5pycx0",
+   "note": "sanitube:frontend:install — le bundle CI atterrit atomiquement, pour son propre commit. Deux renames, jamais un build a moitie servi ; l'archive est hostile jusqu'a preuve d'ennui (traversee, absolus, symlinks refuses, chemin jamais cite) ; --sha verifie contre HEAD lu de .git en fichiers ; la commande ne telecharge rien, deliberement."
+  },
+  "DEP-012": {
+   "status": "in_review",
+   "pr": null,
+   "ci": "pending",
+   "branch": "claude/sanitube-autonomous-v1-5pycx0",
+   "note": "bin/update.sh + verrou de deploiement. La revision est un argument obligatoire sans defaut ; arbre sale refuse ; sauvegarde avant le rideau ; maintenance relachee par trap ; le docteur a le dernier mot une fois le site remonte. sanitube:deploy prend un verrou fichier — refus avec l'age du detenteur, perime apres une heure, relache meme quand une etape echoue. Le 'x' O_EXCL est nomme comme non tenu par les tests : la course est le point."
   }
  },
  "architecture_amendments": [

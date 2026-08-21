@@ -131,23 +131,30 @@ final class DeploymentGuidesTest extends TestCase
         // does, the queue stops after every deploy and nobody notices until an
         // import hangs.
         //
-        // Asserted against the unit file rather than the page, because the
-        // prose explaining `Restart=always` also contains the words — so
-        // breaking the unit file left the page still matching.
-        // Bounded to the unit's own [Service] block. A pattern that merely
-        // required `Restart=always` *somewhere after* `[Service]` reached
-        // past the unit file into the prose explaining it — so breaking the
-        // unit left the page still matching, and the mutation survived.
-        $this->assertMatchesRegularExpression(
-            '/\[Service\][^\[]*Restart=always[^\[]*\[Install\]/',
+        // DEP-010 changed what this test holds. The guide used to carry a
+        // hand-written unit file, and this asserted `Restart=always` inside
+        // its [Service] block; units are now *generated* by
+        // sanitube:provision — with their real paths and the operator's
+        // account — and the generated unit's restart policy is held where
+        // the generator lives, in ProvisioningTest. What the guide still
+        // owes the reader is the instruction to generate rather than copy,
+        // and the sentence connecting restart policy to deploys.
+        $this->assertStringContainsString(
+            'sanitube:provision',
             $guide,
-            'The systemd unit does not restart the worker, so the queue stops after every deploy.',
+            'The VPS guide no longer tells anybody to generate their service files.',
         );
 
-        $this->assertMatchesRegularExpression(
-            '/^ExecStart=.*queue:work/m',
+        $this->assertStringContainsString(
+            'Restart=on-failure',
             $guide,
-            'The systemd unit does not run a queue worker.',
+            'The VPS guide no longer explains the restart policy that makes deployment work.',
+        );
+
+        $this->assertStringContainsString(
+            'the job in hand',
+            $guide,
+            'The VPS guide no longer explains why workers must come back after a deploy.',
         );
     }
 

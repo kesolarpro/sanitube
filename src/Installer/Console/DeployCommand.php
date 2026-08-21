@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SaniTube\Installer\Console;
 
 use Illuminate\Console\Command;
+use SaniTube\Installer\Services\DeploymentLock;
 use SaniTube\Installer\Services\DeploymentService;
 use SaniTube\Installer\StageResult;
 
@@ -33,9 +34,34 @@ final class DeployCommand extends Command
 
     protected $description = 'Bring a running installation up to the deployed code: schema, caches, storage link, workers';
 
-    public function handle(DeploymentService $deployment): int
+    public function handle(DeploymentService $deployment, DeploymentLock $lock): int
     {
         $dryRun = $this->option('dry-run') === true;
+
+        // One deploy at a time: two runs interleaving their migrations is the
+        // failure nobody cleans up afterwards. A dry run takes the lock too —
+        // it reads the same state a live deploy is busy changing.
+        $heldFor = $lock->acquire();
+
+        if ($heldFor !== null) {
+            $this->error(sprintf(
+                'Another deploy holds the lock (for %d seconds). One deploy at a time — if that run is '
+                    .'dead, the lock goes stale on its own after an hour.',
+                $heldFor,
+            ));
+
+            return self::FAILURE;
+        }
+
+        try {
+            return $this->deploy($deployment, $dryRun);
+        } finally {
+            $lock->release();
+        }
+    }
+
+    private function deploy(DeploymentService $deployment, bool $dryRun): int
+    {
 
         $this->line($dryRun ? 'SaniTube deployment (dry run)' : 'SaniTube deployment');
         $this->newLine();
