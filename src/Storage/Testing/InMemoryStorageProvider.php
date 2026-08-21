@@ -44,6 +44,35 @@ final class InMemoryStorageProvider implements StorageProvider, SupportsDirectUp
     /** Set when the store is made to fail, to prove failures are handled. */
     private ?string $failure = null;
 
+    /**
+     * Set when the store accepts writes and refuses to promote them.
+     *
+     * The failure a write/read/delete probe cannot see: a credential with
+     * `PutObject` and no `CopyObject` looks perfect until the first completed
+     * upload tries to leave staging.
+     */
+    private bool $moves = true;
+
+    /**
+     * Set when the store promotes by copying and cannot remove the origin.
+     *
+     * A server-side move is a copy followed by a delete, so a credential with
+     * `CopyObject` and no `DeleteObject` leaves the staging object behind while
+     * reporting success. The upload works; the bucket fills with duplicates of
+     * every master, and the only symptom is the bill.
+     */
+    private bool $removesOriginOnMove = true;
+
+    /**
+     * Set when the store's digest disagrees with the bytes it serves.
+     *
+     * A caching layer in front of a bucket does this: the object reads back
+     * correctly and the digest belongs to a version that is no longer there.
+     * It matters because the digest is what `sanitube:assets:verify` compares
+     * a master against — a drifting one turns every asset into a false alarm.
+     */
+    private bool $honestChecksums = true;
+
     public function __construct(
         private readonly string $name = 'memory',
         private readonly ?string $baseUrl = null,
@@ -65,8 +94,38 @@ final class InMemoryStorageProvider implements StorageProvider, SupportsDirectUp
         $this->failure = $message;
     }
 
+    /**
+     * Accept writes, refuse to promote them.
+     *
+     * Narrower than {@see failWith()} on purpose: the interesting case is a
+     * store that works right up until the last step of an upload.
+     */
+    public function refuseMoves(): void
+    {
+        $this->moves = false;
+    }
+
+    /**
+     * Promote by copying, and leave the origin where it was.
+     */
+    public function leaveOriginOnMove(): void
+    {
+        $this->removesOriginOnMove = false;
+    }
+
+    /**
+     * Serve the right bytes and report a digest for different ones.
+     */
+    public function reportADifferentDigest(): void
+    {
+        $this->honestChecksums = false;
+    }
+
     public function recover(): void
     {
+        $this->moves = true;
+        $this->removesOriginOnMove = true;
+        $this->honestChecksums = true;
         $this->failure = null;
     }
 
@@ -240,19 +299,24 @@ final class InMemoryStorageProvider implements StorageProvider, SupportsDirectUp
 
     public function checksum(string $key, string $algorithm = 'sha256'): string
     {
-        return hash($algorithm, $this->get($key));
+        $contents = $this->get($key);
+
+        return hash($algorithm, $this->honestChecksums ? $contents : $contents.'-stale');
     }
 
     public function move(string $from, string $to): StoredObject
     {
         $this->guard();
 
-        if (! isset($this->objects[$from])) {
+        if (! $this->moves || ! isset($this->objects[$from])) {
             throw StorageOperationFailed::move($this->name, $from, $to);
         }
 
         $this->write($to, $this->objects[$from]);
-        unset($this->objects[$from], $this->modified[$from]);
+
+        if ($this->removesOriginOnMove) {
+            unset($this->objects[$from], $this->modified[$from]);
+        }
 
         return $this->describe($to);
     }

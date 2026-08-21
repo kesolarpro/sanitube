@@ -117,6 +117,18 @@ php artisan sanitube:deploy && php artisan sanitube:doctor || echo "not ready"
 
 Neither command prints a secret. Both are safe to paste into a support thread.
 
+If this installation stores on object storage, there is a third:
+
+```
+php artisan sanitube:storage:check --certify
+```
+
+**Whether the bucket can do what production asks of it** — not just accept an
+object, but promote one server-side, honour a signed URL, and take a presigned
+upload. Each of those fails on its own and none of them is visible to a
+write/read/delete probe. The procedure, including the one thing no command can
+prove, is in [Certifying storage](storage-certification.md).
+
 `docs/production-readiness.md` is the full list, including the parts that need
 a real provider or a real host before anybody can honestly call them certified.
 

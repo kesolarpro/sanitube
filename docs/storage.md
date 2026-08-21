@@ -289,6 +289,15 @@ The same application, with more options available:
 - Run `sanitube:assets:verify` on a schedule if the egress cost is acceptable;
   the entry is in `routes/console.php`, commented out.
 
+### Certifying an installation
+
+`sanitube:storage:check --certify` proves the operations a write/read/delete
+probe cannot see — the server-side promotion every completed upload goes
+through, a signed URL the service actually accepts, and a presigned upload that
+lands where it was signed for. The full procedure, including the one thing no
+command can prove, is in
+[Certifying storage](deployment/storage-certification.md).
+
 ### Configuring storage from the settings screen
 
 An operator with the OWNER or ADMIN role can set the provider and its
