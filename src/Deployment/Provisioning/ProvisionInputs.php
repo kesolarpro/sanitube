@@ -47,6 +47,7 @@ final readonly class ProvisionInputs
         public ?string $domain,
         public ?string $phpFpmSocket,
         public string $uploadMax,
+        public int $httpPort = 80,
     ) {
         self::match('instance', $instance, self::INSTANCE, 'lower-case letters, digits and dashes, starting with a letter');
         self::match('application path', $applicationPath, self::PATH, 'an absolute path without spaces or quoting characters');
@@ -61,6 +62,10 @@ final readonly class ProvisionInputs
 
         if ($phpFpmSocket !== null) {
             self::match('php-fpm socket', $phpFpmSocket, self::PATH, 'an absolute path without spaces or quoting characters');
+        }
+
+        if ($httpPort < 1 || $httpPort > 65535) {
+            throw ProvisionException::invalid('http port', 'a port between 1 and 65535');
         }
     }
 

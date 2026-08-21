@@ -9,6 +9,7 @@ use Illuminate\Http\Client\Factory as HttpFactory;
 use Illuminate\Support\ServiceProvider;
 use SaniTube\Worker\Client\WorkerClient;
 use SaniTube\Worker\Console\WorkerCheckCommand;
+use SaniTube\Worker\Console\WorkerTokenCommand;
 
 /**
  * Wires the worker boundary.
@@ -37,7 +38,7 @@ final class WorkerServiceProvider extends ServiceProvider
     public function boot(): void
     {
         if ($this->app->runningInConsole()) {
-            $this->commands([WorkerCheckCommand::class]);
+            $this->commands([WorkerCheckCommand::class, WorkerTokenCommand::class]);
         }
     }
 }

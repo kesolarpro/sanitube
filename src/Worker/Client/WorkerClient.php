@@ -110,6 +110,18 @@ final readonly class WorkerClient
             throw WorkerJobFailed::because('WORKER_NOT_CONFIGURED');
         }
 
+        // A worker known to speak another protocol version gets no job at
+        // all. Refusing beats reinterpreting: a payload read under the wrong
+        // protocol does not fail, it does the wrong thing quietly — to a
+        // master, on a GPU, in shared storage. An identity that could not be
+        // fetched is not a known mismatch and takes the ordinary
+        // unreachable path below.
+        $identity = $this->identity();
+
+        if ($identity !== null && ! $identity->speaksOurProtocol()) {
+            throw WorkerJobFailed::because('WORKER_PROTOCOL_MISMATCH');
+        }
+
         try {
             $response = $this->http
                 ->timeout($this->jobTimeout())

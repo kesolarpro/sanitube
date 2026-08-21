@@ -7,6 +7,7 @@ namespace SaniTube\Worker\Http\Controllers;
 use Illuminate\Http\JsonResponse;
 use SaniTube\Worker\Support\ToolVersions;
 use SaniTube\Worker\WorkerIdentity;
+use SaniTube\Worker\WorkerProtocol;
 use SaniTube\Worker\WorkerRegistry;
 
 /**
@@ -32,6 +33,7 @@ final class WorkerIdentityController
             capabilities: $registry->runnable(),
             registered: $registry->registered(),
             tools: $tools->all(),
+            protocol: WorkerProtocol::VERSION,
         ))->toArray());
     }
 

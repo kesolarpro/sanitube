@@ -10,6 +10,7 @@ use Illuminate\Http\Client\Factory as HttpFactory;
 use SaniTube\Worker\Client\WorkerClient;
 use SaniTube\Worker\Enums\WorkerCapability;
 use SaniTube\Worker\WorkerJobFailed;
+use SaniTube\Worker\WorkerProtocol;
 use Throwable;
 
 /**
@@ -87,6 +88,18 @@ final readonly class CertifyWorker
             'handshake',
             sprintf('Answered as "%s", version %s.', $identity->name, $identity->version),
         );
+
+        // Protocol before capabilities: a worker on another wire version will
+        // *look* capable and misread the first real payload. Refused here so
+        // the certification says why no job will ever be sent to it.
+        $checks[] = $identity->speaksOurProtocol()
+            ? WorkerCheck::passed('protocol', sprintf('Speaks protocol %d, same as this Core.', $identity->protocol))
+            : WorkerCheck::failed('protocol', sprintf(
+                'The worker speaks protocol %d and this Core speaks %d. Jobs are refused rather than '
+                    .'reinterpreted; update whichever side is behind.',
+                $identity->protocol,
+                WorkerProtocol::VERSION,
+            ), $this->token());
 
         $checks[] = $this->announcedCapabilities($identity->capabilities);
         $checks[] = $this->knownButNotRunnable($identity->capabilities, $identity->registered);
