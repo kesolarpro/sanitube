@@ -412,6 +412,8 @@ function discard(): void {
                     type="file"
                     multiple
                     class="sr-only"
+                    tabindex="-1"
+                    aria-hidden="true"
                     :accept="capability.accepted_types.join(',')"
                     @change="onPicked"
                 />

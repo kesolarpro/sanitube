@@ -344,6 +344,8 @@ async function sendDirect(item: UploadItem, file: File): Promise<UploadOutcome> 
                         type="file"
                         multiple
                         class="sr-only"
+                        tabindex="-1"
+                        aria-hidden="true"
                         :accept="acceptAttribute"
                         @change="onPicked"
                     />

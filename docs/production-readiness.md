@@ -337,9 +337,9 @@ written down.
 
 | Control | Verdict | Notes |
 |---|---|---|
-| Keyboard navigation, focus, modal trap | NOT_READY | Design-system primitives do it; not audited per screen. |
+| Keyboard navigation, focus, modal trap | READY | UI-A11Y-001. The primitives were already tested; what was missing was that the screens use them. A scan over `resources/js/Pages` holds it, with three exemptions and a sentence each. |
 | Contrast, light / dark / system | READY | Tokens; no hardcoded colours. |
-| Screen-reader semantics | NOT_READY | Not audited. |
+| Screen-reader semantics | PARTIAL | UI-A11Y-001 audited the one thing a scan can hold: every form control reaches the label `FormField` provides. Three raw inputs on the enrichment review screen were orphaning their labels — the exact failure that component's own comment describes — and two off-screen file inputs sat unnamed in the accessibility tree. Reading order, landmarks and live regions are still unaudited, and no scan will hold those. |
 
 ## Localization
 
