@@ -47,7 +47,7 @@ awaiting a certificate, not unfinished code.
 | Migrations | 48, each rolled back and re-applied in CI |
 | ADRs | 20 |
 | Operator documentation | 132 files |
-| Test doctrine | Mutation-checked; equivalent mutants are named, never counted as kills |
+| Mutation testing | **By hand, per ticket, not in CI.** There is no mutation harness; each ticket's guards were verified by breaking them deliberately and confirming a named test failed. Where a mutant survived because it was equivalent, that is recorded rather than counted as a kill — see the `hashed` cast in E2E-003. |
 
 ## 4. The eight things that are not done
 
