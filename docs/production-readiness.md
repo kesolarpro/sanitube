@@ -255,6 +255,10 @@ written down.
 | Restore never accidental | READY | Explicit confirmation; `--force` for scripts. |
 | Catalogue *and* delivery history recovered | READY | Asserted end to end. |
 | Backup freshness surfaced | READY | Doctor and Operations screen. |
+| Included paths contained | READY | DEP-005. An include path that resolves outside the installation, that is the application root, or that touches the backup destination is refused before the directory is created. |
+| A backup never contains a backup | READY | DEP-005. `storage` is the obvious entry and used to copy every previous backup into the new one, doubling each run. |
+| `.env` never in a backup | READY | DEP-005. Never copied, whatever the configuration says; stated on every manifest; and a backup naming one is refused on restore before anything is written. |
+| Backups encrypted at rest | NOT_READY | They are not. Treat the destination as you would the database — `docs/deployment/backup.md` says so. Off-machine copies are the operator's, and so is their encryption. |
 
 ## Installer
 

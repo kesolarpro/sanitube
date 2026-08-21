@@ -116,6 +116,39 @@ rather than trusting the setting.
 Backups are **not** encrypted. Treat the directory as you would the database
 itself, and do not copy it anywhere you would not copy `.env`.
 
+## What goes in, and what cannot
+
+`backup.include_paths`, default `storage/app/public`. Relative to the
+application root, and **checked before the backup directory is created** — a
+mistake here stops the run rather than leaving you a half-written directory to
+clean up on top of the setting to fix.
+
+Four entries are refused:
+
+| Entry | Refusal | Why |
+| --- | --- | --- |
+| `..`, or anything resolving outside the installation | `INCLUDE_PATH_ESCAPES` | On shared hosting the directory above the installation is somebody else's account. Resolved first, so a symlink pointing out of the tree is caught too. |
+| `.` | `INCLUDE_PATH_IS_APPLICATION` | That is a copy of the installation — `vendor`, `node_modules` and `.git` — not a backup of its data. |
+| `storage`, or anything containing `backup.destination` | `INCLUDE_PATH_IS_DESTINATION` | The default destination is inside `storage/`, so this copies every previous backup into the new one. Each run doubles, quietly, until the disk is full and the nightly job has been failing for a week. |
+| A path that is not there | *not* refused | Recorded in the manifest's `excluded` instead, as `path:<entry>`. A path in the configuration and nothing on disk is somebody who believes something is backed up; the manifest is where they find out. |
+
+**`.env` is never in a backup.** Not `.env`, not `.env.production`, not at any
+depth, whatever `include_paths` says — it holds every credential this
+installation has, and a backup carrying one hands them to whoever holds the
+backup. Every manifest states this under `files:environment`, so a manifest
+read six months from now says so without you having to work it out from the
+file list.
+
+The same rule applies on the way back in: `sanitube:restore` refuses a backup
+whose manifest names an environment file, with `ENVIRONMENT_FILE_IN_BACKUP`,
+*before* it writes anything. A backup taken by an older SaniTube, or one
+somebody edited, would otherwise write another installation's credentials over
+your live ones — and it would arrive having passed every other check, because
+the checksum of a tampered backup matches the manifest that was tampered with
+beside it.
+
+Everything else in an included directory is taken, hidden files included.
+
 ## On cPanel
 
 Add a cron entry:
