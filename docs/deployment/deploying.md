@@ -10,6 +10,23 @@ bin/deploy.sh --dry-run     # report what would happen, change nothing
 bin/deploy.sh               # deploy
 ```
 
+## Updating to a named revision
+
+```
+bin/update.sh v1.4.2 --frontend=/path/to/sanitube-frontend-build.zip
+```
+
+The revision is required — a tag, a branch, or a SHA — and there is no
+default on purpose: an update that assumed "whatever main is now" would
+deploy somebody else's afternoon. The script refuses a dirty tree, backs the
+database up *before* maintenance mode, checks the revision out, installs
+dependencies, installs the frontend artifact tied to that revision, runs
+`sanitube:deploy` (which holds the deploy lock, so two updates cannot
+interleave migrations), and gives the doctor the last word after the site is
+back up. On success it prints the previous SHA — going back is
+`bin/update.sh <previous>`, because schema changes do not reverse; restoring
+the backup is a separate, deliberate act.
+
 ## The two halves, and why they are two
 
 `bin/deploy.sh` does what a shell has to do: `composer install`, `npm ci`,
