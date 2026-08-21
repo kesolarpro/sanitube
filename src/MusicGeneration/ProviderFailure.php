@@ -111,29 +111,19 @@ final readonly class ProviderFailure
         return self::sanitise($stored);
     }
 
+    /**
+     * The shared rule, plus this column's own length.
+     *
+     * Every step here used to live in this method, and then the failed-jobs
+     * screen was found rendering a presigned URL and a configured storage
+     * secret straight out of an exception — the same text, on its way to the
+     * same kind of reader, past a boundary that had never been given the same
+     * rule. One copy now, in {@see CredentialRedactor::scrub()}.
+     */
     private static function sanitise(?string $text): ?string
     {
-        if ($text === null || trim($text) === '') {
-            return null;
-        }
+        $clean = CredentialRedactor::scrub($text);
 
-        $clean = CredentialRedactor::fromDiskConfiguration()->redact($text) ?? '';
-
-        // Anything URL-shaped goes, whether or not it holds a recognised
-        // credential. A signed URL's token is not in any config file, so
-        // redaction cannot know it -- the only safe rule is that a failure
-        // reason never contains an address.
-        $clean = (string) preg_replace('#\b[a-zA-Z][a-zA-Z0-9+.-]*://\S+#', CredentialRedactor::MASK, $clean);
-
-        // One line. A stack trace pasted into a column is both a leak and
-        // unreadable on the screen that renders it.
-        $clean = (string) preg_replace('/\s+/u', ' ', $clean);
-        $clean = trim($clean);
-
-        if ($clean === '' || $clean === CredentialRedactor::MASK) {
-            return null;
-        }
-
-        return mb_strimwidth($clean, 0, self::LIMIT, '…');
+        return $clean === null ? null : mb_strimwidth($clean, 0, self::LIMIT, '…');
     }
 }

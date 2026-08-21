@@ -81,4 +81,39 @@ final readonly class CredentialRedactor
 
         return str_replace($this->secrets, self::MASK, $text);
     }
+
+    /**
+     * A failure message on its way to a person.
+     *
+     * `redact()` masks the values this installation is configured with, and
+     * that is not enough on its own. **A presigned URL's signature is in no
+     * config file** — it is derived, per request, from a secret plus a clock —
+     * so nothing built from the configuration can recognise it, and it is a
+     * bearer credential for as long as it lives. The only rule that holds is
+     * that a failure message never contains an address at all.
+     *
+     * Losing the address costs little. What a person reads a failure for is
+     * whether this is an outage or a bug, and the exception class and its
+     * words say that; the host and the object key say where, which is the part
+     * they must not be told through a browser.
+     *
+     * Whitespace is collapsed because a message that arrives as several lines
+     * is a stack trace that got this far, and a message that is nothing but a
+     * mask is returned as nothing — "[redacted]" on its own tells a reader
+     * less than an empty cell and looks like an answer.
+     */
+    public static function scrub(?string $text): ?string
+    {
+        if ($text === null || trim($text) === '') {
+            return null;
+        }
+
+        $clean = self::fromDiskConfiguration()->redact($text) ?? '';
+
+        $clean = (string) preg_replace('#\b[a-zA-Z][a-zA-Z0-9+.-]*://\S+#', self::MASK, $clean);
+
+        $clean = trim((string) preg_replace('/\s+/u', ' ', $clean));
+
+        return $clean === '' || $clean === self::MASK ? null : $clean;
+    }
 }

@@ -142,6 +142,77 @@ final class SystemScreensTest extends TestCase
         $this->assertStringNotContainsString('#0 ', $body);
     }
 
+    /**
+     * Truncating is not scrubbing.
+     *
+     * The first line used only to be shortened to two hundred characters, and
+     * a limit removes the *end* of a message. An S3 client's 403 arrives as
+     * `GET https://…?X-Amz-Signature=… resulted in a 403` — comfortably inside
+     * the limit, and that signature is a bearer credential for as long as it
+     * lives. It is in no config file, so a redactor built from configuration
+     * cannot recognise it; the only rule that holds is that a failure message
+     * never carries an address.
+     */
+    #[Test]
+    public function a_signed_url_in_a_failure_message_does_not_reach_the_browser(): void
+    {
+        config(['filesystems.disks.r2.secret' => 'sk-live-abcdefghijklmnop']);
+
+        DB::table('failed_jobs')->insert([
+            'uuid' => (string) Str::uuid7(),
+            'connection' => 'database',
+            'queue' => 'default',
+            'payload' => json_encode(['displayName' => 'Job']),
+            'exception' => 'GuzzleHttp\Exception\ClientException: GET https://bucket.r2.cloudflarestorage.com'
+                .'/masters/x.wav?X-Amz-Credential=AKIAEXAMPLE&X-Amz-Signature=deadbeefcafe resulted in a 403',
+            'failed_at' => now(),
+        ]);
+
+        $body = $this->actingAs($this->user())->get('/system/jobs')->assertOk()->content();
+
+        $this->assertStringNotContainsString('X-Amz-Signature', $body);
+        $this->assertStringNotContainsString('bucket.r2.cloudflarestorage.com', $body);
+    }
+
+    #[Test]
+    public function a_configured_secret_in_a_failure_message_is_masked(): void
+    {
+        config(['filesystems.disks.r2.secret' => 'sk-live-abcdefghijklmnop']);
+
+        DB::table('failed_jobs')->insert([
+            'uuid' => (string) Str::uuid7(),
+            'connection' => 'database',
+            'queue' => 'default',
+            'payload' => json_encode(['displayName' => 'Job']),
+            'exception' => 'RuntimeException: signature mismatch for key sk-live-abcdefghijklmnop',
+            'failed_at' => now(),
+        ]);
+
+        $body = $this->actingAs($this->user())->get('/system/jobs')->assertOk()->content();
+
+        $this->assertStringNotContainsString('sk-live-abcdefghijklmnop', $body);
+    }
+
+    #[Test]
+    public function an_ordinary_failure_still_says_what_broke(): void
+    {
+        // The other half. A scrub that removed everything would pass both
+        // tests above and leave an operator a screen full of blank rows —
+        // which is the same as not having the screen.
+        DB::table('failed_jobs')->insert([
+            'uuid' => (string) Str::uuid7(),
+            'connection' => 'database',
+            'queue' => 'default',
+            'payload' => json_encode(['displayName' => 'Job']),
+            'exception' => 'RuntimeException: The provider refused the request: quota exceeded',
+            'failed_at' => now(),
+        ]);
+
+        $rows = $this->app->make(QueueQuery::class)->failed()['rows'];
+
+        $this->assertStringContainsString('quota exceeded', (string) $rows[0]['error']);
+    }
+
     #[Test]
     public function a_very_long_failure_message_is_truncated(): void
     {

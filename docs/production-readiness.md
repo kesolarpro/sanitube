@@ -289,6 +289,8 @@ written down.
 | No internal ids in URLs | READY | |
 | CSRF on every write | READY | Laravel `web` group. |
 | No secrets in logs, payloads or diagnostics | READY | Asserted, including in the doctor. |
+| No secret or address in a failure message a person reads | READY | OBS-001. The failed-jobs screen rendered an S3 client's 403 verbatim — presigned signature and all — because the first line was truncated rather than scrubbed. One rule now, `CredentialRedactor::scrub()`: configured secrets masked, every address removed, at four boundaries. |
+| Stored failure text carries no address | READY | OBS-001. `ingestion_items.failure_message` and `audio_analyses.failure_message` are durable and go into every backup, so they are scrubbed on write *and* on read — rows written before the rule are already in the column. |
 | Preview URLs signed, expiring, throttled | READY | |
 | No permanent public URL for any asset | READY | STO-005. The contract has no such method; no disk declares `url`. |
 | Every storage disk declares private visibility | READY | STO-005. Asserted per configured provider. |

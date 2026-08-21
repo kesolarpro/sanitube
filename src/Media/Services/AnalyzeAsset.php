@@ -14,6 +14,7 @@ use SaniTube\Media\AudioAnalysisResult;
 use SaniTube\Media\Contracts\AnalyzesStoredObject;
 use SaniTube\Media\Contracts\AudioAnalyzer;
 use SaniTube\Media\Models\AudioAnalysis;
+use SaniTube\Storage\CredentialRedactor;
 use Throwable;
 
 /**
@@ -108,7 +109,11 @@ final readonly class AnalyzeAsset
                 'loudness_lufs' => $result->loudnessLufs,
                 'peak_dbfs' => $result->peakDbfs,
                 'raw' => $result->raw === [] ? null : $result->raw,
-                'failure_message' => $result->failureMessage,
+                // The analyser's own words, scrubbed. `FfprobeAudioAnalyzer`
+                // hands over `$exception->getMessage()` and the remote one a
+                // worker's refusal reason, and this column is durable — read
+                // by the internal API and carried into every backup.
+                'failure_message' => CredentialRedactor::scrub($result->failureMessage),
                 'analyzed_at' => Carbon::now(),
             ],
         );
