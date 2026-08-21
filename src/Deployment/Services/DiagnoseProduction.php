@@ -7,8 +7,11 @@ namespace SaniTube\Deployment\Services;
 use Illuminate\Contracts\Config\Repository as Config;
 use Illuminate\Database\Connection;
 use Illuminate\Database\Migrations\Migrator;
+use SaniTube\Assets\Enums\AssetStatus;
+use SaniTube\Assets\Models\Asset;
 use SaniTube\Deployment\BackupManifest;
 use SaniTube\Deployment\ProductionCheck;
+use SaniTube\Media\Services\FingerprintAsset;
 use SaniTube\Observability\Capabilities\CapabilityRegistry;
 use SaniTube\Observability\Capabilities\CapabilityStatus;
 use SaniTube\Observability\SchedulerHeartbeat;
@@ -59,6 +62,7 @@ final readonly class DiagnoseProduction
             ...$this->storage(),
             ...$this->workers(),
             ...$this->operations(),
+            ...$this->deduplication(),
             ...$this->assistedFeatures(),
             ...$this->server(),
         ];
@@ -328,6 +332,74 @@ final readonly class DiagnoseProduction
                 'Schedule `sanitube:backup`. A week-old backup is a week of work to re-do.',
             )
             : ProductionCheck::ready('Backup', 'freshness', 'A recent backup exists.')];
+    }
+
+    /**
+     * Whether acoustic duplicate detection covers the library it is supposed
+     * to cover.
+     *
+     * **The one gap in this platform that produces no error anywhere.** A
+     * fingerprint is taken when a candidate appears, and only then. An
+     * installation that imported its catalogue on a host with no Chromaprint
+     * has none — correctly, because an absent tool is a supported
+     * configuration. When that host later gains the capability, nothing goes
+     * back over what is already there: acoustic comparison silently covers
+     * none of the library, for ever, and every screen reports exactly what it
+     * did before.
+     *
+     * Never a blocker. Duplicate detection by checksum keeps working, and an
+     * installation that has deliberately never fingerprinted anything is not
+     * misconfigured — it is a shared account doing what it can.
+     *
+     * @return list<ProductionCheck>
+     */
+    private function deduplication(): array
+    {
+        try {
+            $fingerprinter = app(FingerprintAsset::class);
+
+            if (! $fingerprinter->isAvailable()) {
+                // A fact about the host, not a fault in it. Said anyway,
+                // because "duplicates are checked" and "duplicates are checked
+                // by content hash only" are different promises and an operator
+                // reviewing a duplicate queue is entitled to know which one
+                // they are being given.
+                return [ProductionCheck::ready(
+                    'Deduplication',
+                    'acoustic_coverage',
+                    'This host cannot fingerprint. Duplicates are found by checksum only.',
+                )];
+            }
+
+            $outstanding = Asset::query()
+                ->whereIn('status', [AssetStatus::Stored->value, AssetStatus::Verified->value])
+                ->whereNull('trashed_at')
+                ->get()
+                ->filter(static fn (Asset $asset): bool => $fingerprinter->needs($asset))
+                ->count();
+        } catch (Throwable) {
+            return [ProductionCheck::unknown(
+                'Deduplication',
+                'acoustic_coverage',
+                'Whether the library has been fingerprinted could not be determined.',
+            )];
+        }
+
+        if ($outstanding === 0) {
+            return [ProductionCheck::ready(
+                'Deduplication',
+                'acoustic_coverage',
+                'Every stored master has been fingerprinted by the tool this host has.',
+            )];
+        }
+
+        return [ProductionCheck::warning(
+            'Deduplication',
+            'acoustic_coverage',
+            sprintf('%d stored master(s) have never been fingerprinted by this host\'s tool.', $outstanding),
+            'Run `php artisan sanitube:media:fingerprint`. Until it has run, acoustic duplicate '
+                .'detection covers none of them and nothing else will say so.',
+        )];
     }
 
     /**

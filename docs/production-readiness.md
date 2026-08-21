@@ -78,6 +78,7 @@ blocks going live.
 | Analysis optional; absent FFmpeg does not block | READY | The shared-hosting default produces READY, not WAITING_CAPABILITY. |
 | Checksums verified on ingest | READY | |
 | Duration / loudness when available | READY | |
+| A library stored before the tool existed can be fingerprinted | READY | MED-004. `sanitube:media:fingerprint`; the doctor warns while any master is uncovered. |
 
 ## Transcription
 
