@@ -18,6 +18,21 @@ would misdescribe the work in both directions.
 on a live installation, read-only, and exits non-zero when something internal
 blocks going live.
 
+**Last audited against the code: 2026-08-21 (READY-001).** A ledger is only
+worth what its last reading was. This one had drifted in the *pessimistic*
+direction — four controls were marked NOT_READY that had since been built, and
+an entire subsystem had no row at all — which is a less dangerous failure than
+the opposite and just as corrosive: a document nobody can trust in one
+direction is a document nobody trusts in either. Each verdict below was
+re-checked against a route, a command, a class or a test, and the ones that had
+moved were moved.
+
+`ProductionReadinessLedgerTest` keeps the mechanical half honest from here:
+every `sanitube:*` command and every ADR this page names must exist. It cannot
+tell that a row is *stale* — nothing links a sentence to the feature it
+describes — so the audit above stays a thing somebody does, and its date stays
+written down.
+
 ---
 
 ## App
@@ -39,7 +54,7 @@ blocks going live.
 | Deactivation rather than deletion | READY | `active` middleware drops access at the next request. |
 | No self-registration | READY | |
 | No mass assignment of `role` / `is_active` | READY | |
-| Password reset flow | NOT_READY | Not built. An OWNER resets via `sanitube:user:create` today. |
+| Password reset flow | READY | Built. The request form answers identically for a known and an unknown address; a deactivated account is sent nothing and told nothing; a token is single-use, expiring, and refused after a deactivation; a reset ends the sessions opened with the old password. |
 
 ## Database
 
@@ -59,7 +74,8 @@ blocks going live.
 | Previews minted by POST, signed, short expiry | READY | Throttled; audited without the URL. |
 | Backup destination outside the web root | READY | Refused at write time *and* by the doctor. |
 | Path traversal refused on read and write | READY | Manifest entries are data, checked before any filesystem call. |
-| Real object-storage certification | BLOCKED_EXTERNAL | STO-002. Opt-in suite; no credentials in CI. |
+| Direct browser upload | READY | STO-003. The asset is registered before the URL exists, so the key the URL can write to was chosen here; the completion signal carries no size, checksum or media type — all of it is measured from the stored object. |
+| Real object-storage certification | BLOCKED_EXTERNAL | STO-002 opt-in suite, and STO-006's `sanitube:storage:check --certify` — no credentials in CI, and nothing here has spoken to R2. The bucket's CORS rule is provable only from a browser. |
 
 ## Queue and scheduler
 
@@ -69,7 +85,7 @@ blocks going live.
 | `sync` refused for production | READY | `sanitube:doctor` blocker. |
 | Scheduler heartbeat, staleness visible | READY | Never-run is never reported as healthy. |
 | Failed-job visibility | READY | Jobs screen. |
-| Failed-job retry / delete from the interface | NOT_READY | SYS-001b. Writes to the queue need their own confirmation surface. |
+| Failed-job retry / delete from the interface | READY | SYS-001b. Behind `can.role:administer`; addressed by the failed job's uuid, never by the `failed_jobs` row id. Which jobs may be re-run is `ResolveFailedJob`'s decision, asked of the job's own type. |
 
 ## Media
 
@@ -78,6 +94,9 @@ blocks going live.
 | Analysis optional; absent FFmpeg does not block | READY | The shared-hosting default produces READY, not WAITING_CAPABILITY. |
 | Checksums verified on ingest | READY | |
 | Duration / loudness when available | READY | |
+| Where media work runs is a setting, not a branch in the domain | READY | WRK-002. `local` / `remote_worker` / `auto`; an unreadable value is `auto` rather than a boot failure. No caller knows which machine ran the binary — a test asserts `AnalyzeAsset` and `FingerprintAsset` mention no worker type at all. |
+| Availability is never inferred from configuration | READY | WRK-002. A URL and a token prove somebody typed two settings. The worker is asked, and `REMOTE_WORKER_UNAVAILABLE_LOCAL_AVAILABLE` is *degraded*, not green: real work is happening on the machine the operator did not choose. |
+| Masters do not transit Core to reach a worker | READY | WRK-002. The worker is handed an object key and reads the shared store itself. Pulling a master down so a worker can push it back up would be twice the egress — on a cPanel account facing R2, twice the bill. |
 | A library stored before the tool existed can be fingerprinted | READY | MED-004. `sanitube:media:fingerprint`; the doctor warns while any master is uncovered. |
 
 ## Transcription
@@ -116,6 +135,8 @@ blocks going live.
 | Plan status set by the platform is distinguishable | READY | `wasSetByThePlatform()`; a paused plan and an exhausted one are not the same thing. |
 | Slots opened once, claimed once | READY | PROD-002. Unique index on (plan, occasion); a guarded claim; a lost race is a success, not an error. |
 | Nothing is generated blindly | READY | PROD-003. Inventory counted before work; no attribution is a refusal, not a default. |
+| An opened slot becomes real work | READY | PROD-004. The occasion a plan opened becomes a generation request through one bridge; the read is a suggestion and the guarded write is the decision, so two workers racing produce one request. |
+| A crashed worker cannot strand a slot | READY | PROD-005. Claims expire and are reaped; a claim recovered is a slot returned to the queue, not a slot lost. |
 | Unattended release | NOT_REQUIRED | Deliberately unavailable. The lock is the feature. |
 
 ## Artwork
@@ -154,7 +175,7 @@ blocks going live.
 | CSV manifest import | READY | |
 | Start an import from the interface | READY | ING-002. |
 | Import never creates a Track | READY | The load-bearing negative claim. |
-| Re-import storage amplification | NOT_READY | BULK-001c. Needs a measurement, not a guess. |
+| Re-import storage amplification | NOT_REQUIRED | BULK-001c measured it: factor 2, asserted with the number. ADR-0015 accepts it for V1 and reclassifies the optimisation `POST_V1_STORAGE_OPTIMIZATION` — every option that removes the second copy either breaks the UUID-derived object key or loses the record that a second import happened, and trading an integrity invariant for disk is the wrong direction. |
 
 ## Generation
 
@@ -166,7 +187,32 @@ blocks going live.
 | Submitted once, even by two workers | READY | GEN-003. A guarded `UPDATE` claim; the claim expires so a crashed worker cannot strand a generation. |
 | No provider error text reaches a browser | READY | GEN-003. A client exception quotes the request; on a query-string-authenticated provider that message *is* the credential. Vendor explanations are kept but redacted, address-stripped, bounded and attributed. |
 | Request ceiling and circuit breaker | READY | GEN-004. Rolling 24h/168h/720h windows over `music_generations` itself; per-provider cooldown. Counts requests — no prices, no currency, no balance. |
-| Real generation provider | BLOCKED_EXTERNAL | GEN-002 / AI-002. GEN-005 established the blocker is not credentials: **Suno publishes no API contract at all.** ADR-0018 records the four conditions that would unblock an adapter and permanently excludes reverse-engineered wrappers, enforced in CI. |
+| A provider may be synchronous | READY | ADR-0019 / GEN-007. Four execution shapes; `SubmitMusicGeneration::execute()` is the only place that branches on which. No invented job id for a provider that answers at once. |
+| Self-hosted generation provider | READY | GEN-008. ACE-Step, written against its published API, run on a worker. The worker chooses checkpoint, device, output root and filename; the request cannot. `ContainedPath` resolves with `realpath()` before comparing, and the provider's `output_path` never becomes a SaniTube storage path, never reaches a browser, and never requires Core and the GPU to share a filesystem. |
+| Real *third-party* generation provider | BLOCKED_EXTERNAL | GEN-002 / AI-002. GEN-005 established the blocker is not credentials: **Suno publishes no API contract at all.** ADR-0018 records the four conditions that would unblock an adapter and permanently excludes reverse-engineered wrappers, enforced in CI. |
+| **Certified against a real GPU worker** | BLOCKED_EXTERNAL | The adapter has never spoken to a running ACE-Step. Contract-checked against the published source, not executed. |
+
+## Worker
+
+| Control | Verdict | Notes |
+|---|---|---|
+| One boundary, addressed by capability | READY | WRK-001. GEN-008 needed a remote host for one purpose and the temptation afterwards is a second boundary for FFmpeg, a third for Chromaprint, a fourth for transcription — four authentication schemes and four things to deploy. There is one, and adding a fifth capability changes neither the protocol nor Core's client. |
+| Its own credential, never a catalogue token | READY | WRK-001. One token per purpose; an installation that is not a worker answers 404 rather than 401, because 401 confirms the endpoint exists. No token, prefix or fragment is ever logged. |
+| A worker declares; Core asks | READY | WRK-001. A capability named in the vocabulary is not a promise any worker answers to it. A newer worker talking to an older Core is usable for what they share. |
+| The boundary knows nothing about what it carries | READY | WRK-001. Asserted: no module import in the transport. A handler declares the fields it accepts and nothing else reaches it. |
+| The worker decides nothing about the catalogue | READY | Identity, duplicate deletion, promotion, release membership and distribution eligibility stay in Core. A worker returns a measurement. |
+| **Certified against a real remote worker** | BLOCKED_EXTERNAL | Never executed against one. The handshake, the refusals and the containment are tested against a faked transport. |
+
+## Deduplication
+
+| Control | Verdict | Notes |
+|---|---|---|
+| Findings, never verdicts | READY | DEDUP-001. A level and the basis it came from — identical bytes or an acoustic measurement — stored side by side, because those warrant different amounts of trust. |
+| The fingerprint is kept, not a score | READY | A similarity percentage is a decision taken with today's threshold. Keeping the measurement means a recalibration can re-decide without re-reading fifty thousand masters — which is the sort of thing nobody does, so the number never gets changed. |
+| Comparison is bounded before it is attempted | READY | Every fingerprint against every other is 1.25 billion pairs at fifty thousand assets. Duration is the pre-filter that makes it possible at all. |
+| A person answers; nothing decides | READY | DEDUP-002 / DEDUP-003. No similarity score reaches the trash. There is no threshold, however high, that sets a master aside on its own. |
+| **Nothing is ever permanently deleted** | READY | The object stays, the checksum still describes it, and coming back is three columns. Permanent deletion is not implemented and is not an oversight: it would need a minimum age, a dry run, an explicit confirmation naming what is about to go, and a guarantee that the object addressed is the one that was reviewed. Disk is the cheapest thing in this system to be wrong about. |
+| Acoustic coverage is visible | READY | MED-004. The doctor says when a host that *can* fingerprint has masters it never did — the one gap in this platform that otherwise produced no error anywhere. |
 
 ## Release
 
@@ -211,7 +257,7 @@ blocks going live.
 | CLI installer | READY | |
 | Never overwrites an existing `.env` or key | READY | |
 | No secret in any stage output | READY | |
-| Web installer for shared hosting | NOT_READY | INS-002. Same `InstallationService`; no second implementation. |
+| Web installer for shared hosting | READY | INS-002. Same `InstallationService`; no second implementation. A filesystem-readable token gates the write, the door closes behind it, and a refusal flashes nothing back into the session. |
 
 ## Deployment
 
