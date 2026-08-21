@@ -8,9 +8,11 @@ use Illuminate\Database\Connection;
 use Illuminate\Support\ServiceProvider;
 use SaniTube\Deployment\Console\BackupCommand;
 use SaniTube\Deployment\Console\DoctorCommand;
+use SaniTube\Deployment\Console\FrontendInstallCommand;
 use SaniTube\Deployment\Console\HostCommand;
 use SaniTube\Deployment\Console\ProvisionCommand;
 use SaniTube\Deployment\Console\RestoreCommand;
+use SaniTube\Deployment\Frontend\FrontendBuildInstaller;
 use SaniTube\Deployment\Host\HostProbe;
 use SaniTube\Deployment\Host\RealHostProbe;
 use SaniTube\Deployment\Services\DatabaseDumper;
@@ -30,12 +32,18 @@ final class DeploymentServiceProvider extends ServiceProvider
         // The seam host inspection is tested through: production asks the real
         // machine, a test binds a fake and asks anything it likes.
         $this->app->bind(HostProbe::class, RealHostProbe::class);
+
+        $this->app->bind(FrontendBuildInstaller::class, fn (): FrontendBuildInstaller => new FrontendBuildInstaller(
+            publicPath: public_path(),
+            statePath: storage_path('framework'),
+            gitPath: base_path('.git'),
+        ));
     }
 
     public function boot(): void
     {
         if ($this->app->runningInConsole()) {
-            $this->commands([BackupCommand::class, RestoreCommand::class, DoctorCommand::class, HostCommand::class, ProvisionCommand::class]);
+            $this->commands([BackupCommand::class, RestoreCommand::class, DoctorCommand::class, HostCommand::class, ProvisionCommand::class, FrontendInstallCommand::class]);
         }
     }
 }

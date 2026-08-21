@@ -952,6 +952,13 @@
    "ci": "pending",
    "branch": "claude/sanitube-autonomous-v1-5pycx0",
    "note": "sanitube:provision — ligne cron, unites systemd et bloc nginx generes depuis des entrees validees. Une valeur qui pourrait passer une directive est refusee, jamais echappee, et le refus ne cite jamais la valeur. La file est une unite template : la concurrence est le nombre d'instances activees. Nomme par SANITUBE_INSTANCE_NAME. Genere seulement — installer dans /etc, nginx -t et systemd-analyze restent a root."
+  },
+  "DEP-011": {
+   "status": "in_review",
+   "pr": null,
+   "ci": "pending",
+   "branch": "claude/sanitube-autonomous-v1-5pycx0",
+   "note": "sanitube:frontend:install — le bundle CI atterrit atomiquement, pour son propre commit. Deux renames, jamais un build a moitie servi ; l'archive est hostile jusqu'a preuve d'ennui (traversee, absolus, symlinks refuses, chemin jamais cite) ; --sha verifie contre HEAD lu de .git en fichiers ; la commande ne telecharge rien, deliberement."
   }
  },
  "architecture_amendments": [
