@@ -2,7 +2,7 @@
  "$comment": "Machine-readable project state. Any new session reads this first, then verifies it against GitHub before trusting it. Written at the end of each ticket, so a stale entry means a session ended mid-ticket — check the branch and CI rather than the status field.",
  "updated_at": "2026-08-21",
  "current_phase": "Audit et durcissement. Le registre de production (docs/production-readiness.md) est la source sous test, et docs/final-report.md le resume — ses quatre comptes sont tenus par ProductionReadinessLedgerTest. Il reste huit lignes NOT_READY, toutes nommees, et dix BLOCKED_EXTERNAL qui attendent un identifiant, un fournisseur reel ou un hote reel.",
- "last_completed_ticket": "DIST-007",
+ "last_completed_ticket": "OBS-002",
  "default_branch": "main — confirmed by API this session. The EXTERNAL_ADMIN_ACTION_REQUIRED blocker is cleared.",
  "tickets": {
   "ARCH-001": {
@@ -875,12 +875,18 @@
    "recorded_from": "git log origin/main (27da55c)"
   },
   "DIST-007": {
+   "status": "merged",
+   "pr": 130,
+   "ci": "green 10/10",
+   "note": "Le distributeur recoit le ReleasePackage, jamais l'agregat. ADR-0020.",
+   "adr": "docs/adr/ADR-0020-the-delivery-boundary-is-the-package.md"
+  },
+  "OBS-002": {
    "status": "in_review",
    "pr": null,
    "ci": "pending",
    "branch": "claude/sanitube-autonomous-v1-5pycx0",
-   "note": "Le distributeur recoit le ReleasePackage, jamais l'agregat. ADR-0020. A attrape des sa premiere execution une sortie avec une piste sans master audio que la suite soumettait depuis toujours.",
-   "adr": "docs/adr/ADR-0020-the-delivery-boundary-is-the-package.md"
+   "note": "Le docteur signale une file que personne ne traite. L'age du plus vieux job non reserve separe une file occupee d'une file morte ; un compte ne le peut pas."
   }
  },
  "architecture_amendments": [
