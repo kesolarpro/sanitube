@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 namespace SaniTube\MusicGeneration;
 
+use Illuminate\Http\Client\Factory as HttpFactory;
 use Illuminate\Support\ServiceProvider;
+use SaniTube\MusicGeneration\AceStep\AceStepEngine;
+use SaniTube\MusicGeneration\AceStep\HttpAceStepEngine;
 use SaniTube\MusicGeneration\Contracts\GeneratedAudioReader;
 use SaniTube\MusicGeneration\Contracts\MusicGenerationProvider;
-use SaniTube\MusicGeneration\Providers\HttpGeneratedAudioReader;
+use SaniTube\MusicGeneration\Providers\StorageGeneratedAudioReader;
 use SaniTube\MusicGeneration\Services\GenerationCircuitBreaker;
 use SaniTube\MusicGeneration\Services\ProviderCapabilities;
 use SaniTube\MusicGeneration\Services\SelectGenerationProvider;
@@ -53,7 +56,17 @@ final class MusicGenerationServiceProvider extends ServiceProvider
             );
         });
 
-        $this->app->bind(GeneratedAudioReader::class, HttpGeneratedAudioReader::class);
+        // The storage reader, which falls through to HTTP for anything that
+        // is not one of our own staged objects. Bound as the default so an
+        // installation can run a hosted provider and a self-hosted one at the
+        // same time without choosing a reader.
+        $this->app->bind(GeneratedAudioReader::class, StorageGeneratedAudioReader::class);
+
+        // Worker-side only. Reads `generation.acestep`, which Core never sets.
+        $this->app->bind(AceStepEngine::class, fn ($app): AceStepEngine => new HttpAceStepEngine(
+            $app->make(HttpFactory::class),
+            (array) config('generation.acestep', []),
+        ));
     }
 
     /**

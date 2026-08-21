@@ -7,6 +7,7 @@ namespace SaniTube\MusicGeneration\Services;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
 use SaniTube\Localization\ContentLanguage;
+use SaniTube\MusicGeneration\Contracts\CarriesRefusalCode;
 use SaniTube\MusicGeneration\Contracts\MusicGenerationProvider;
 use SaniTube\MusicGeneration\Contracts\SynchronousMusicGenerationProvider;
 use SaniTube\MusicGeneration\Enums\ExecutionMode;
@@ -114,6 +115,16 @@ final readonly class SubmitMusicGeneration
 
         try {
             $execution = $this->execute($provider, $request);
+        } catch (CarriesRefusalCode $refusal) {
+            // A code from a closed set this repository defines. It cannot
+            // contain a credential and it is the only useful thing an operator
+            // can be told about a failure on the far side of a worker, so it
+            // travels -- unlike the supplier text below.
+            return $this->fail($generation, ProviderFailure::fromProvider(
+                $provider->name(),
+                $refusal->refusalCode(),
+                'The provider refused the request.',
+            ));
         } catch (Throwable $exception) {
             // A provider outage is an ordinary condition for an optional
             // feature. The generation fails; the worker does not.
