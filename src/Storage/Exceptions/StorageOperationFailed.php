@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace SaniTube\Storage\Exceptions;
 
 use RuntimeException;
-use Throwable;
 
 final class StorageOperationFailed extends RuntimeException
 {
@@ -40,13 +39,5 @@ final class StorageOperationFailed extends RuntimeException
     public static function unreadableSource(string $path): self
     {
         return new self(sprintf('Source file [%s] could not be opened for reading.', $path));
-    }
-
-    public static function noPublicUrl(string $provider, string $key, ?Throwable $previous = null): self
-    {
-        return new self(
-            sprintf('Storage provider [%s] cannot produce a public URL for [%s].', $provider, $key),
-            previous: $previous,
-        );
     }
 }

@@ -23,6 +23,15 @@ use SaniTube\Storage\StoredObject;
  *     right bytes" and "the right bytes are in the bucket".
  *   - {@see temporaryUrl()} is the only sanctioned way an audio asset reaches
  *     a browser or a distributor. There is no permanent-URL path for a master.
+ *
+ * **And there is no permanent-URL method at all.** There used to be one. It
+ * had no caller anywhere in the platform, the in-memory double refused it
+ * outright, and the real provider would have returned a working, unexpiring
+ * public address the moment a `url` key appeared on the disk — so the only
+ * thing it could ever have been used for was the thing the paragraph above
+ * forbids. STO-005 removed it, along with the `url` key from every disk
+ * SaniTube stores on. A provider that cannot express a permanent URL cannot
+ * accidentally hand one out.
  */
 interface StorageProvider
 {
@@ -110,12 +119,6 @@ interface StorageProvider
      * master back down through PHP just to put it somewhere else.
      */
     public function move(string $from, string $to): StoredObject;
-
-    /**
-     * Permanent URL. Only meaningful for objects deliberately made public;
-     * masters must never be exposed this way.
-     */
-    public function url(string $key): string;
 
     /**
      * Expiring URL for private objects — the only supported way to hand an

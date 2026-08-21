@@ -159,11 +159,19 @@ Set `SANITUBE_DETECT_DUPLICATES=false` to skip the lookup entirely.
 
 ## Security
 
-- **Private by default.** The `sanitube`, `r2` and `b2` disks set
-  `visibility: private` and `throw: true`. Losing a master to a silently failed
-  write is not an acceptable outcome.
-- **No permanent URL for a master.** `AssetStorageService` has no `url()`
-  method, and a test asserts it never grows one.
+- **Private by declaration, not by default.** Every disk a provider stores on
+  sets `visibility: private`, and the object-storage disks set `throw: true`.
+  Flysystem's default happens to be private too, which is not the same as
+  SaniTube having decided it — an undeclared default is a decision somebody
+  else can change. A test walks `storage.providers` and asserts it of each.
+- **There is no permanent-URL method at all.** Not on `AssetStorageService`,
+  and since STO-005 not on `StorageProvider` either. The contract used to carry
+  a `url()` with no caller anywhere in the platform: the in-memory double
+  refused it, so every test saw the safe implementation, while the real
+  provider would have returned a working unexpiring address the moment a `url`
+  key appeared on a disk. The method is gone, the `AWS_URL`, `R2_URL` and
+  `B2_URL` variables are no longer read, and a test asserts both — a provider
+  that cannot express a permanent URL cannot hand one out by accident.
 - **Short-lived signed URLs.** `SANITUBE_TEMPORARY_URL_TTL`, 900 seconds by
   default.
 - **The declared MIME type is never trusted or stored.** The content type is

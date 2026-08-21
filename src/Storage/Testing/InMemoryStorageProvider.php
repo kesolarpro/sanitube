@@ -257,13 +257,6 @@ final class InMemoryStorageProvider implements StorageProvider, SupportsDirectUp
         return $this->describe($to);
     }
 
-    public function url(string $key): string
-    {
-        // A private bucket has no public URL, and pretending otherwise is how
-        // a master ends up with a permanent one.
-        throw StorageOperationFailed::noPublicUrl($this->name, $key);
-    }
-
     public function temporaryUrl(string $key, DateTimeInterface $expiresAt): string
     {
         if (! $this->temporaryUrls) {

@@ -6,8 +6,11 @@ namespace Tests\Unit\Storage;
 
 use Illuminate\Support\Carbon;
 use PHPUnit\Framework\Attributes\Test;
+use ReflectionClass;
+use ReflectionMethod;
+use SaniTube\Storage\Contracts\StorageProvider;
 use SaniTube\Storage\CredentialRedactor;
-use SaniTube\Storage\Exceptions\StorageOperationFailed;
+use SaniTube\Storage\Providers\FilesystemStorageProvider;
 use SaniTube\Storage\Testing\InMemoryStorageProvider;
 use Tests\TestCase;
 
@@ -61,16 +64,98 @@ final class SignedUrlAndSecrecyTest extends TestCase
         $this->assertFalse($provider->isTemporaryUrlValid($extended));
     }
 
+    /**
+     * STO-005. Not "a master has no permanent URL" — *nothing* has one.
+     *
+     * The contract used to carry a `url()`, and the in-memory double refused
+     * it, which made the test suite look like the guarantee was enforced. It
+     * was not: the real provider returned whatever `Storage::url()` gave it,
+     * and on an S3-compatible disk with a `url` key that is a working,
+     * unexpiring public address. Nothing called it, so the divergence was
+     * invisible — the safest possible implementation was the only one any test
+     * ever exercised.
+     *
+     * Asked of the *contract*, so a provider added later inherits the
+     * guarantee rather than having to remember it.
+     */
     #[Test]
-    public function a_private_bucket_has_no_permanent_url(): void
+    public function no_storage_provider_can_be_asked_for_a_permanent_url(): void
     {
-        $provider = new InMemoryStorageProvider;
-        $provider->put('masters/track/original.wav', 'audio');
+        $forbidden = ['url', 'publicUrl', 'permanentUrl'];
 
-        $this->expectException(StorageOperationFailed::class);
-        $this->expectExceptionMessage('cannot produce a public URL');
+        $declared = array_map(
+            static fn (ReflectionMethod $method): string => $method->getName(),
+            (new ReflectionClass(StorageProvider::class))->getMethods(),
+        );
 
-        $provider->url('masters/track/original.wav');
+        foreach ($forbidden as $method) {
+            $this->assertNotContains(
+                $method,
+                $declared,
+                sprintf('StorageProvider::%s() would be a permanent public address for a master.', $method),
+            );
+        }
+
+        // And no implementation smuggles one back in behind the interface.
+        foreach ([InMemoryStorageProvider::class, FilesystemStorageProvider::class] as $implementation) {
+            foreach ($forbidden as $method) {
+                $this->assertFalse(
+                    method_exists($implementation, $method),
+                    sprintf('%s::%s() exists outside the contract.', $implementation, $method),
+                );
+            }
+        }
+    }
+
+    /**
+     * The other half, and the one that made the method work in production:
+     * the disk itself must not be told a public address, and must say private
+     * out loud.
+     *
+     * Driven from the configured providers rather than a list of disk names,
+     * so a provider added to `config/storage.php` is covered the day it lands.
+     */
+    #[Test]
+    public function every_disk_sanitube_stores_on_is_private_and_declares_no_permanent_url(): void
+    {
+        /** @var array<string, array<string, mixed>> $providers */
+        $providers = (array) config('storage.providers', []);
+        $checked = 0;
+
+        foreach ($providers as $provider => $definition) {
+            $disk = (string) ($definition['disk'] ?? $provider);
+
+            /** @var array<string, mixed> $configuration */
+            $configuration = (array) config('filesystems.disks.'.$disk, []);
+
+            $this->assertArrayNotHasKey(
+                'url',
+                $configuration,
+                sprintf(
+                    'The [%s] disk, which the %s provider stores on, declares a permanent public URL.',
+                    $disk,
+                    $provider,
+                ),
+            );
+
+            // And says private out loud. Flysystem's default happens to be
+            // private, which is not the same as SaniTube having decided it —
+            // an undeclared default is a decision somebody else can change.
+            $this->assertSame(
+                'private',
+                $configuration['visibility'] ?? null,
+                sprintf(
+                    'The [%s] disk, which the %s provider stores on, does not declare private visibility.',
+                    $disk,
+                    $provider,
+                ),
+            );
+
+            $checked++;
+        }
+
+        // A loop over nothing passes every assertion it does not make.
+        $this->assertGreaterThan(3, $checked);
     }
 
     #[Test]

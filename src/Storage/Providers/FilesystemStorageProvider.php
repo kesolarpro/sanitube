@@ -181,15 +181,6 @@ class FilesystemStorageProvider implements StorageProvider
         return $this->describe($to);
     }
 
-    public function url(string $key): string
-    {
-        try {
-            return $this->disk->url($key);
-        } catch (Throwable $exception) {
-            throw StorageOperationFailed::noPublicUrl($this->name, $key, $exception);
-        }
-    }
-
     public function temporaryUrl(string $key, DateTimeInterface $expiresAt): string
     {
         if (! $this->supportsTemporaryUrls()) {
