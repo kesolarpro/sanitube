@@ -24,9 +24,11 @@
 #   6. frontend, if provided    — the matching artifact for that revision;
 #   7. php artisan sanitube:deploy — migrations under the deploy lock,
 #                                 caches, storage link, worker signal;
-#   8. doctor                   — a blocking FAIL exits non-zero, loudly,
+#   8. doctor, then smoke       — a blocking FAIL exits non-zero, loudly,
 #                                 after the site is back up: up on the new
 #                                 code beats dark while somebody reads logs.
+#                                 The smoke half is real HTTP against the
+#                                 deployed URL, forbidden paths included.
 #
 # What it never does: choose a revision, run with a dirty tree, skip the
 # backup, or leave maintenance mode on after a failure.
@@ -123,11 +125,26 @@ fi
 say "Deploying"
 php artisan sanitube:deploy
 
-# 8. The doctor has the last word, after the site is back up.
+# 8. Up first, explicitly, then the checks that need the site to be up. The
+# trap stays armed until here so any failure above still lifts maintenance;
+# from this point the site is up and the trap has nothing left to do.
+say "Leaving maintenance mode"
+php artisan up
+trap - EXIT
+
 say "Doctor"
 if ! php artisan sanitube:doctor; then
     say "Deployed, but the doctor names blockers above. The site is up on $TARGET; fix what it says."
     exit 70
+fi
+
+# 9. Real HTTP against the deployed installation — the only proof that
+# counts. Skipped only when APP_URL is not http(s), which the smoke command
+# itself refuses with instructions.
+say "Smoke"
+if ! php artisan sanitube:smoke; then
+    say "Deployed, but the smoke tests failed above. The site is up on $TARGET; fix what they say."
+    exit 71
 fi
 
 say "Updated $PREVIOUS -> $TARGET"

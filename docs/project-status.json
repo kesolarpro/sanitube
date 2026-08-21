@@ -973,6 +973,13 @@
    "ci": "pending",
    "branch": "claude/sanitube-autonomous-v1-5pycx0",
    "note": "sanitube:providers — un modele de certification, six etats, aucun booleen vague. CERTIFIED ne se gagne que par les commandes qui parlent aux vrais services, enregistre dans un registre empreinte sur la configuration exacte : changer de bucket ou d'adresse de-certifie en silence. La suite de tests lie le registre ailleurs — la reussite d'un test ne peut jamais se lire comme une vraie certification."
+  },
+  "DEP-014": {
+   "status": "in_review",
+   "pr": null,
+   "ci": "pending",
+   "branch": "claude/sanitube-autonomous-v1-5pycx0",
+   "note": "sanitube:smoke — du vrai HTTP contre l'installation deployee. GET seul, jamais authentifie, delais bornes. Un tableau de bord non authentifie qui repond 200 est traite comme l'incendie qu'il est ; /.env servi echoue quelle que soit la ligne de statut ; l'actif hache nomme par le manifest doit se servir. bin/update.sh l'execute une fois le site remonte."
   }
  },
  "architecture_amendments": [
