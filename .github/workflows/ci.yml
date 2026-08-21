@@ -301,3 +301,48 @@ jobs:
           path: public/build
           if-no-files-found: error
           retention-days: 30
+
+  # The bootstrap's distro assumptions, checked against real distros.
+  #
+  # What this proves is deliberately narrow and honestly named: on each
+  # image, detection identifies the right package manager, notices that PHP
+  # is absent, and *refuses to act* without --yes-install-packages. It does
+  # not prove a full converge — installing PHP, Composer and the application
+  # inside CI containers would take minutes per distro to certify a path
+  # whose real test is a real VPS, and that test is a deployment step, not a
+  # CI step.
+  #
+  # fail-fast off: a Rocky regression is not less interesting because a
+  # Debian one was found first.
+  installer-distros:
+    name: Bootstrap on ${{ matrix.distro }}
+    runs-on: ubuntu-latest
+    container: ${{ matrix.image }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - distro: Ubuntu 24.04
+            image: ubuntu:24.04
+            expect: apt-get
+          - distro: Debian 12
+            image: debian:12
+            expect: apt-get
+          - distro: AlmaLinux 9
+            image: almalinux:9
+            expect: dnf
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Detection names the package manager and refuses to act unasked
+        run: |
+          set -euo pipefail
+          status=0
+          out="$(bash bin/bootstrap.sh 2>&1)" || status=$?
+          echo "$out"
+          # 69: "missing prerequisites, nothing installed" — the advisory
+          # exit, not a crash.
+          test "$status" -eq 69
+          echo "$out" | grep -q "package manager: ${{ matrix.expect }}"
+          echo "$out" | grep -q "php: absent"
+          echo "$out" | grep -q "Nothing was installed"
