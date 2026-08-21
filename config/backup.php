@@ -61,6 +61,14 @@ return [
     |
     | The manifest records what was included *and* what was not.
     |
+    | Checked, not trusted. A path here is refused before the backup directory
+    | is created if it resolves outside the application, if it is the
+    | application root, or if it touches the backup destination — `storage` is
+    | the obvious thing to write and would copy every previous backup into the
+    | new one, doubling on each run until the disk is full. Environment files
+    | are never copied whatever this says, and a backup naming one is refused
+    | on restore: `.env` holds every credential this installation has.
+    |
     */
 
     'include_paths' => ['storage/app/public'],

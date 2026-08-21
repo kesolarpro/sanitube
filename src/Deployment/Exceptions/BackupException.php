@@ -94,6 +94,54 @@ final class BackupException extends RuntimeException
         );
     }
 
+    public static function includePathEscapes(string $path): self
+    {
+        return new self(
+            sprintf(
+                'The backup is configured to include [%s], which resolves outside the application. On shared '
+                    .'hosting the directory above the installation is somebody else\'s account.',
+                $path,
+            ),
+            'INCLUDE_PATH_ESCAPES',
+        );
+    }
+
+    public static function includePathIsTheApplication(string $path): self
+    {
+        return new self(
+            sprintf(
+                'The backup is configured to include [%s], which is the application root. That is a copy of the '
+                    .'installation — vendor, node_modules and .git included — rather than a backup of its data.',
+                $path,
+            ),
+            'INCLUDE_PATH_IS_APPLICATION',
+        );
+    }
+
+    public static function includePathIsTheDestination(string $path): self
+    {
+        return new self(
+            sprintf(
+                'The backup is configured to include [%s], which contains or sits inside the backup destination. '
+                    .'Each run would copy every previous backup into the new one and the disk would fill quietly.',
+                $path,
+            ),
+            'INCLUDE_PATH_IS_DESTINATION',
+        );
+    }
+
+    public static function environmentFileInBackup(string $entry): self
+    {
+        return new self(
+            sprintf(
+                'The backup names an environment file: [%s]. It holds every credential this installation has, and '
+                    .'restoring one would write another installation\'s secrets over the live ones.',
+                $entry,
+            ),
+            'ENVIRONMENT_FILE_IN_BACKUP',
+        );
+    }
+
     public static function notConfirmed(): self
     {
         return new self(

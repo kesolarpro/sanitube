@@ -7,6 +7,7 @@ namespace SaniTube\Deployment\Services;
 use Illuminate\Database\Connection;
 use SaniTube\Audit\Enums\AuditAction;
 use SaniTube\Audit\Services\RecordAuditEvent;
+use SaniTube\Deployment\BackupContents;
 use SaniTube\Deployment\BackupManifest;
 use SaniTube\Deployment\Exceptions\BackupException;
 use Throwable;
@@ -21,14 +22,17 @@ use Throwable;
  * The order is not negotiable:
  *
  *   1. **Is it a backup?** A manifest, readable, in a format this code knows.
- *   2. **Is it complete?** Every entry the manifest names is present.
- *   3. **Is it intact?** Every checksum matches. A corrupt backup restored
+ *   2. **Is it allowed?** Nothing outside the backup directory, and no
+ *      environment file. A manifest is data, and both are things an older or
+ *      an edited one can name.
+ *   3. **Is it complete?** Every entry the manifest names is present.
+ *   4. **Is it intact?** Every checksum matches. A corrupt backup restored
  *      writes damage over working data, which is worse than not restoring.
- *   4. **Does it belong here?** The migration set must match, or the caller
+ *   5. **Does it belong here?** The migration set must match, or the caller
  *      must say explicitly that they know it does not.
- *   5. **Was it asked for?** Confirmed, explicitly.
+ *   6. **Was it asked for?** Confirmed, explicitly.
  *
- * Only then does anything change. `verify()` is steps one to four on their own,
+ * Only then does anything change. `verify()` is steps one to five on their own,
  * so an operator can find out whether a backup is restorable at a moment when
  * the answer costs nothing.
  *
@@ -44,6 +48,7 @@ final readonly class RestoreBackup
     public function __construct(
         private Connection $connection,
         private BackupRepository $repository,
+        private BackupContents $contents,
         private RecordAuditEvent $audit,
     ) {}
 
@@ -70,6 +75,16 @@ final readonly class RestoreBackup
             // safePath() first, and before any filesystem call: the manifest
             // is data, and `../../` in it must be refused rather than read.
             $path = $manifest->safePath($directory, $entry['path']);
+
+            // And it is never an environment file, whatever the manifest says.
+            // A backup written before that rule existed, or one somebody
+            // edited, would otherwise put another installation's credentials
+            // over the live ones — and it would arrive here having passed
+            // every other check, because the checksum of a tampered backup
+            // matches the manifest that was tampered with alongside it.
+            if (! $this->contents->mayCarry($entry['path'])) {
+                throw BackupException::environmentFileInBackup($entry['path']);
+            }
 
             if (! is_file($path)) {
                 throw BackupException::incomplete($entry['path']);

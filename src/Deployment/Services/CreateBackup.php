@@ -9,6 +9,7 @@ use Illuminate\Database\Connection;
 use Illuminate\Support\Carbon;
 use SaniTube\Audit\Enums\AuditAction;
 use SaniTube\Audit\Services\RecordAuditEvent;
+use SaniTube\Deployment\BackupContents;
 use SaniTube\Deployment\BackupManifest;
 use SaniTube\Deployment\Exceptions\BackupException;
 
@@ -33,6 +34,7 @@ final readonly class CreateBackup
         private Connection $connection,
         private DatabaseDumper $dumper,
         private BackupRepository $repository,
+        private BackupContents $contents,
         private Repository $config,
         private RecordAuditEvent $audit,
     ) {}
@@ -42,6 +44,14 @@ final readonly class CreateBackup
      */
     public function handle(?string $label = null): array
     {
+        $configured = $this->includedPaths();
+
+        // Before anything is created. A path that escapes the application or
+        // reaches the backup destination is a configuration mistake, and
+        // finding it after the directory exists leaves an operator a half
+        // backup to clean up on top of the mistake to fix.
+        $included = $this->contents->directories($configured);
+
         $directory = $this->repository->prepareNew($label);
 
         /** @var list<string> $skip */
@@ -50,8 +60,8 @@ final readonly class CreateBackup
         $entries = [];
         $entries[] = $this->writeDatabase($directory, $skip);
 
-        foreach ($this->includedPaths() as $relative) {
-            foreach ($this->copyTree($directory, $relative) as $entry) {
+        foreach ($included as $relative => $source) {
+            foreach ($this->copyTree($directory, $relative, $source) as $entry) {
                 $entries[] = $entry;
             }
         }
@@ -62,7 +72,7 @@ final readonly class CreateBackup
             databaseDriver: (string) $this->connection->getDriverName(),
             entries: $entries,
             migrations: $this->repository->appliedMigrations(),
-            excluded: $this->exclusions($skip),
+            excluded: $this->exclusions($skip) + $this->contents->omissions($configured),
         );
 
         // Last. Everything above can fail and leave a directory that is
@@ -114,16 +124,11 @@ final readonly class CreateBackup
     }
 
     /**
+     * @param  string  $source  the resolved, contained absolute directory
      * @return list<array{path: string, bytes: int, sha256: string}>
      */
-    private function copyTree(string $directory, string $relative): array
+    private function copyTree(string $directory, string $relative, string $source): array
     {
-        $source = base_path($relative);
-
-        if (! is_dir($source)) {
-            return [];
-        }
-
         $entries = [];
 
         /** @var list<string> $files */
@@ -158,10 +163,21 @@ final readonly class CreateBackup
      */
     private function collect(string $directory, array &$into): void
     {
-        /** @var list<string> $found */
-        $found = glob(rtrim($directory, '/').'/*') ?: [];
+        // `scandir`, not `glob`. Glob does not match a leading dot, so a
+        // backup built on it silently skipped every hidden file — including
+        // the one hidden file that matters. Relying on that was relying on an
+        // accident: `.env` is left out here because {@see BackupContents} says
+        // so and a test holds it, not because a pattern happened not to match.
+        /** @var list<string> $names */
+        $names = scandir($directory) ?: [];
 
-        foreach ($found as $path) {
+        foreach ($names as $name) {
+            if ($name === '.' || $name === '..') {
+                continue;
+            }
+
+            $path = rtrim($directory, '/').'/'.$name;
+
             // Symlinks are not followed. `storage/app/public` is itself
             // reached through one, and a backup that followed links would
             // happily recurse into whatever an operator had linked in.
@@ -172,6 +188,10 @@ final readonly class CreateBackup
             if (is_dir($path)) {
                 $this->collect($path, $into);
 
+                continue;
+            }
+
+            if (! $this->contents->mayCarry($path)) {
                 continue;
             }
 
@@ -207,6 +227,13 @@ final readonly class CreateBackup
         foreach ($skip as $table) {
             $excluded['table:'.$table] = 'Ephemeral. Restoring last week\'s rows would be worse than an empty table.';
         }
+
+        // Stated on every manifest, whether or not one was in the way. An
+        // operator restoring a backup six months from now should be able to
+        // read that its credentials are not in here rather than have to
+        // establish it from the file list.
+        $excluded['files:environment'] = 'Environment files are never copied into a backup. `.env` holds every '
+            .'credential this installation has, and a backup carrying one hands them to whoever holds the backup.';
 
         $excluded['files:audio-masters'] = 'Audio masters are not copied into a backup. Several hundred are tens of '
             .'gigabytes, and copying them on every run is not a backup strategy. They belong in object storage or a '

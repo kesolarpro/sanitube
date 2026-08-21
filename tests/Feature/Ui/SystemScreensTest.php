@@ -18,6 +18,7 @@ use SaniTube\Observability\SchedulerHeartbeat;
 use SaniTube\Ui\Navigation\NavigationTree;
 use SaniTube\Ui\Queries\OperationsQuery;
 use SaniTube\Ui\Queries\QueueQuery;
+use Tests\Support\Deployment\RemovesBackupDirectories;
 use Tests\TestCase;
 
 /**
@@ -38,6 +39,7 @@ use Tests\TestCase;
 final class SystemScreensTest extends TestCase
 {
     use RefreshDatabase;
+    use RemovesBackupDirectories;
 
     private ?User $viewer = null;
 
@@ -362,22 +364,6 @@ final class SystemScreensTest extends TestCase
         } finally {
             $this->rmrf(storage_path('framework/testing/backups-corrupt'));
         }
-    }
-
-    private function rmrf(string $directory): void
-    {
-        if (! is_dir($directory)) {
-            return;
-        }
-
-        /** @var list<string> $entries */
-        $entries = glob($directory.'/*') ?: [];
-
-        foreach ($entries as $entry) {
-            is_dir($entry) && ! is_link($entry) ? $this->rmrf($entry) : unlink($entry);
-        }
-
-        rmdir($directory);
     }
 
     #[Test]

@@ -25,6 +25,7 @@ use SaniTube\Localization\ContentLanguage;
 use SaniTube\Releases\Enums\ReleaseStatus;
 use SaniTube\Releases\Enums\ReleaseType;
 use SaniTube\Releases\Models\Release;
+use Tests\Support\Deployment\RemovesBackupDirectories;
 use Tests\TestCase;
 
 /**
@@ -50,6 +51,7 @@ use Tests\TestCase;
 final class BackupTest extends TestCase
 {
     use RefreshDatabase;
+    use RemovesBackupDirectories;
 
     private string $destination;
 
@@ -751,27 +753,5 @@ final class BackupTest extends TestCase
             'role' => UserRole::Owner,
             'is_active' => true,
         ]);
-    }
-
-    private function rmrf(string $directory): void
-    {
-        if (! is_dir($directory)) {
-            return;
-        }
-
-        /** @var list<string> $entries */
-        $entries = glob($directory.'/*') ?: [];
-
-        foreach ($entries as $entry) {
-            if (is_link($entry) || is_file($entry)) {
-                unlink($entry);
-
-                continue;
-            }
-
-            $this->rmrf($entry);
-        }
-
-        rmdir($directory);
     }
 }

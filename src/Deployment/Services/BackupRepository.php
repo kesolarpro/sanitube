@@ -221,10 +221,22 @@ final readonly class BackupRepository
             return;
         }
 
-        /** @var list<string> $entries */
-        $entries = glob($target.'/*') ?: [];
+        // `scandir`, not `glob`. Glob does not match a leading dot, and a
+        // backup can contain hidden files — so a glob-based delete empties a
+        // directory of everything it can see, then fails on `rmdir` because
+        // of what it could not. Pruning would then leave every backup it tried
+        // to remove half-deleted, for ever, which is the opposite of what
+        // pruning is for.
+        /** @var list<string> $names */
+        $names = scandir($target) ?: [];
 
-        foreach ($entries as $entry) {
+        foreach ($names as $name) {
+            if ($name === '.' || $name === '..') {
+                continue;
+            }
+
+            $entry = $target.'/'.$name;
+
             if (is_link($entry) || is_file($entry)) {
                 unlink($entry);
 
