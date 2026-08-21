@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature\Deployment;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use PHPUnit\Framework\Attributes\Test;
 use SaniTube\Deployment\ProductionCheck;
 use SaniTube\Deployment\Services\CreateBackup;
@@ -150,6 +151,110 @@ final class DoctorTest extends TestCase
      * operator's first sign would be the freshness warning a week later, and by
      * then they have a week of work to re-do.
      */
+    /**
+     * A queue nobody works accepts everything and completes nothing.
+     *
+     * The driver check answers "is work queued rather than run inline". It does
+     * not answer "does anybody pick it up", and those fail separately: both
+     * deployment guides tell an operator to add a `queue:work` cron or systemd
+     * unit, and until now nothing checked that they did. Imports and analysis
+     * are accepted, queued, and silently never finish.
+     */
+    #[Test]
+    public function work_nobody_has_picked_up_for_a_long_time_is_reported(): void
+    {
+        $this->queue(waitedSeconds: 3600);
+
+        $check = $this->check('backlog');
+
+        $this->assertSame(ProductionCheck::WARNING, $check->verdict);
+        $this->assertStringContainsString('60 minute', $check->summary);
+        $this->assertNotNull($check->remediation);
+    }
+
+    #[Test]
+    public function work_queued_a_moment_ago_is_not_a_backlog(): void
+    {
+        // The other half. A large import legitimately queues a burst, and a
+        // check that called that a dead queue would be one an operator learns
+        // to ignore.
+        $this->queue(waitedSeconds: 5);
+
+        $this->assertSame(ProductionCheck::READY, $this->check('backlog')->verdict);
+    }
+
+    #[Test]
+    public function a_job_a_worker_is_holding_is_a_worker_doing_its_job(): void
+    {
+        // Reserved, and waiting a long time. That is a slow job, not an absent
+        // worker, and reporting it as a backlog would send somebody to restart
+        // a worker that is running.
+        $this->queue(waitedSeconds: 3600, reserved: true);
+
+        $this->assertSame(ProductionCheck::READY, $this->check('backlog')->verdict);
+    }
+
+    #[Test]
+    public function work_that_is_not_due_yet_is_not_a_backlog(): void
+    {
+        // A delayed job is waiting because it was told to. `available_at` in
+        // the future is the queue behaving.
+        $this->queue(waitedSeconds: -3600);
+
+        $this->assertSame(ProductionCheck::READY, $this->check('backlog')->verdict);
+    }
+
+    #[Test]
+    public function a_queue_this_check_cannot_see_is_not_reported_as_empty(): void
+    {
+        // Redis and SQS keep their own work. Reading the unused `jobs` table
+        // would report an empty queue on an installation whose real one is
+        // backed up, which is worse than saying nothing.
+        $this->queue(waitedSeconds: 3600);
+        config(['queue.default' => 'sync']);
+
+        $keys = array_map(
+            static fn (ProductionCheck $check): string => $check->key,
+            $this->diagnose(),
+        );
+
+        $this->assertNotContains('backlog', $keys);
+    }
+
+    #[Test]
+    public function the_oldest_waiting_job_is_the_one_reported(): void
+    {
+        // Two jobs, and the answer is about the one that has waited longest.
+        // With a single row every reduction looks the same — first, last,
+        // newest, oldest — so this is the test that makes `min` mean `min`.
+        $this->queue(waitedSeconds: 30);
+        $this->queue(waitedSeconds: 7200);
+
+        $check = $this->check('backlog');
+
+        $this->assertSame(ProductionCheck::WARNING, $check->verdict);
+        $this->assertStringContainsString('120 minute', $check->summary);
+    }
+
+    /**
+     * One row in the queue table, ready this long ago.
+     */
+    private function queue(int $waitedSeconds, bool $reserved = false): void
+    {
+        // The production shape. The suite runs on `sync`, where there is no
+        // queue to be behind on and the check correctly says nothing at all.
+        config(['queue.default' => 'database']);
+
+        DB::table('jobs')->insert([
+            'queue' => 'default',
+            'payload' => json_encode(['displayName' => 'SaniTube\\Media\\Jobs\\AnalyzeAudioAssetJob']),
+            'attempts' => 0,
+            'reserved_at' => $reserved ? time() : null,
+            'available_at' => time() - $waitedSeconds,
+            'created_at' => time() - $waitedSeconds,
+        ]);
+    }
+
     #[Test]
     public function a_backup_configuration_that_can_never_run_is_reported_before_it_fails(): void
     {

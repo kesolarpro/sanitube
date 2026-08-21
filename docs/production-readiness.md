@@ -261,6 +261,7 @@ written down.
 | Restore never accidental | READY | Explicit confirmation; `--force` for scripts. |
 | Catalogue *and* delivery history recovered | READY | Asserted end to end. |
 | Backup freshness surfaced | READY | Doctor and Operations screen. |
+| A queue nobody works is reported | READY | OBS-002. The driver check answers "is work queued rather than run inline"; it never answered "does anybody pick it up". Both deployment guides tell an operator to add a `queue:work` cron or systemd unit, and nothing checked that they had. The oldest unreserved job's age separates a busy queue from a dead one; a count cannot. |
 | A backup configuration that can never run is reported before it fails | READY | DEP-006. The doctor resolves the include paths and reports the refusal. Freshness answers when the last backup was; this answers whether there will be another. |
 | Included paths contained | READY | DEP-005. An include path that resolves outside the installation, that is the application root, or that touches the backup destination is refused before the directory is created. |
 | A backup never contains a backup | READY | DEP-005. `storage` is the obvious entry and used to copy every previous backup into the new one, doubling each run. |

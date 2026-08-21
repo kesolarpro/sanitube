@@ -44,6 +44,15 @@ use Throwable;
  */
 final readonly class DiagnoseProduction
 {
+    /**
+     * How long a runnable job may sit before the queue reads as unworked.
+     *
+     * Fifteen minutes: long enough that a burst from a large import drains or
+     * gets reserved first, short enough that an operator finds out on the day
+     * rather than from a week of missing candidates.
+     */
+    private const QUEUE_STALE_SECONDS = 900;
+
     public function __construct(
         private Config $config,
         private Connection $connection,
@@ -258,6 +267,10 @@ final readonly class DiagnoseProduction
             $checks[] = ProductionCheck::ready('Queue', 'driver', sprintf('Queue driver: %s.', $queue));
         }
 
+        foreach ($this->queueBacklog($queue) as $check) {
+            $checks[] = $check;
+        }
+
         $lastRun = $this->heartbeat->lastRunAt();
 
         if ($lastRun === null) {
@@ -284,6 +297,80 @@ final readonly class DiagnoseProduction
         }
 
         return $checks;
+    }
+
+    /**
+     * Whether anything is actually working the queue.
+     *
+     * The driver check above answers "is work queued rather than run inline".
+     * It does not answer "does anybody pick it up", and those fail separately:
+     * a `database` queue with no `queue:work` behind it accepts every job,
+     * keeps every job, and completes none. Both deployment guides tell an
+     * operator to add that cron or that systemd unit, and nothing until now
+     * checked that they did.
+     *
+     * **A count cannot answer this.** Fifty jobs queued a second ago and fifty
+     * queued three days ago are the same number; what separates a busy queue
+     * from a dead one is how long the oldest one that is *ready to run* has
+     * been waiting. Reserved jobs are excluded on purpose — a job a worker is
+     * holding is a worker doing its job, however slow.
+     *
+     * A warning rather than a blocker. A large import legitimately queues a
+     * burst, and a fresh installation mid-backfill is not misconfigured. What
+     * it is not is silent.
+     *
+     * @return list<ProductionCheck>
+     */
+    private function queueBacklog(string $queue): array
+    {
+        // Only the database driver keeps work where this can see it. Redis and
+        // SQS hold their own, and inventing an answer from an unused `jobs`
+        // table would report an empty queue on an installation whose real one
+        // is backed up.
+        if ((string) $this->config->get('queue.connections.'.$queue.'.driver') !== 'database') {
+            return [];
+        }
+
+        $table = (string) $this->config->get('queue.connections.'.$queue.'.table', 'jobs');
+
+        if (! $this->connection->getSchemaBuilder()->hasTable($table)) {
+            return [];
+        }
+
+        // The oldest unreserved job, due or not.
+        //
+        // There is deliberately no `available_at <= now` filter. A delayed job
+        // yields a *negative* wait below and can never read as a backlog, and
+        // `min()` returns the smallest timestamp — so a job scheduled for next
+        // week can never hide one that has been sitting since yesterday. A
+        // filter here would be a branch no test could kill, which is a branch
+        // that stops meaning anything.
+        /** @var int|null $oldest */
+        $oldest = $this->connection->table($table)
+            ->whereNull('reserved_at')
+            ->min('available_at');
+
+        if ($oldest === null) {
+            return [ProductionCheck::ready('Queue', 'backlog', 'Nothing is waiting to be picked up.')];
+        }
+
+        $waited = time() - (int) $oldest;
+
+        if ($waited < self::QUEUE_STALE_SECONDS) {
+            return [ProductionCheck::ready('Queue', 'backlog', 'Work is being picked up.')];
+        }
+
+        return [ProductionCheck::warning(
+            'Queue',
+            'backlog',
+            sprintf(
+                'The oldest job ready to run has been waiting %d minute(s). Nothing appears to be working the queue.',
+                intdiv($waited, 60),
+            ),
+            'Start a worker. On a VPS that is the systemd unit in docs/deployment/vps.md; on a shared '
+                .'account it is the `queue:work --stop-when-empty` cron in docs/deployment/installation.md. '
+                .'Until one runs, imports and analysis are accepted and never completed.',
+        )];
     }
 
     /**
