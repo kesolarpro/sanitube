@@ -123,6 +123,32 @@ sudo chmod 750 /var/lib/sanitube/generation
 Everything the worker writes there is deleted after it is staged, whether the
 generation succeeded or failed.
 
+## The protocol version
+
+Core and its worker do not have to be the same build — requiring that would
+turn every deploy into a lockstep dance across machines. What they must
+agree on is the *wire*: the handshake, the job envelope, the refusal codes.
+That shape has a version, announced in the worker's identity and checked by
+Core before any job is sent. A known mismatch refuses jobs rather than
+reinterpreting them — a payload read under the wrong protocol does not
+fail, it does the wrong thing quietly — and `sanitube:worker:check` names
+both numbers so you know which side to update. A worker that announces
+nothing speaks version 1 by definition: workers built before the constant
+existed sent no field, and spoke exactly the wire that number now names.
+
+## The token, minted
+
+```
+php artisan sanitube:worker:token
+```
+
+generates a token and prints it — once, to the terminal, and nowhere else.
+It writes no file and remembers nothing: set the value as
+`SANITUBE_WORKER_TOKEN` on **both** hosts, point Core's
+`SANITUBE_WORKER_URL` at the worker, and verify the pair with
+`sanitube:worker:check`. On the worker host the token is what makes its
+routes exist at all.
+
 ## What the worker will not do
 
 These are enforced in code and covered by tests, not merely intended:

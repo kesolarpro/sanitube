@@ -31,7 +31,18 @@ final readonly class WorkerIdentity
         public array $capabilities,
         public array $registered = [],
         public array $tools = [],
+        public int $protocol = WorkerProtocol::VERSION,
     ) {}
+
+    /**
+     * Whether this worker and this Core agree on the wire. A mismatch is a
+     * reason to refuse jobs, never to reinterpret them: a payload read under
+     * the wrong protocol does not fail, it does the wrong thing quietly.
+     */
+    public function speaksOurProtocol(): bool
+    {
+        return $this->protocol === WorkerProtocol::VERSION;
+    }
 
     public function can(WorkerCapability $capability): bool
     {
@@ -46,6 +57,7 @@ final readonly class WorkerIdentity
         return [
             'name' => $this->name,
             'version' => $this->version,
+            'protocol' => $this->protocol,
             'capabilities' => array_map(static fn (WorkerCapability $c): string => $c->value, $this->capabilities),
             'registered' => array_map(static fn (WorkerCapability $c): string => $c->value, $this->registered),
             'tools' => $this->tools,
@@ -72,6 +84,9 @@ final readonly class WorkerIdentity
             capabilities: self::capabilities($payload['capabilities'] ?? null),
             registered: self::capabilities($payload['registered'] ?? null),
             tools: self::tools($payload['tools'] ?? null),
+            // Workers that predate the announcement spoke what is now called
+            // version 1; absent is 1, not unknown. See WorkerProtocol.
+            protocol: is_int($payload['protocol'] ?? null) ? $payload['protocol'] : WorkerProtocol::VERSION,
         );
     }
 

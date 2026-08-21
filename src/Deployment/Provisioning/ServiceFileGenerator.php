@@ -151,8 +151,8 @@ final readonly class ServiceFileGenerator
             # run certbot --nginx after DNS resolves and it will add the TLS half to
             # this block itself.
             server {
-                listen 80;
-                listen [::]:80;
+                listen {$i->httpPort};
+                listen [::]:{$i->httpPort};
                 server_name {$domain};
 
                 root {$i->applicationPath}/public;

@@ -980,6 +980,13 @@
    "ci": "pending",
    "branch": "claude/sanitube-autonomous-v1-5pycx0",
    "note": "sanitube:smoke — du vrai HTTP contre l'installation deployee. GET seul, jamais authentifie, delais bornes. Un tableau de bord non authentifie qui repond 200 est traite comme l'incendie qu'il est ; /.env servi echoue quelle que soit la ligne de statut ; l'actif hache nomme par le manifest doit se servir. bin/update.sh l'execute une fois le site remonte."
+  },
+  "DEP-015": {
+   "status": "in_review",
+   "pr": null,
+   "ci": "pending",
+   "branch": "claude/sanitube-autonomous-v1-5pycx0",
+   "note": "Le fil a une version, distincte de celle de l'application. Un desaccord connu refuse les travaux avant tout envoi ; une annonce absente vaut version 1 par definition, donc chaque worker qui marchait hier marche encore. worker:check nomme les deux numeros. sanitube:worker:token frappe une fois vers le terminal et ne retient rien ; le port nginx devient une entree."
   }
  },
  "architecture_amendments": [

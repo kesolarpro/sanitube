@@ -33,6 +33,7 @@ final class ProvisionCommand extends Command
                             {--user= : Service account for units (default: the invoking user)}
                             {--group= : Service group (default: same as user)}
                             {--upload-max= : nginx client_max_body_size (default: from this PHP\'s post_max_size)}
+                            {--port= : The HTTP port the nginx block listens on (default 80)}
                             {--into= : Write the files into this directory instead of printing}';
 
     protected $description = 'Generate the cron line, systemd units and nginx server block for this installation';
@@ -121,6 +122,7 @@ final class ProvisionCommand extends Command
             domain: $this->stringOption('domain'),
             phpFpmSocket: $this->stringOption('socket'),
             uploadMax: $this->stringOption('upload-max') ?? $this->postMaxSize(),
+            httpPort: (int) ($this->stringOption('port') ?? '80'),
         );
     }
 
