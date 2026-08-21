@@ -101,6 +101,38 @@ prompted for and never echoed.
 ## Unattended installs
 
 ```
+php artisan sanitube:install --config=/root/sanitube-install.conf --no-interaction
+```
+
+The config file speaks the `.env` dialect and may set exactly what the web
+installer's form may set — `APP_URL` and the `DB_*` keys — plus the owner's
+identity, held apart and never written to `.env`:
+
+```
+APP_URL=https://label.example
+DB_CONNECTION=mysql
+DB_DATABASE=sanitube
+DB_USERNAME=sanitube
+DB_PASSWORD=…
+
+OWNER_NAME=The Label
+OWNER_EMAIL=owner@label.example
+OWNER_PASSWORD=…
+```
+
+Rules, each enforced before anything runs: the file must be `chmod 600` — a
+mode readable or writable beyond its owner is refused, with the advice to
+consider the secrets exposed; an unknown key stops the run by name instead of
+surfacing three stages later as a database error; and no error ever quotes a
+value from the file. The owner's password may come from the file or from
+`SANITUBE_OWNER_PASSWORD` in the process environment (for example
+`SANITUBE_OWNER_PASSWORD="$(cat)" php artisan sanitube:install …` to feed it
+from stdin) — the two places a secret can live without landing in argv or
+shell history.
+
+Without a config file, unattended still works the old way:
+
+```
 php artisan sanitube:install --no-interaction --skip-owner
 php artisan sanitube:user:create --name="Label" --email=owner@example.test --role=OWNER
 ```

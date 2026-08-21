@@ -7,8 +7,11 @@ namespace SaniTube\Installer\Console;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Validator;
 use SaniTube\Deployment\Profiles\InstallationProfile;
+use SaniTube\Installer\Exceptions\InstallConfigurationException;
+use SaniTube\Installer\Services\EnvironmentFile;
 use SaniTube\Installer\Services\InstallationJournal;
 use SaniTube\Installer\Services\InstallationService;
+use SaniTube\Installer\Services\InstallConfiguration;
 use SaniTube\Installer\StageResult;
 
 /**
@@ -35,13 +38,16 @@ final class InstallCommand extends Command
                             {--owner-email= : The first owner\'s email address}
                             {--skip-owner : Run every stage except creating the first owner}
                             {--profile= : The installation profile — see sanitube:host for a suggestion}
+                            {--config= : Read an unattended install configuration from this file (mode 0600)}
                             {--status : Show what previous runs recorded, without running anything}';
 
     protected $description = 'Prepare this installation: environment, key, database, schema and the first owner';
 
     private ?InstallationJournal $journal = null;
 
-    public function handle(InstallationService $installer, InstallationJournal $journal): int
+    private ?InstallConfiguration $configuration = null;
+
+    public function handle(InstallationService $installer, InstallationJournal $journal, EnvironmentFile $environment): int
     {
         $this->journal = $journal;
 
@@ -55,6 +61,18 @@ final class InstallCommand extends Command
             return self::FAILURE;
         }
 
+        $configPath = $this->stringOption('config');
+
+        if ($configPath !== null) {
+            try {
+                $this->configuration = InstallConfiguration::fromFile($configPath);
+            } catch (InstallConfigurationException $exception) {
+                $this->error($exception->getMessage());
+
+                return self::FAILURE;
+            }
+        }
+
         $this->line('SaniTube installation');
         $this->newLine();
 
@@ -63,6 +81,9 @@ final class InstallCommand extends Command
         $stages = [
             fn (): StageResult => $installer->preflight(),
             fn (): StageResult => $installer->environmentFile(),
+            // Between creating .env and generating the key, exactly where the
+            // web installer writes what its form collected.
+            fn (): StageResult => $this->applyConfiguration($environment),
             fn (): StageResult => $installer->applicationKey(),
             fn (): StageResult => $installer->database(),
             fn (): StageResult => $installer->migrate(),
@@ -217,6 +238,10 @@ final class InstallCommand extends Command
             return true;
         }
 
+        if ($this->configuration?->ownerEmail() !== null) {
+            return $this->ownerFromConfiguration($installer, $this->configuration);
+        }
+
         $name = $this->stringOption('owner-name');
         $email = $this->stringOption('owner-email');
 
@@ -278,6 +303,140 @@ final class InstallCommand extends Command
         }
 
         return $this->report($installer->createOwner($name, $email, $password));
+    }
+
+    /**
+     * Write what the config file says into `.env`, the web installer's way.
+     *
+     * The backup happens first for the same reason the key stage backs up:
+     * this rewrites a file that already holds credentials. And nothing here
+     * prints a value — the stage names the keys it wrote, never their
+     * contents.
+     */
+    private function applyConfiguration(EnvironmentFile $environment): StageResult
+    {
+        $config = $this->configuration;
+
+        if ($config === null) {
+            return StageResult::skipped('configuration', 'No config file was given; .env is taken as it stands.');
+        }
+
+        if ($config->environment === []) {
+            return StageResult::skipped('configuration', 'The config file sets no environment keys.');
+        }
+
+        if (! $environment->backup()) {
+            return StageResult::failed('configuration', 'The .env file could not be backed up, so it was not modified.');
+        }
+
+        if (! $environment->setMany($config->environment)) {
+            return StageResult::failed('configuration', 'The .env file could not be written.');
+        }
+
+        $this->reconnect($config->environment);
+
+        return StageResult::done('configuration', 'Wrote '.implode(', ', array_keys($config->environment)).'.');
+    }
+
+    /**
+     * Point the default connection at what was just written — the same move,
+     * for the same reason, as the web installer: the connection was resolved
+     * from the old values when this process booted, and without this the
+     * database and migration stages would report on what `.env` used to say.
+     * Purged only when something actually changed, so a re-run does not throw
+     * away the handle the previous stages just proved good.
+     *
+     * @param  array<string, string>  $written
+     */
+    private function reconnect(array $written): void
+    {
+        $connection = $written['DB_CONNECTION'] ?? (string) config('database.default');
+
+        $settings = ['database.default' => $connection];
+
+        foreach ([
+            'DB_HOST' => 'host',
+            'DB_PORT' => 'port',
+            'DB_DATABASE' => 'database',
+            'DB_USERNAME' => 'username',
+            'DB_PASSWORD' => 'password',
+        ] as $env => $key) {
+            if (array_key_exists($env, $written)) {
+                $settings['database.connections.'.$connection.'.'.$key] = $written[$env];
+            }
+        }
+
+        $changed = false;
+
+        foreach ($settings as $key => $value) {
+            if ((string) config($key) !== $value) {
+                $changed = true;
+            }
+
+            config([$key => $value]);
+        }
+
+        if ($changed) {
+            $this->laravel->make('db')->purge($connection);
+        }
+    }
+
+    /**
+     * The owner as the config file describes them.
+     *
+     * The password may come from the file (mode-checked to 0600 before a
+     * byte was read) or from SANITUBE_OWNER_PASSWORD in the process
+     * environment — the two places a secret can live without landing in argv
+     * or shell history. Absent from both, the stage fails naming both,
+     * because an unattended run has nobody to ask.
+     */
+    private function ownerFromConfiguration(InstallationService $installer, InstallConfiguration $config): bool
+    {
+        $name = $config->ownerName();
+        $email = (string) $config->ownerEmail();
+        $password = $config->ownerPassword() ?? $this->passwordFromEnvironment();
+
+        if ($name === null) {
+            $this->reportLine(StageResult::failed('owner', 'The config file sets OWNER_EMAIL but not OWNER_NAME.'));
+
+            return false;
+        }
+
+        if ($password === null) {
+            $this->reportLine(StageResult::failed(
+                'owner',
+                'No owner password was provided. Set OWNER_PASSWORD in the config file (mode 0600) or '
+                    .'SANITUBE_OWNER_PASSWORD in the environment of this process.',
+            ));
+
+            return false;
+        }
+
+        $validator = Validator::make(
+            ['name' => $name, 'email' => $email, 'password' => $password],
+            [
+                'name' => ['required', 'string', 'max:255'],
+                'email' => ['required', 'email', 'max:255', 'unique:users,email'],
+                'password' => ['required', 'string', 'min:12'],
+            ],
+        );
+
+        if ($validator->fails()) {
+            foreach ($validator->errors()->all() as $message) {
+                $this->reportLine(StageResult::failed('owner', (string) $message));
+            }
+
+            return false;
+        }
+
+        return $this->report($installer->createOwner($name, $email, $password));
+    }
+
+    private function passwordFromEnvironment(): ?string
+    {
+        $value = getenv('SANITUBE_OWNER_PASSWORD');
+
+        return is_string($value) && trim($value) !== '' ? $value : null;
     }
 
     /**
