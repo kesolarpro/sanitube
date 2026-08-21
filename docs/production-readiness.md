@@ -291,6 +291,7 @@ written down.
 | VPS guide | READY | |
 | Production doctor | READY | Read-only; non-zero exit on internal blockers. |
 | **Certified on a real cPanel/VPS host** | BLOCKED_EXTERNAL | Never claimed as tested. Nobody has run it on one. |
+| `sanitube:host` — read the machine, suggest a profile | READY | DEP-007. File reads and PATH lookups only — no process is ever executed to inspect. Five profiles: CPANEL, VPS_CORE, VPS_CORE_AND_WORKER, WORKER_ONLY, CORE_ONLY_GENERIC; the advisor only suggests the three that are detectable and names the two that are choices. cPanel evidence outranks everything a VPS would have, because a cPanel server has root and systemd for cPanel's own use. |
 
 ## Security
 
