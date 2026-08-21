@@ -64,11 +64,13 @@ use Tests\TestCase;
  * across sizes is the property that actually matters, and it fails loudly the
  * first time somebody loops a query over rows.
  *
- * Measured when this was written: every index screen is 1–3 queries and a
- * payload identical at both sizes, because they all page with a cursor and
- * eager-load their relations. The dashboard is about thirty queries — one per
- * aggregate it displays, none of them per-row — and also identical at both
- * sizes.
+ * Measured at PERF-005: every index screen is 1–5 queries and a payload
+ * identical at both sizes, because they all page with a cursor and eager-load
+ * their relations. Five is the enrichment queue, which reads three tables the
+ * others do not — the asset, its transcript, and the track and analysis behind
+ * it — once each for the whole page. The dashboard is about thirty queries —
+ * one per aggregate it displays, none of them per-row — and also identical at
+ * both sizes.
  *
  * **PERF-002: four of the nine screens were measured against empty tables.**
  * The fixture seeded tracks and artists, and nothing else — so
@@ -79,8 +81,14 @@ use Tests\TestCase;
  *
  * So each screen now declares **where its rows live in the payload**, and a
  * test asserts every one of them is non-empty before anything is measured. A
- * screen listed with nothing in it fails loudly rather than passing quietly,
- * which is the only way this stays true as screens are added.
+ * screen listed with nothing in it fails loudly rather than passing quietly.
+ *
+ * **PERF-005 measured the five PERF-002 could not reach** — enrichment,
+ * distribution, production, generations, projects — and closed the hole that
+ * list itself was: a screen is only checked here if somebody remembered to
+ * write it down, and nothing was reading the application to find out. The
+ * classification is now checked against the router, so the answer to "have we
+ * covered the screens" is derived rather than asserted.
  */
 final class CatalogueScaleTest extends TestCase
 {
