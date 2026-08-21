@@ -1009,6 +1009,13 @@
    "branch": "claude/sanitube-autonomous-v1-5pycx0",
    "note": "sanitube:assets:relocate — le catalogue demenage sous preuve. ADR-0022 : l'emplacement peut bouger sous preuve, l'identite jamais. Copie en flux, verification de la cible contre ce que l'actif a toujours affirme, puis sauvegarde sanctionnee que l'observateur consomme. Un changement de disque nu jette toujours ; une sauvegarde mixte refusee depense aussi la sanction (son test a attrape la premiere version). Aucune source jamais supprimee — le service n'a pas d'appel delete a faire contre une source, par conception.",
    "adr": "docs/adr/ADR-0022-location-may-move-under-proof-identity-never.md"
+  },
+  "DEP-019": {
+   "status": "in_review",
+   "pr": null,
+   "ci": "pending",
+   "branch": "claude/sanitube-autonomous-v1-5pycx0",
+   "note": "sanitube:mail:certify — configure et livre sont deux faits differents. Un seul vrai message, a une adresse que l'operateur nomme, seulement quand il le demande. L'acceptation devient un enregistrement du registre, empreinte sur la configuration du mailer ; changer de relais de-certifie en silence. Les mots du transport ne sont pas cites — ils portent des hotes et parfois des identifiants."
   }
  },
  "architecture_amendments": [
