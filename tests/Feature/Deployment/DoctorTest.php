@@ -302,6 +302,65 @@ final class DoctorTest extends TestCase
     }
 
     /**
+     * Degraded is not optional.
+     *
+     * Every detector that reports a degraded capability attaches a remediation,
+     * and the doctor was dropping all of them: it reported only capabilities
+     * that were *unavailable and required*. An installation meaning to use R2
+     * and running on the local disk is told "cannot issue expiring URLs" by
+     * `sanitube:health` and nothing at all by the command somebody runs before
+     * going live.
+     */
+    #[Test]
+    public function a_degraded_capability_reaches_the_doctor(): void
+    {
+        // The shipped default on a host with no object storage: it works, and
+        // it cannot issue an expiring URL, which is what a distributor hand-off
+        // and streaming both need.
+        config(['storage.default' => 'local']);
+
+        $check = $this->check('object_storage');
+
+        $this->assertSame(ProductionCheck::WARNING, $check->verdict);
+        $this->assertStringContainsString('expiring URLs', $check->summary);
+        $this->assertNotNull($check->remediation, 'A degraded capability carries the fix; the doctor must carry it too.');
+    }
+
+    #[Test]
+    public function a_capability_the_doctor_asks_about_itself_is_not_said_twice(): void
+    {
+        // The queue is degraded on `sync` *and* has its own blocker here. Two
+        // lines for one problem is how an operator learns to skim, and this
+        // command's own comment warns that a second opinion can quietly start
+        // disagreeing with the guard it duplicates.
+        config(['queue.default' => 'sync']);
+
+        $keys = array_map(
+            static fn (ProductionCheck $check): string => $check->key,
+            $this->diagnose(),
+        );
+
+        $this->assertContains('driver', $keys, 'The queue problem must still be reported once.');
+        $this->assertNotContains('queue', $keys);
+    }
+
+    #[Test]
+    public function every_capability_the_doctor_defers_on_is_one_it_actually_answers(): void
+    {
+        // An exemption for a question nobody asks is a silence with no owner.
+        // Read from the doctor rather than from a second list.
+        config(['queue.default' => 'sync']);
+
+        $keys = array_map(
+            static fn (ProductionCheck $check): string => $check->key,
+            $this->diagnose(),
+        );
+
+        $this->assertContains('driver', $keys);
+        $this->assertContains('heartbeat', $keys);
+    }
+
+    /**
      * One row in the queue table, ready this long ago.
      */
     private function queue(int $waitedSeconds, bool $reserved = false): void
