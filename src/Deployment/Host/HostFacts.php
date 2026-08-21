@@ -41,6 +41,8 @@ final readonly class HostFacts
         public array $databaseClients,
         public bool $canRunProcesses,
         public ?string $openBasedir,
+        public bool $nvidiaDriver = false,
+        public ?string $nvidiaSmi = null,
     ) {}
 
     public function isCpanel(): bool
@@ -73,6 +75,8 @@ final readonly class HostFacts
             'database_clients' => $this->databaseClients,
             'can_run_processes' => $this->canRunProcesses,
             'open_basedir' => $this->openBasedir,
+            'nvidia_driver' => $this->nvidiaDriver,
+            'nvidia_smi' => $this->nvidiaSmi,
         ];
     }
 }

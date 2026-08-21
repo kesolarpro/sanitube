@@ -50,6 +50,13 @@ final readonly class HostInspector
 
     private const DATABASE_CLIENTS = ['mysql', 'mariadb'];
 
+    /**
+     * The NVIDIA kernel driver's own marker directory — present exactly when
+     * the driver is loaded, which is the fact that matters for a generation
+     * worker. The binary alone proves only that a package was installed.
+     */
+    private const NVIDIA_MARKER = '/proc/driver/nvidia';
+
     public function __construct(private HostProbe $probe) {}
 
     public function inspect(): HostFacts
@@ -80,6 +87,8 @@ final readonly class HostInspector
             databaseClients: $this->foundBinaries(self::DATABASE_CLIENTS),
             canRunProcesses: $this->probe->functionUsable('proc_open'),
             openBasedir: $this->probe->iniValue('open_basedir'),
+            nvidiaDriver: $this->probe->isDirectory(self::NVIDIA_MARKER),
+            nvidiaSmi: $this->probe->binary('nvidia-smi'),
         );
     }
 

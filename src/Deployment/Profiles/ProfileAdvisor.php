@@ -24,10 +24,20 @@ final readonly class ProfileAdvisor
 {
     public function advise(HostFacts $facts): ProfileAdvice
     {
+        // The GPU fact rides along on the worker alternatives, because it is
+        // the fact that decides what a worker *here* could do: media tools
+        // run on CPU anywhere, a music model does not. Stated, never assumed
+        // — and never a blocker, because a CPU-only worker is a legitimate
+        // machine for analysis and fingerprinting.
+        $gpu = $facts->nvidiaDriver
+            ? 'an NVIDIA driver is loaded on this machine'
+            : 'no NVIDIA driver is loaded here — media work runs on CPU, and model-based generation would stay blocked until a GPU and driver exist';
+
         $alternatives = [
             sprintf(
-                '%s — choose it to run media and generation work on this same machine.',
+                '%s — choose it to run media and generation work on this same machine (%s).',
                 InstallationProfile::VpsCoreAndWorker->value,
+                $gpu,
             ),
             sprintf(
                 '%s — choose it on a machine that should only serve a Core installed elsewhere.',

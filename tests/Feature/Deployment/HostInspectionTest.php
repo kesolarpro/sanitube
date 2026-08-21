@@ -129,6 +129,26 @@ final class HostInspectionTest extends TestCase
         $this->assertFalse($facts->canRunProcesses);
     }
 
+    #[Test]
+    public function a_loaded_nvidia_driver_is_the_fact_not_the_binary(): void
+    {
+        // The nvidia-smi binary proves a package was installed; the kernel
+        // marker proves the driver is loaded — the fact a generation worker
+        // actually needs.
+        $installedOnly = $this->inspect(new FakeHostProbe(
+            binaries: ['nvidia-smi' => '/usr/bin/nvidia-smi'],
+        ));
+
+        $this->assertFalse($installedOnly->nvidiaDriver);
+        $this->assertSame('/usr/bin/nvidia-smi', $installedOnly->nvidiaSmi);
+
+        $loaded = $this->inspect(new FakeHostProbe(
+            directories: ['/proc/driver/nvidia'],
+        ));
+
+        $this->assertTrue($loaded->nvidiaDriver);
+    }
+
     // ------------------------------------------------------------- advice
 
     #[Test]
@@ -245,6 +265,16 @@ final class HostInspectionTest extends TestCase
         ));
 
         $this->assertStringContainsString('Composer', implode(' ', $advice->cautions));
+    }
+
+    #[Test]
+    public function the_worker_alternative_states_the_gpu_fact_both_ways(): void
+    {
+        $without = $this->advise(new FakeHostProbe(osFamily: 'Darwin'));
+        $this->assertStringContainsString('no NVIDIA driver is loaded here', implode(' ', $without->alternatives));
+
+        $with = $this->advise(new FakeHostProbe(osFamily: 'Darwin', directories: ['/proc/driver/nvidia']));
+        $this->assertStringContainsString('an NVIDIA driver is loaded', implode(' ', $with->alternatives));
     }
 
     // ------------------------------------------------------------ command

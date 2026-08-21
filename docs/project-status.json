@@ -2,7 +2,7 @@
  "$comment": "Machine-readable project state. Any new session reads this first, then verifies it against GitHub before trusting it. Written at the end of each ticket, so a stale entry means a session ended mid-ticket — check the branch and CI rather than the status field.",
  "updated_at": "2026-08-21",
  "current_phase": "Mission deploiement automatise terminee cote interne : DEP-007 a DEP-018 fusionnes. INTERNAL_DEPLOYMENT_AUTOMATION_COMPLETE = YES, READY_FOR_REAL_VPS_CERTIFICATION = YES. Le reste demande un vrai hote, un vrai identifiant, ou une decision humaine — le plan A-K est docs/deployment/certification-plan.md.",
- "last_completed_ticket": "DEP-015",
+ "last_completed_ticket": "DEP-018",
  "default_branch": "main — confirmed by API this session. The EXTERNAL_ADMIN_ACTION_REQUIRED blocker is cleared.",
  "tickets": {
   "ARCH-001": {
@@ -989,26 +989,26 @@
    "recorded_from": "git log origin/main (274ae01)"
   },
   "DEP-016": {
-   "status": "in_review",
-   "pr": null,
-   "ci": "pending",
-   "branch": "claude/sanitube-autonomous-v1-5pycx0",
-   "note": "bin/bootstrap.sh — la detection avant l'action, rien pipe dans un shell, l'installeur Composer verifie SHA-384. L'hygiene des scripts est un garde-fou decouvert, pas une liste. La detection est prouvee en CI sur Ubuntu 24.04, Debian 12 et AlmaLinux 9 — etroit expres : la convergence complete est l'etape de certification sur vrai VPS. Index docs/deployment/README.md."
+   "status": "merged",
+   "pr": 144,
+   "ci": "green",
+   "note": "bin/bootstrap.sh — la detection avant l'action, rien pipe dans un shell, l'installeur Composer verifie SHA-384. L'hygiene des scripts est un garde-fou decouvert, pas une liste. La detection est prouvee en CI sur Ubuntu 24.04, Debian 12 et AlmaLinux 9 — etroit expres : la convergence complete est l'etape de certification sur vrai VPS. Index docs/deployment/README.md.",
+   "recorded_from": "git log origin/main (8a0b545)"
   },
   "DEP-017": {
-   "status": "in_review",
-   "pr": null,
-   "ci": "pending",
-   "branch": "claude/sanitube-autonomous-v1-5pycx0",
-   "note": "La sauvegarde nocturne est planifiee (SANITUBE_BACKUP_AT, vide desactive), la fraicheur jugee a part. Les seuils disque atteignent le docteur — volumes application et sauvegarde juges separement, en megaoctets absolus, le bloqueur arrete un deploiement. sanitube:self-test : un chef d'orchestre, aucune duplication. Le plan de certification reel A-K est ecrit et executable sans edition de code."
+   "status": "merged",
+   "pr": 144,
+   "ci": "green",
+   "note": "La sauvegarde nocturne est planifiee (SANITUBE_BACKUP_AT, vide desactive), la fraicheur jugee a part. Les seuils disque atteignent le docteur — volumes application et sauvegarde juges separement, en megaoctets absolus, le bloqueur arrete un deploiement. sanitube:self-test : un chef d'orchestre, aucune duplication. Le plan de certification reel A-K est ecrit et executable sans edition de code.",
+   "recorded_from": "git log origin/main (8a0b545)"
   },
   "DEP-018": {
-   "status": "in_review",
-   "pr": null,
-   "ci": "pending",
-   "branch": "claude/sanitube-autonomous-v1-5pycx0",
+   "status": "merged",
+   "pr": 145,
+   "ci": "green",
    "note": "sanitube:assets:relocate — le catalogue demenage sous preuve. ADR-0022 : l'emplacement peut bouger sous preuve, l'identite jamais. Copie en flux, verification de la cible contre ce que l'actif a toujours affirme, puis sauvegarde sanctionnee que l'observateur consomme. Un changement de disque nu jette toujours ; une sauvegarde mixte refusee depense aussi la sanction (son test a attrape la premiere version). Aucune source jamais supprimee — le service n'a pas d'appel delete a faire contre une source, par conception.",
-   "adr": "docs/adr/ADR-0022-location-may-move-under-proof-identity-never.md"
+   "adr": "docs/adr/ADR-0022-location-may-move-under-proof-identity-never.md",
+   "recorded_from": "git log origin/main (9b440a1)"
   },
   "DEP-019": {
    "status": "in_review",
@@ -1016,6 +1016,13 @@
    "ci": "pending",
    "branch": "claude/sanitube-autonomous-v1-5pycx0",
    "note": "sanitube:mail:certify — configure et livre sont deux faits differents. Un seul vrai message, a une adresse que l'operateur nomme, seulement quand il le demande. L'acceptation devient un enregistrement du registre, empreinte sur la configuration du mailer ; changer de relais de-certifie en silence. Les mots du transport ne sont pas cites — ils portent des hotes et parfois des identifiants."
+  },
+  "DEP-020": {
+   "status": "in_review",
+   "pr": null,
+   "ci": "pending",
+   "branch": "claude/sanitube-autonomous-v1-5pycx0",
+   "note": "Independance multi-instances et faits GPU. Le prefixe de cache se cle sur SANITUBE_INSTANCE_NAME ; l'inspection lit le marqueur noyau NVIDIA (pas le binaire qu'un paquet laisse) et le conseil du profil worker l'enonce dans les deux sens sans jamais bloquer. Pare-feu/SSH, rotation des logs, desinstallation et stockage-objet-n'est-pas-une-sauvegarde documentes comme actes d'operateur."
   }
  },
  "architecture_amendments": [
@@ -1117,7 +1124,7 @@
    "history": "Not rewritten. PRs #111-#122 were merged by earlier sessions and #123-#129 by the 2026-08-21 session while this policy still read active:true. That happened and stays on the record; the policy is superseded from today rather than retroactively."
   }
  },
- "main_sha": "274ae01",
+ "main_sha": "9b440a1",
  "current_ticket": "DEP-009",
  "tests": "1820 passed, 1 skipped, 23189 assertions",
  "phpstan": {
