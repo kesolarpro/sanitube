@@ -53,6 +53,23 @@ final readonly class DiagnoseProduction
      */
     private const QUEUE_STALE_SECONDS = 900;
 
+    /**
+     * Degraded capabilities this command already asks about itself, and where.
+     *
+     * Not a list of things that do not matter — a list of things that would be
+     * said twice. This class's own comment on the backup destination puts it
+     * best: a second opinion is one that can quietly start disagreeing with the
+     * guard it duplicates. Where the doctor has its own check, that check wins,
+     * because it says more.
+     *
+     * @var array<string, string>
+     */
+    private const ANSWERED_ELSEWHERE = [
+        'queue' => 'Queue/driver blocks on `sync` rather than warning, and Queue/backlog answers whether '
+            .'anything is working it.',
+        'scheduler' => 'Scheduler/heartbeat reports the same staleness with the cron entry to fix it.',
+    ];
+
     public function __construct(
         private Config $config,
         private Connection $connection,
@@ -749,6 +766,25 @@ final readonly class DiagnoseProduction
                     $capability->key,
                     $capability->detail ?? $capability->label.' is unavailable.',
                     $capability->remediation ?? 'See `php artisan sanitube:health`.',
+                );
+
+                continue;
+            }
+
+            // Degraded is not optional. It means the thing works and works
+            // less well than it could, and every detector that reports it
+            // attaches a remediation — which the doctor was dropping on the
+            // floor. An installation meaning to use R2 and running on the
+            // local disk is told "cannot issue expiring URLs" by
+            // `sanitube:health` and nothing at all by the command somebody
+            // runs before going live.
+            if ($capability->status === CapabilityStatus::Degraded
+                && ! array_key_exists($capability->key, self::ANSWERED_ELSEWHERE)) {
+                $checks[] = ProductionCheck::warning(
+                    'Server',
+                    $capability->key,
+                    $capability->detail ?? $capability->label.' is degraded.',
+                    $capability->remediation,
                 );
             }
         }
