@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SaniTube\Ui\Queries;
 
 use Illuminate\Contracts\Config\Repository;
+use SaniTube\Storage\ProviderConfiguration;
 
 /**
  * What this installation is configured with — and never what it is configured
@@ -42,7 +43,10 @@ use Illuminate\Contracts\Config\Repository;
  */
 final readonly class SettingsQuery
 {
-    public function __construct(private Repository $config) {}
+    public function __construct(
+        private Repository $config,
+        private ProviderConfiguration $storageProviders,
+    ) {}
 
     /**
      * @return array<string, mixed>
@@ -91,28 +95,38 @@ final readonly class SettingsQuery
      */
     private function storage(): array
     {
-        $selected = (string) $this->config->get('storage.default', 'local');
-        /** @var array<string, mixed> $providers */
-        $providers = (array) $this->config->get('storage.providers', []);
+        $selected = $this->storageProviders->selected();
+
+        $settings = [
+            // Published as a field, not only as the word "selected", because
+            // moving an installation to object storage starts here: choose
+            // the provider, save, and the screen then asks for that
+            // provider's own variables rather than somebody else's.
+            $this->plain('SANITUBE_STORAGE_PROVIDER', $selected),
+            $this->plain('SANITUBE_TEMPORARY_URL_TTL', (string) $this->config->get('storage.temporary_url_ttl')),
+        ];
+        $secrets = [];
+
+        // The variable names come from the provider, never from a guess.
+        // Local storage declares none, which is the honest answer for a disk
+        // that needs no credential.
+        foreach ($this->storageProviders->fields($selected) as $field) {
+            if ($field->isSecret()) {
+                $secrets[] = $this->secret($field->variable, $field->configPath);
+
+                continue;
+            }
+
+            $settings[] = $this->plain($field->variable, (string) $this->config->get($field->configPath));
+        }
 
         return $this->section(
             key: 'storage',
             selected: $selected,
-            known: array_key_exists($selected, $providers),
-            options: array_keys($providers),
-            settings: [
-                $this->plain('SANITUBE_TEMPORARY_URL_TTL', (string) $this->config->get('storage.temporary_url_ttl')),
-            ],
-            // Local storage needs no credential at all, which is a fact worth
-            // showing rather than an empty list to puzzle over.
-            //
-            // The disk is looked up rather than assumed: r2 and b2 are
-            // S3-compatible but configured on their own disks, and reading
-            // s3's credentials for all three would report a b2 installation
-            // as unconfigured while it works.
-            secrets: $selected === 'local' ? [] : $this->diskSecrets(
-                (string) $this->config->get('storage.providers.'.$selected.'.disk', $selected),
-            ),
+            known: $this->storageProviders->isKnown($selected),
+            options: $this->storageProviders->names(),
+            settings: $settings,
+            secrets: $secrets,
         );
     }
 
@@ -233,20 +247,6 @@ final readonly class SettingsQuery
             'settings' => $settings,
             'secrets' => $secrets,
             'complete' => $known && ! $this->anyMissing($secrets),
-        ];
-    }
-
-    /**
-     * The credentials a disk needs, whichever S3-compatible disk it is.
-     *
-     * @return list<array<string, mixed>>
-     */
-    private function diskSecrets(string $disk): array
-    {
-        return [
-            $this->secret('AWS_ACCESS_KEY_ID', 'filesystems.disks.'.$disk.'.key'),
-            $this->secret('AWS_SECRET_ACCESS_KEY', 'filesystems.disks.'.$disk.'.secret'),
-            $this->secret('AWS_BUCKET', 'filesystems.disks.'.$disk.'.bucket'),
         ];
     }
 
