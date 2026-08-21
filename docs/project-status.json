@@ -1,8 +1,8 @@
 {
  "$comment": "Machine-readable project state. Any new session reads this first, then verifies it against GitHub before trusting it. Written at the end of each ticket, so a stale entry means a session ended mid-ticket — check the branch and CI rather than the status field.",
  "updated_at": "2026-08-21",
- "current_phase": "Audit et durcissement. Le registre de production (docs/production-readiness.md) est la source sous test, et docs/final-report.md le resume — ses quatre comptes sont tenus par ProductionReadinessLedgerTest. Il reste huit lignes NOT_READY, toutes nommees, et dix BLOCKED_EXTERNAL qui attendent un identifiant, un fournisseur reel ou un hote reel.",
- "last_completed_ticket": "OBS-004",
+ "current_phase": "Audit et durcissement, termine pour ce qui peut l'etre sans acces externe. Le registre de production (docs/production-readiness.md) est la source sous test, et docs/final-report.md le resume — ses quatre comptes sont tenus par ProductionReadinessLedgerTest. Il reste six lignes NOT_READY et dix BLOCKED_EXTERNAL. Voir internal_phase2_complete.",
+ "last_completed_ticket": "PERF-005",
  "default_branch": "main — confirmed by API this session. The EXTERNAL_ADMIN_ACTION_REQUIRED blocker is cleared.",
  "tickets": {
   "ARCH-001": {
@@ -919,11 +919,11 @@
    "recorded_from": "git log origin/main (b6f1fae)"
   },
   "PERF-005": {
-   "status": "in_review",
-   "pr": null,
-   "ci": "pending",
-   "branch": "claude/sanitube-autonomous-v1-5pycx0",
-   "note": "Les cinq ecrans que le test d'echelle ne pouvait pas atteindre sont mesures : enrichissement, distribution, production, generations, projets. La liste des ecrans est desormais lue dans le routeur au lieu d'etre tenue a la main — un ecran nouveau echoue par son nom tant qu'il n'est pas mesure, differe avec sa raison, ou declare comme n'ayant pas de lignes qui croissent avec le catalogue."
+   "status": "merged",
+   "pr": 135,
+   "ci": "green 10/10",
+   "note": "Les cinq ecrans que le test d'echelle ne pouvait pas atteindre sont mesures : enrichissement, distribution, production, generations, projets. La liste des ecrans est desormais lue dans le routeur au lieu d'etre tenue a la main — un ecran nouveau echoue par son nom tant qu'il n'est pas mesure, differe avec sa raison, ou declare comme n'ayant pas de lignes qui croissent avec le catalogue.",
+   "recorded_from": "git log origin/main (96ebebe)"
   }
  },
  "architecture_amendments": [
@@ -995,10 +995,9 @@
  },
  "open_pull_requests": [],
  "next_session": {
-  "start_with": "Rien n'est en attente cote interne. Lire notes.review_policy_conflict avant de fusionner quoi que ce soit.",
+  "start_with": "Rien n'est en attente cote interne qui puisse etre fait sans decision ou sans acces externe. Lire internal_phase2_complete avant de reprendre du code.",
   "awaiting_owner": [
-   "Distributor::submitRelease() prend l'agregat Release plutot que ReleasePackage — bon marche a changer maintenant, cher apres le premier adaptateur reel. Nomme dans le registre, pas commence.",
-   "Le conflit de politique de revue ci-dessous."
+   "Chiffrement des sauvegardes au repos. Realisable en interne, et delibere : cela change la semantique de restauration — ou vit la cle, ce qu'une restauration exige, et ce qu'une cle perdue rend irrecuperable. C'est une zone REVIEW_REQUIRED (semantique de stockage destructive), donc arretee pour decision plutot que faite."
   ],
   "blocked_external": "Dix lignes, chacune nommee dans docs/final-report.md section 5."
  },
@@ -1024,8 +1023,8 @@
    "history": "Not rewritten. PRs #111-#122 were merged by earlier sessions and #123-#129 by the 2026-08-21 session while this policy still read active:true. That happened and stays on the record; the policy is superseded from today rather than retroactively."
   }
  },
- "main_sha": "b6f1fae",
- "current_ticket": "PERF-005",
+ "main_sha": "96ebebe",
+ "current_ticket": null,
  "tests": "1820 passed, 1 skipped, 23189 assertions",
  "phpstan": {
   "level": 6,
@@ -1273,5 +1272,32 @@
   "implemented_percent": 86,
   "production_ready_percent": 77
  },
- "session_report": "docs/reports/SESSION-2026-08-20-plateforme-exploitable.md"
+ "session_report": "docs/reports/SESSION-2026-08-20-plateforme-exploitable.md",
+ "internal_phase2_complete": {
+  "value": "YES",
+  "recorded_at": "2026-08-21",
+  "main_sha": "96ebebe",
+  "meaning": "Tout ce qui reste demande un identifiant externe, un acces a une API externe, un vrai worker GPU, une certification R2 reelle, une inscription reelle chez un distributeur, une certification d'accessibilite manuelle — ou une decision du proprietaire.",
+  "remaining_not_ready": {
+   "generation usable on the shipped configuration": "Delibere et enonce dans config/artwork.php : l'exigence de 3000px par defaut et la seule taille carree de la specification (1024) sont genuinement en desaccord. Un operateur tranche ; ce n'est pas du travail non fait.",
+   "no colour-profile inspection": "getimagesize ne lit pas de profil ICC. Demanderait une bibliotheque d'images que la plateforme evite deliberement.",
+   "backups encrypted at rest": "La seule ligne realisable en interne, et arretee pour decision : elle change la semantique de restauration. REVIEW_REQUIRED.",
+   "a bare hostname is not removed from a failure message": "Delibere, OBS-001. La regle est ancree sur un schema ; une heuristique assez large pour attraper un nom d'hote nu attrape chaque mot pointe de chaque message.",
+   "keyboard navigation and tab order per screen": "Certification manuelle. Trente-sept ecrans ; un scan ne peut pas y repondre.",
+   "screen-reader semantics beyond labelling": "Certification manuelle. Un scan tient « chaque controle a un nom », pas « cette page a du sens lue a voix haute »."
+  },
+  "priorities_swept": {
+   "A OBS-002/003/004": "fait, fusionne (#131, #132, #134)",
+   "B DIST-008": "fait, fusionne (#132). ADR-0021.",
+   "C WRK-003": "fait, fusionne (#133). Le cote R2 est complet jusqu'a la limite du verifiable ; le parcours console Cloudflare est inatteignable depuis cet environnement.",
+   "D transcription / enrichissement": "audite : chaque service a un appelant de production, les deux ecouteurs sont enregistres. Aucun travail.",
+   "E artwork": "audite. Aucun travail.",
+   "F ProductionPlan bout en bout": "audite : la cadence non planifiee est deliberee et documentee. Aucun travail.",
+   "G preparation de sortie": "audite. Aucun travail.",
+   "H recherche distribution": "refuse par la politique reseau (403 au CONNECT).",
+   "I DDEX": "refuse par la politique reseau : ddex.net, kb.ddex.net, service.ddex.net inatteignables. Aucune documentation faisant autorite, donc rien a ecrire sans inventer (§28/§80).",
+   "J adaptateur reel": "demande un acces verifie chez un distributeur. Non disponible."
+  },
+  "not_manufactured": "Aucun ticket n'a ete cree pour gonfler le compte. D a G ont ete audites et rapportes comme n'ayant besoin de rien, plutot que transformes en travail."
+ }
 }

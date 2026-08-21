@@ -49,19 +49,21 @@ awaiting a certificate, not unfinished code.
 | Operator documentation | 132 files |
 | Mutation testing | **By hand, per ticket, not in CI.** There is no mutation harness; each ticket's guards were verified by breaking them deliberately and confirming a named test failed. Where a mutant survived because it was equivalent, that is recorded rather than counted as a kill — see the `hashed` cast in E2E-003. |
 
-## 4. The seven things that are not done
+## 4. The six things that are not done
 
-Each is internal work, and each is named rather than hand-waved.
+Each is internal work, and each is named rather than hand-waved. **Only one of
+the six is work somebody could simply sit down and do** — the other five are a
+stated configuration decision, a dependency this platform declines to take, a
+deliberate scrubbing rule, and two audits a scan cannot perform.
 
 | # | Field | Why it is open |
 |---|---|---|
 | 1 | Artwork generation on the shipped configuration | Deliberate. The default 3000px requirement and GPT-image's only square size (1024) genuinely disagree, so generation declines out of the box rather than producing something too small. An operator resolves it by lowering the requirement or declaring a larger size. |
 | 2 | Colour-profile inspection | `getimagesize` cannot read an ICC profile, so "is this sRGB" is unanswered rather than guessed. Needs an image library this platform deliberately avoids. |
-| 3 | Backups encrypted at rest | They are not. The destination is to be treated as the database is; off-machine copies and their encryption are the operator's. |
+| 3 | Backups encrypted at rest | They are not. The destination is to be treated as the database is; off-machine copies and their encryption are the operator's. **The one item here that is internally actionable, and it is held for a decision rather than left undone**: encryption changes what a restore requires and makes a lost key an unrecoverable backup, which is destructive storage semantics and so a REVIEW_REQUIRED area. |
 | 4 | A bare hostname is not scrubbed from a failure message | Deliberate. The rule is anchored on `scheme://`, because a heuristic loose enough to catch `distributor.example port 443` catches every dotted word in every message. |
-| 5 | Five index screens the scale test cannot reach | Each needs a chain of domain objects the catalogue fixture does not build. All five were read: one had a real N+1, now fixed and held where its objects live; the other four are eager-loaded. |
-| 6 | Keyboard navigation and tab order per screen | The primitives behave. Nothing checks that a given screen's controls come in a sensible order. 37 screens, and a scan cannot answer it. |
-| 7 | Screen-reader semantics beyond labelling | Landmarks, reading order and live regions are unaudited. A scan can hold "every control has a name"; it cannot hold "this page makes sense read aloud". |
+| 5 | Keyboard navigation and tab order per screen | The primitives behave. Nothing checks that a given screen's controls come in a sensible order. 37 screens, and a scan cannot answer it. |
+| 6 | Screen-reader semantics beyond labelling | Landmarks, reading order and live regions are unaudited. A scan can hold "every control has a name"; it cannot hold "this page makes sense read aloud". |
 
 ## 5. The ten things awaiting the outside world
 
@@ -157,6 +159,31 @@ submitting it for as long as that fixture existed. The manual export path
 already refused such a release; the submission path did not check, because the
 adapter was handed the aggregate and never looked. The two paths now agree.
 
-Nothing is waiting on a decision. What remains is in sections 4 and 5: seven
-things named as internal work, and ten that need a credential, a live endpoint
-or a real host.
+What remains is in sections 4 and 5: six things named as internal work, and ten
+that need a credential, a live endpoint or a real host.
+
+## 11. Where the internal work stops
+
+**Internal Phase 2 is complete**, and that is a claim worth stating precisely
+rather than warmly. It does not mean the platform is finished. It means every
+remaining item needs something this environment does not have — an external
+credential, access to an external API, a real GPU worker, a certified R2
+bucket, a real distributor account, or a person at a keyboard with a screen
+reader — or it needs a decision that is the owner's to make.
+
+There is exactly one of the latter, and section 4 names it: **encrypting
+backups at rest**. It is buildable today. It is not built because it changes
+what a restore requires and turns a lost key into an unrecoverable backup, and
+destructive storage semantics is a REVIEW_REQUIRED area. Doing it quietly would
+have been the wrong kind of progress.
+
+Four priorities were audited and produced no work, which is reported rather
+than converted into tickets: the transcription and enrichment production paths
+(every service has a real caller, both listeners are registered), artwork
+generation, the production plan end to end (its unscheduled cadence is
+deliberate and documented), and release preparation. Three more — distributor
+research, DDEX, and a real adapter — are shut by network policy, and writing
+them up from memory would have meant inventing external facts.
+
+The machine-readable form of this section is `internal_phase2_complete` in
+`docs/project-status.json`.
