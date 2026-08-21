@@ -6,6 +6,7 @@ namespace SaniTube\Assets;
 
 use Illuminate\Support\ServiceProvider;
 use SaniTube\Assets\Console\CleanUpStagingCommand;
+use SaniTube\Assets\Console\RelocateAssetsCommand;
 use SaniTube\Assets\Console\VerifyAssetsCommand;
 use SaniTube\Assets\Models\Asset;
 use SaniTube\Assets\Observers\AssetObserver;
@@ -32,6 +33,7 @@ final class AssetsServiceProvider extends ServiceProvider
 
         if ($this->app->runningInConsole()) {
             $this->commands([
+                RelocateAssetsCommand::class,
                 VerifyAssetsCommand::class,
                 CleanUpStagingCommand::class,
             ]);

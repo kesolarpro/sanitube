@@ -136,6 +136,32 @@ final class Asset extends Model
     }
 
     /**
+     * Whether the *next* save is a sanctioned relocation — see ADR-0022.
+     *
+     * I1 freezes what a stored row says about its bytes. A relocation moves
+     * the bytes' *location* after the copy has been checksum-verified, and
+     * location is the one frozen field that can change without the row lying:
+     * sha256, size, path and kind still describe exactly the same bytes,
+     * now in a second place. The sanction is transient and instance-bound —
+     * it never persists, and the observer consumes it on the save it blesses,
+     * so a later save on the same instance is back under the freeze.
+     */
+    private bool $relocationSanctioned = false;
+
+    public function sanctionRelocation(): void
+    {
+        $this->relocationSanctioned = true;
+    }
+
+    public function consumeRelocationSanction(): bool
+    {
+        $sanctioned = $this->relocationSanctioned;
+        $this->relocationSanctioned = false;
+
+        return $sanctioned;
+    }
+
+    /**
      * Set aside by a person, with the bytes still there.
      *
      * Deliberately not a status and deliberately not a deletion. The object is

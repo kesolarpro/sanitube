@@ -152,3 +152,20 @@ An installation's storage is certified when all of these are true:
 
 Until the third and fourth boxes are ticked, the direct-upload path is
 unproven, whatever the command says.
+
+## Migrating an existing catalogue
+
+Once the target provider is certified, the catalogue moves with:
+
+```
+php artisan sanitube:assets:relocate r2 --limit=50
+```
+
+Run it, read the report, run it again — done is detected (the asset already
+names the target disk), not remembered, so stopping at any point loses
+nothing but the file in flight. Every copy is verified against the asset's
+recorded checksum **on the target** before the switch, a failed copy removes
+its own unverified object and the run continues, and sources are never
+deleted: retiring local copies after a verified migration is a separate,
+explicit decision. ADR-0022 records why `disk` may move when nothing else
+frozen ever does.
