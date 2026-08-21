@@ -113,6 +113,58 @@ final class ProductionReadinessLedgerTest extends TestCase
         return $values;
     }
 
+    /**
+     * The summary's counts are the ledger's, or they are a second ledger.
+     *
+     * `docs/final-report.md` opens with how many rows carry each verdict, and
+     * those four numbers are the ones a reader takes away — "eight things
+     * remain" is the sentence that survives the meeting. They are also the
+     * first thing to go stale: a row moved from NOT_READY to READY changes the
+     * table under test and leaves the summary saying what was true last month.
+     *
+     * Counted from the ledger rather than kept beside it. The report says what
+     * the rows mean; the rows say how many there are.
+     */
+    #[Test]
+    public function the_final_report_counts_what_the_ledger_actually_holds(): void
+    {
+        $counts = [];
+
+        foreach (explode("\n", $this->ledger()) as $line) {
+            if (preg_match('/^\|[^|]+\|\s*\**([A-Z_]+)\**\s*\|/', $line, $found) === 1) {
+                $counts[$found[1]] = ($counts[$found[1]] ?? 0) + 1;
+            }
+        }
+
+        $this->assertNotSame([], $counts, 'No verdict rows were read, so nothing below was checked.');
+
+        $report = $this->report();
+
+        foreach ($counts as $verdict => $count) {
+            $this->assertMatchesRegularExpression(
+                sprintf('/^\|\s*%s\s*\|\s*%d\s*\|/m', preg_quote($verdict, '/'), $count),
+                $report,
+                sprintf(
+                    'The final report does not say there are %d rows marked %s. Recount it against the ledger '
+                        .'rather than leaving a summary that was true last month.',
+                    $count,
+                    $verdict,
+                ),
+            );
+        }
+    }
+
+    private function report(): string
+    {
+        $path = base_path('docs/final-report.md');
+
+        if (! is_file($path)) {
+            $this->fail('docs/final-report.md is missing. The ledger points at it as the summary.');
+        }
+
+        return (string) file_get_contents($path);
+    }
+
     private function ledger(): string
     {
         $path = base_path('docs/production-readiness.md');
