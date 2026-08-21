@@ -47,3 +47,4 @@ true at the time remains readable.
 | [0018](ADR-0018-no-adapter-without-a-published-contract.md) | No adapter without a published contract | Accepted |
 | [0019](ADR-0019-a-provider-may-be-synchronous.md) | A generation provider may be synchronous | Accepted |
 | [0020](ADR-0020-the-delivery-boundary-is-the-package.md) | A distributor receives the package, never the aggregate | Accepted |
+| [0021](ADR-0021-the-work-crosses-with-the-recording.md) | The work crosses with the recording | Accepted |

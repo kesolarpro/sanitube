@@ -271,6 +271,10 @@ final readonly class DiagnoseProduction
             $checks[] = $check;
         }
 
+        foreach ($this->failedWork() as $check) {
+            $checks[] = $check;
+        }
+
         $lastRun = $this->heartbeat->lastRunAt();
 
         if ($lastRun === null) {
@@ -370,6 +374,61 @@ final readonly class DiagnoseProduction
             'Start a worker. On a VPS that is the systemd unit in docs/deployment/vps.md; on a shared '
                 .'account it is the `queue:work --stop-when-empty` cron in docs/deployment/installation.md. '
                 .'Until one runs, imports and analysis are accepted and never completed.',
+        )];
+    }
+
+    /**
+     * Work that was picked up and did not finish.
+     *
+     * The backlog check above cannot see this, and that is the point of having
+     * both. A worker consuming briskly and failing every job leaves `jobs`
+     * empty — so the backlog reads READY — while `failed_jobs` fills and the
+     * catalogue quietly stops growing. "Nobody is working the queue" and
+     * "everything the queue does fails" look identical from a job count and are
+     * opposite problems.
+     *
+     * Any row at all is worth saying. `ResolveFailedJob` deletes on resolve, so
+     * what is left is work somebody has not yet decided about — not history.
+     *
+     * A warning: a failed job is lost work, not a broken installation, and the
+     * screen that lists them is where the decision belongs.
+     *
+     * @return list<ProductionCheck>
+     */
+    private function failedWork(): array
+    {
+        // Laravel stores failed jobs under `queue.failed`, independently of the
+        // connection that runs them: a Redis queue on an installation that
+        // still records its failures in the database is an ordinary shape.
+        $table = (string) $this->config->get('queue.failed.table', 'failed_jobs');
+
+        if ((string) $this->config->get('queue.failed.driver') === 'null') {
+            return [ProductionCheck::warning(
+                'Queue',
+                'failed_work',
+                'Failed jobs are discarded rather than recorded.',
+                'Set QUEUE_FAILED_DRIVER to database-uuids. On `null`, work that fails leaves no trace '
+                    .'and nobody can find out what did not happen.',
+            )];
+        }
+
+        if (! $this->connection->getSchemaBuilder()->hasTable($table)) {
+            return [];
+        }
+
+        $failed = $this->connection->table($table)->count();
+
+        if ($failed === 0) {
+            return [ProductionCheck::ready('Queue', 'failed_work', 'No work is waiting to be looked at.')];
+        }
+
+        return [ProductionCheck::warning(
+            'Queue',
+            'failed_work',
+            sprintf('%d job(s) failed and nobody has decided what to do about them.', $failed),
+            'Open the failed-jobs screen. Each one is work that was accepted and never completed — an '
+                .'import, an analysis, a delivery — and retrying is a decision the job\'s own type has to '
+                .'allow.',
         )];
     }
 

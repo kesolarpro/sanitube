@@ -6,6 +6,7 @@ namespace Tests\Feature\Deployment;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use PHPUnit\Framework\Attributes\Test;
 use SaniTube\Deployment\ProductionCheck;
 use SaniTube\Deployment\Services\CreateBackup;
@@ -234,6 +235,70 @@ final class DoctorTest extends TestCase
 
         $this->assertSame(ProductionCheck::WARNING, $check->verdict);
         $this->assertStringContainsString('120 minute', $check->summary);
+    }
+
+    /**
+     * The failure the backlog check cannot see.
+     *
+     * A worker consuming briskly and failing every job leaves `jobs` empty, so
+     * the backlog reads READY while the catalogue quietly stops growing.
+     * "Nobody is working the queue" and "everything the queue does fails" look
+     * identical from a job count and are opposite problems.
+     */
+    #[Test]
+    public function work_that_failed_and_nobody_has_looked_at_is_reported(): void
+    {
+        $this->failedJob();
+
+        $check = $this->check('failed_work');
+
+        $this->assertSame(ProductionCheck::WARNING, $check->verdict);
+        $this->assertStringContainsString('1 job', $check->summary);
+        $this->assertNotNull($check->remediation);
+    }
+
+    #[Test]
+    public function an_installation_with_nothing_failing_says_so(): void
+    {
+        $this->assertSame(ProductionCheck::READY, $this->check('failed_work')->verdict);
+    }
+
+    #[Test]
+    public function a_backlog_check_that_is_ready_does_not_mean_nothing_is_wrong(): void
+    {
+        // Both at once, and they must disagree. An empty `jobs` table with a
+        // full `failed_jobs` is the exact shape this pair exists to separate.
+        $this->failedJob();
+        $this->failedJob();
+
+        $this->assertSame(ProductionCheck::WARNING, $this->check('failed_work')->verdict);
+        $this->assertStringContainsString('2 job', $this->check('failed_work')->summary);
+    }
+
+    #[Test]
+    public function discarding_failures_is_reported_rather_than_read_as_none(): void
+    {
+        // On the `null` driver a failure leaves no trace at all, and counting
+        // an empty table would report a healthy queue on an installation that
+        // cannot tell anybody what did not happen.
+        config(['queue.failed.driver' => 'null']);
+
+        $check = $this->check('failed_work');
+
+        $this->assertSame(ProductionCheck::WARNING, $check->verdict);
+        $this->assertStringContainsString('discarded', $check->summary);
+    }
+
+    private function failedJob(): void
+    {
+        DB::table('failed_jobs')->insert([
+            'uuid' => (string) Str::uuid7(),
+            'connection' => 'database',
+            'queue' => 'default',
+            'payload' => json_encode(['displayName' => 'SaniTube\\Media\\Jobs\\AnalyzeAudioAssetJob']),
+            'exception' => 'RuntimeException: the provider refused',
+            'failed_at' => now(),
+        ]);
     }
 
     /**

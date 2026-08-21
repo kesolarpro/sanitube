@@ -165,7 +165,9 @@ written down.
 
 | Control | Verdict | Notes |
 |---|---|---|
-| Tracks, artists, contributors, compositions | READY | |
+| Tracks, artists, contributors, compositions | READY | The recording and the work are separate, with their own roles, their own identifiers and their own credits. |
+| The work reaches the distributor, not only the recording | READY | DIST-008. Every delivery described who engineered the master and said nothing about who wrote the song — on a platform that had already built the writer side, normalised ISWCs and IPIs, and enforced the splits. `PackagedWriter` is a distinct type from `PackagedContributor`: one list would let a reader take a mastering engineer for a rights holder. ADR-0021. |
+| A writer share is metadata, never money | READY | DIST-008. Passed through exactly as captured; nothing computes anything from it. Earnings stay with the distributor. |
 | Track credits from the interface | READY | CAT-002. |
 | Readiness earned, never assigned | READY | I3 re-run on every attempt. |
 | Nothing else may grant it | READY | CAT-003. Three states are granted after a check and read as authority in thirty-odd places; a scan holds that they are written nowhere else. Guarding the column at runtime was tried and reverted — it broke 450 tests to stop something no code does. The scan's limit is stated: it sees a state written, not one handed to a method that writes it. |
@@ -261,6 +263,7 @@ written down.
 | Restore never accidental | READY | Explicit confirmation; `--force` for scripts. |
 | Catalogue *and* delivery history recovered | READY | Asserted end to end. |
 | Backup freshness surfaced | READY | Doctor and Operations screen. |
+| Work that failed and was never looked at is reported | READY | OBS-003. The backlog check cannot see this and that is why there are two: a worker consuming briskly and failing every job leaves `jobs` empty, so the backlog reads READY while the catalogue quietly stops growing. Discarding failures on the `null` driver is itself reported, rather than counted as none. |
 | A queue nobody works is reported | READY | OBS-002. The driver check answers "is work queued rather than run inline"; it never answered "does anybody pick it up". Both deployment guides tell an operator to add a `queue:work` cron or systemd unit, and nothing checked that they had. The oldest unreserved job's age separates a busy queue from a dead one; a count cannot. |
 | A backup configuration that can never run is reported before it fails | READY | DEP-006. The doctor resolves the include paths and reports the refusal. Freshness answers when the last backup was; this answers whether there will be another. |
 | Included paths contained | READY | DEP-005. An include path that resolves outside the installation, that is the application root, or that touches the backup destination is refused before the directory is created. |

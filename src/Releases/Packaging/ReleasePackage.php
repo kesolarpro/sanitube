@@ -117,6 +117,19 @@ final readonly class ReleasePackage
                     'ipi' => $contributor->ipi,
                     'isni' => $contributor->isni,
                 ], $track->contributors),
+
+                // The work. Kept apart from the recording's people rather than
+                // folded in with them: a composer and a mastering engineer hold
+                // different rights, and one list would let a reader take one
+                // for the other.
+                'iswc' => $track->iswc,
+                'writers' => array_map(static fn (PackagedWriter $writer): array => [
+                    'name' => $writer->name,
+                    'role' => $writer->role,
+                    'share' => $writer->share,
+                    'ipi' => $writer->ipi,
+                    'isni' => $writer->isni,
+                ], $track->writers),
             ], $this->tracks),
         ];
     }
