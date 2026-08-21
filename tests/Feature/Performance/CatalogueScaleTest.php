@@ -638,6 +638,16 @@ final class CatalogueScaleTest extends TestCase
         // Every track credited, because an uncredited catalogue is the one
         // shape in which a credits N+1 cannot show itself.
         foreach (Track::factory()->count($tracks)->create() as $index => $track) {
+            // Fixed-width names for everything a list orders by. PERF-005
+            // pinned the values its own screens sort on and left the faker
+            // titles the catalogue screens sort on — and `/catalog/
+            // compositions`, ordered by title, drew a different first page at
+            // each size whose *byte length* wobbled with the seed: 264 bytes
+            // of growth on one CI run against a 256 tolerance, green
+            // everywhere else. Same rule everywhere now: only one thing may
+            // differ between the two readings, and it is the row count.
+            $key = str_pad((string) $track->id, 6, '0', STR_PAD_LEFT);
+            $track->update(['title' => 'Measured Track '.$key]);
             $track->artists()->attach($artists[$index % 10]->id, [
                 'role' => TrackArtistRole::Primary->value,
                 'position' => 0,
@@ -687,11 +697,11 @@ final class CatalogueScaleTest extends TestCase
             // catalogue is the one shape in which a credits N+1 cannot show
             // itself — and because `/catalog/contributors` lists them.
             $track->contributors()->attach(
-                Contributor::factory()->create()->id,
+                Contributor::factory()->create(['legal_name' => 'Measured Contributor '.$key])->id,
                 ['role' => TrackContributorRole::Producer->value, 'position' => 0],
             );
 
-            Composition::factory()->create();
+            Composition::factory()->create(['title' => 'Measured Composition '.$key]);
 
             // Fixed width, and that is load-bearing rather than tidy.
             //
@@ -704,10 +714,6 @@ final class CatalogueScaleTest extends TestCase
             // two readings, and the test would be measuring which rows were
             // drawn rather than whether the page is bounded.
             //
-            // Six digits because the track id is the only number here that is
-            // unique across both seedings.
-            $key = str_pad((string) $track->id, 6, '0', STR_PAD_LEFT);
-
             $release = Release::factory()->create(['title' => 'Measured Release '.$key]);
 
             // What a model said about this master, and the evidence it said it
