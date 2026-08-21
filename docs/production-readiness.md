@@ -319,7 +319,7 @@ written down.
 | Distribution → submit → live | READY | |
 | Unknown outcome → reconcile | READY | |
 | Backup → destroy → restore | READY | |
-| Install → OWNER → login | NOT_READY | Covered by installer tests, not by the walk. |
+| Install → OWNER → login | READY | E2E-003. The walk cannot install — it would rebuild the database the suite is connected to, and it names that exclusion. The joint after it is walked in `InstallerTest`: the owner the installer created signs in through the real form and opens an administrator's screen. Neither suite held that seam before; a mutation writing the wrong password passed every other test in both. |
 
 ## Scale
 
