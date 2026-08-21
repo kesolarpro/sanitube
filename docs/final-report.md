@@ -27,7 +27,7 @@ summary.
 
 | Verdict | Count | Meaning |
 |---|---|---|
-| READY | 193 | Built, tested, exercised end to end inside the platform |
+| READY | 194 | Built, tested, exercised end to end inside the platform |
 | BLOCKED_EXTERNAL | 10 | Complete on our side; needs a credential, a real provider, or a real host |
 | NOT_READY | 6 | Internal work remains, each one named |
 | NOT_REQUIRED | 3 | Deliberately out of scope for V1 |
@@ -187,3 +187,60 @@ them up from memory would have meant inventing external facts.
 
 The machine-readable form of this section is `internal_phase2_complete` in
 `docs/project-status.json`.
+
+## 12. The deployment automation mission (DEP-007 → DEP-018)
+
+START_MAIN_SHA `e10b01c` → END_MAIN_SHA recorded in `docs/project-status.json`
+(`main_sha`). Twelve tickets, nine pull requests (#137–#145), every one merged
+at full green — including three new CI jobs that run the bootstrap on real
+Ubuntu 24.04, Debian 12 and AlmaLinux 9 containers.
+
+**What a fresh VPS now takes:**
+
+```
+git clone … && cd … && bin/bootstrap.sh --yes-install-packages
+php artisan sanitube:install --profile=VPS_CORE --config=/root/sanitube-install.conf
+php artisan sanitube:provision … --into=… && (root installs what was generated)
+php artisan sanitube:frontend:install <artifact> --sha=<commit>
+php artisan sanitube:self-test
+```
+
+**Statuses, in the mission's vocabulary:**
+
+| Field | Status |
+|---|---|
+| Installer profiles / host detection / journal / resume / dry-run / non-interactive | DONE — DEP-007/008/009 |
+| cPanel automation | DONE to the platform's edge: web installer, cron line, prebuilt frontend; document root and AutoSSL stay cPanel's own controls |
+| VPS automation (nginx, systemd queue template, scheduler timer) | DONE — generated, validated at the door, installed by root |
+| HTTPS | Delegated to `certbot --nginx` on a generated HTTP block, deliberately — certificate paths belong to the ACME client |
+| Frontend artifact / deploy artifact | Frontend DONE (atomic, SHA-tied, hostile-archive-safe). A full source+vendor deploy package: evaluated, not built — git ref + artifact covers all three installation shapes without a second distribution channel to audit |
+| Update / rollback / deploy lock / maintenance | DONE — `bin/update.sh <ref>` (no default ref), file lock with stale takeover, backup before the curtain, doctor+smoke after `up`. Rollback = previous ref; schema stays forward-fix |
+| Backup / restore | Scheduled nightly (`SANITUBE_BACKUP_AT`), freshness judged separately; restore rehearsal is certification step F |
+| R2 configuration / certification / migration | Config + real certification command + ledger DONE; `sanitube:assets:relocate` (ADR-0022) moves the catalogue under proof; the real bucket run is certification step G; browser CORS needs a browser |
+| Worker | Token minting, certification, protocol version with refuse-on-mismatch — DONE; real host is step H |
+| ACE-Step / GPU detection | BLOCKED_EXTERNAL / deferred to a machine with a GPU (step J) — nothing invented |
+| OpenAI / Anthropic / image / distributor / DDEX | Standings in `sanitube:providers`; real calls are operator-triggered, DDEX stays BLOCKED_EXTERNAL |
+| Installer security | Input refusal (units/nginx/domains), archive traversal guards, 0600 config enforcement, script hygiene as a discovered-not-listed guardrail, checksum-verified bootstrap download |
+| Portability | No domain, path, account, bucket, port or cadence in source; distro assumptions CI-tested; the dash-vs-bash bug the distro job caught on its first run is the proof it earns its keep |
+
+**INTERNAL_DEPLOYMENT_AUTOMATION_COMPLETE: YES** — with the same precision as
+section 11: every remaining line needs a real host, a real credential, or a
+human decision. **READY_FOR_REAL_VPS_CERTIFICATION: YES** —
+`docs/deployment/certification-plan.md` is the script, A through K, runnable
+with shipped code.
+
+**Defects found by this mission's own guardrails, fixed in flight:** the test
+classes that ran the real installer without wrapping (leaked owners on every
+file-backed database in the matrix); the variable-width faker titles the scale
+test sorted on (264 bytes of growth against a 256 tolerance, one CI run in
+five); Composer-as-root refusing plugins on the exact host shape the bootstrap
+exists for; dash rejecting `pipefail` on Debian-family containers; a lingering
+relocation sanction that a refused save failed to spend; and a docblock naming
+a storage vendor inside the Assets domain, caught by the boundary test.
+
+**Recommended first reference VPS:** Ubuntu LTS or Debian stable, 2 vCPU,
+2 GB RAM, 40 GB disk, public IP, DNS pointing. GPU worker sized separately,
+per provider.
+
+**Exact next operator actions:** run the certification plan, A first; every
+manual intervention it surfaces comes back as a ticket.

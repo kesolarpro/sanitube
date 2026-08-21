@@ -9,6 +9,7 @@ use Illuminate\Support\ServiceProvider;
 use SaniTube\Observability\Capabilities\CapabilityRegistry;
 use SaniTube\Observability\Certification\CertificationLedger;
 use SaniTube\Observability\Console\HealthCommand;
+use SaniTube\Observability\Console\MailCertifyCommand;
 use SaniTube\Observability\Console\ProvidersCommand;
 use SaniTube\Observability\Console\RefreshOperationalHealthCommand;
 use SaniTube\Observability\Health\OperationalHealthStore;
@@ -41,7 +42,7 @@ final class ObservabilityServiceProvider extends ServiceProvider
     public function boot(): void
     {
         if ($this->app->runningInConsole()) {
-            $this->commands([HealthCommand::class, RefreshOperationalHealthCommand::class, ProvidersCommand::class]);
+            $this->commands([HealthCommand::class, RefreshOperationalHealthCommand::class, ProvidersCommand::class, MailCertifyCommand::class]);
         }
     }
 }

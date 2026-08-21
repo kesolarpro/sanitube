@@ -1,7 +1,7 @@
 {
  "$comment": "Machine-readable project state. Any new session reads this first, then verifies it against GitHub before trusting it. Written at the end of each ticket, so a stale entry means a session ended mid-ticket — check the branch and CI rather than the status field.",
  "updated_at": "2026-08-21",
- "current_phase": "Mission finalisation + deploiement automatise : d'INTERNAL_PHASE2_COMPLETE vers une installation de production reproductible. Installeur a point d'entree unique, profils, machine a etats reprenable, generation de services, artefact frontend, mise a jour/retour arriere, cadre de certification des fournisseurs.",
+ "current_phase": "Mission deploiement automatise terminee cote interne : DEP-007 a DEP-018 fusionnes. INTERNAL_DEPLOYMENT_AUTOMATION_COMPLETE = YES, READY_FOR_REAL_VPS_CERTIFICATION = YES. Le reste demande un vrai hote, un vrai identifiant, ou une decision humaine — le plan A-K est docs/deployment/certification-plan.md.",
  "last_completed_ticket": "DEP-015",
  "default_branch": "main — confirmed by API this session. The EXTERNAL_ADMIN_ACTION_REQUIRED blocker is cleared.",
  "tickets": {
@@ -1009,6 +1009,13 @@
    "branch": "claude/sanitube-autonomous-v1-5pycx0",
    "note": "sanitube:assets:relocate — le catalogue demenage sous preuve. ADR-0022 : l'emplacement peut bouger sous preuve, l'identite jamais. Copie en flux, verification de la cible contre ce que l'actif a toujours affirme, puis sauvegarde sanctionnee que l'observateur consomme. Un changement de disque nu jette toujours ; une sauvegarde mixte refusee depense aussi la sanction (son test a attrape la premiere version). Aucune source jamais supprimee — le service n'a pas d'appel delete a faire contre une source, par conception.",
    "adr": "docs/adr/ADR-0022-location-may-move-under-proof-identity-never.md"
+  },
+  "DEP-019": {
+   "status": "in_review",
+   "pr": null,
+   "ci": "pending",
+   "branch": "claude/sanitube-autonomous-v1-5pycx0",
+   "note": "sanitube:mail:certify — configure et livre sont deux faits differents. Un seul vrai message, a une adresse que l'operateur nomme, seulement quand il le demande. L'acceptation devient un enregistrement du registre, empreinte sur la configuration du mailer ; changer de relais de-certifie en silence. Les mots du transport ne sont pas cites — ils portent des hotes et parfois des identifiants."
   }
  },
  "architecture_amendments": [
@@ -1080,11 +1087,13 @@
  },
  "open_pull_requests": [],
  "next_session": {
-  "start_with": "Rien n'est en attente cote interne qui puisse etre fait sans decision ou sans acces externe. Lire internal_phase2_complete avant de reprendre du code.",
+  "start_with": "Rien n'est en attente cote interne. Si le plan de certification reel a ete execute, traiter ce qu'il a decouvert ; sinon, il attend un hote.",
   "awaiting_owner": [
-   "Chiffrement des sauvegardes au repos. Realisable en interne, et delibere : cela change la semantique de restauration — ou vit la cle, ce qu'une restauration exige, et ce qu'une cle perdue rend irrecuperable. C'est une zone REVIEW_REQUIRED (semantique de stockage destructive), donc arretee pour decision plutot que faite."
+   "Chiffrement des sauvegardes au repos (REVIEW_REQUIRED, inchange).",
+   "Execution du plan de certification A-K sur un vrai VPS (acces necessaire).",
+   "Retrait des copies locales apres migration verifiee vers le stockage objet — decision explicite, jamais automatique (ADR-0022)."
   ],
-  "blocked_external": "Dix lignes, chacune nommee dans docs/final-report.md section 5."
+  "blocked_external": "Voir docs/final-report.md sections 5 et 12."
  },
  "review_policy": {
   "active": false,
@@ -1384,5 +1393,11 @@
    "J adaptateur reel": "demande un acces verifie chez un distributeur. Non disponible."
   },
   "not_manufactured": "Aucun ticket n'a ete cree pour gonfler le compte. D a G ont ete audites et rapportes comme n'ayant besoin de rien, plutot que transformes en travail."
+ },
+ "internal_deployment_automation_complete": {
+  "value": "YES",
+  "recorded_at": "2026-08-21",
+  "meaning": "Chaque ligne restante demande un vrai hote, un vrai identifiant ou une decision humaine. Le rapport detaille est docs/final-report.md section 12 ; le script de certification reel est docs/deployment/certification-plan.md (A a K).",
+  "next_operator_action": "Executer le plan de certification, A d'abord. Chaque intervention manuelle decouverte revient en ticket."
  }
 }

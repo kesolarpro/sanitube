@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace SaniTube\Observability\Certification;
 
+use SaniTube\Observability\Console\MailCertifyCommand;
+
 /**
  * Every external provider this platform can use, and where each one stands
  * on this installation — derived from configuration and the certification
@@ -34,6 +36,7 @@ final readonly class ProviderStandings
             $this->artwork(),
             $this->musicGeneration(),
             $this->distributor(),
+            $this->mail(),
             $this->ddex(),
         ];
     }
@@ -205,6 +208,30 @@ final readonly class ProviderStandings
             self::fingerprint([$provider]),
             sprintf('[%s] is configured. Certify against its sandbox before anything irreversible.', $provider),
             sprintf('[%s] passed a certification run.', $provider),
+        );
+    }
+
+    private function mail(): ProviderStanding
+    {
+        $mailer = (string) config('mail.default', 'log');
+        $transport = (string) config(sprintf('mail.mailers.%s.transport', $mailer), $mailer);
+
+        if (in_array($transport, ['log', 'array'], true)) {
+            return new ProviderStanding(
+                'mail',
+                'Mail delivery',
+                CertificationStatus::NotConfigured,
+                sprintf('Mailer [%s] delivers nothing. Password resets depend on a real one.', $mailer),
+            );
+        }
+
+        return $this->fromLedger(
+            'mail',
+            'Mail delivery',
+            'mail',
+            MailCertifyCommand::fingerprint(),
+            sprintf('[%s] is configured. sanitube:mail:certify <address> sends the one real proof.', $mailer),
+            sprintf('[%s] delivered a real certification message.', $mailer),
         );
     }
 

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Observability;
 
+use Illuminate\Support\Facades\Mail;
 use PHPUnit\Framework\Attributes\Test;
 use SaniTube\Observability\Certification\CertificationLedger;
 use SaniTube\Observability\Certification\CertificationStatus;
@@ -80,6 +81,7 @@ final class ProviderStandingsTest extends TestCase
             'artwork' => CertificationStatus::NotConfigured,
             'music_generation' => CertificationStatus::Unavailable,
             'distributor' => CertificationStatus::CodeReady,
+            'mail' => CertificationStatus::NotConfigured,
             'ddex' => CertificationStatus::BlockedExternal,
         ];
 
@@ -170,6 +172,55 @@ final class ProviderStandingsTest extends TestCase
             $this->assertMatchesRegularExpression('/^[0-9a-f]{16}$/', $fingerprint);
             $this->assertStringNotContainsString('secret', $fingerprint);
         }
+    }
+
+    #[Test]
+    public function a_real_smtp_mailer_is_uncertified_until_a_message_was_accepted(): void
+    {
+        config(['mail.default' => 'smtp', 'mail.mailers.smtp.transport' => 'smtp', 'mail.mailers.smtp.host' => 'mail.example', 'mail.mailers.smtp.port' => 587]);
+
+        $this->assertSame(CertificationStatus::ConfiguredUncertified, $this->statuses()['mail']);
+    }
+
+    #[Test]
+    public function a_delivered_certification_message_certifies_and_a_changed_host_uncertifies(): void
+    {
+        $this->swapLedger();
+        config(['mail.default' => 'smtp', 'mail.mailers.smtp.transport' => 'smtp', 'mail.mailers.smtp.host' => 'mail.example', 'mail.mailers.smtp.port' => 587]);
+
+        Mail::fake();
+
+        $this->artisan('sanitube:mail:certify', ['address' => 'operator@label.example'])
+            ->expectsOutputToContain('accepted by the transport')
+            ->assertSuccessful();
+
+        $this->assertSame(CertificationStatus::Certified, $this->statuses()['mail']);
+
+        // A different relay is a different fact; the record stops answering.
+        config(['mail.mailers.smtp.host' => 'other-relay.example']);
+        $this->assertSame(CertificationStatus::ConfiguredUncertified, $this->statuses()['mail']);
+    }
+
+    #[Test]
+    public function a_mailer_that_delivers_nothing_has_nothing_to_certify(): void
+    {
+        $this->swapLedger();
+        config(['mail.default' => 'log']);
+
+        $this->artisan('sanitube:mail:certify', ['address' => 'operator@label.example'])
+            ->expectsOutputToContain('does not deliver anything')
+            ->assertFailed();
+    }
+
+    #[Test]
+    public function a_non_address_is_refused_before_any_send(): void
+    {
+        Mail::fake();
+
+        $this->artisan('sanitube:mail:certify', ['address' => 'not-an-address'])
+            ->assertExitCode(2);
+
+        Mail::assertNothingSent();
     }
 
     // ------------------------------------------------------------ command
