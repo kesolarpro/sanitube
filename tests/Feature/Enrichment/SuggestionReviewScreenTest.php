@@ -6,6 +6,7 @@ namespace Tests\Feature\Enrichment;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use PHPUnit\Framework\Attributes\Test;
 use SaniTube\Assets\Enums\AssetKind;
 use SaniTube\Assets\Models\Asset;
@@ -287,6 +288,83 @@ final class SuggestionReviewScreenTest extends TestCase
     }
 
     // ------------------------------------------------------------- fixtures
+
+    /**
+     * The queue costs the same whether it holds one row or a page of them.
+     *
+     * It did not. `canonical` asked for the track mastering each asset and
+     * `measured` for that asset's newest analysis, both **inside the row
+     * loop** — two queries per suggestion, fifty for a full page of
+     * twenty-five.
+     *
+     * It hid in a gap between two tests. `CatalogueScaleTest` compares a small
+     * catalogue against a large one, and an N+1 behind a cursor runs once per
+     * *row on the page* — a number that does not change with the catalogue, so
+     * the comparison sees nothing. The per-screen ceiling in that file is what
+     * catches this shape, and `/enrichment/suggestions` is one of the five
+     * screens it names as unreachable: building the chain of objects it needs
+     * is what this fixture does, here, where the objects live.
+     *
+     * Counted rather than bounded by a number somebody chose. One row and ten
+     * rows must cost the same, and what that same is does not matter.
+     */
+    #[Test]
+    public function the_queue_costs_the_same_for_one_row_as_for_a_page(): void
+    {
+        $one = $this->queriesForSuggestions(1);
+        $many = $this->queriesForSuggestions(10);
+
+        $this->assertSame(
+            $one,
+            $many,
+            sprintf(
+                'One suggestion cost %d queries and ten cost %d. Something in the row loop is asking per row.',
+                $one,
+                $many,
+            ),
+        );
+    }
+
+    /**
+     * Queries to render a page holding this many suggestions.
+     *
+     * Each one gets its own asset, its own track and its own analysis, because
+     * a fixture that pointed every suggestion at one asset would let a per-row
+     * lookup be answered from the identity map and report no N+1 at all.
+     */
+    private function queriesForSuggestions(int $count): int
+    {
+        MetadataSuggestion::query()->delete();
+
+        for ($i = 0; $i < $count; $i++) {
+            $asset = $this->asset();
+
+            Track::factory()->create([
+                'master_asset_id' => $asset->id,
+                'title' => 'Track '.$i,
+                'language_code' => 'en',
+                'status' => TrackStatus::Draft,
+            ]);
+
+            $this->analysis($asset->id);
+            $this->suggestion($asset->id);
+        }
+
+        // A fresh container, so nothing already resolved answers for free.
+        $this->app->forgetScopedInstances();
+
+        DB::flushQueryLog();
+        DB::enableQueryLog();
+
+        $rows = $this->query()->paginate()['rows'];
+
+        $queries = count(DB::getQueryLog());
+        DB::disableQueryLog();
+
+        $this->assertCount($count, $rows, 'The page did not hold what the fixture put in it.');
+
+        return $queries;
+    }
 
     private function query(): SuggestionReviewQuery
     {

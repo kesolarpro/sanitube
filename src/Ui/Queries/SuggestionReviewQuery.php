@@ -98,8 +98,21 @@ final readonly class SuggestionReviewQuery
     {
         $rows = [];
 
+        // Both lookups for the whole page, once, before the loop.
+        //
+        // They used to be inside it: a track query and an analysis query per
+        // suggestion, fifty queries for a page of twenty-five. Neither shows
+        // up in the growth measurement `CatalogueScaleTest` runs, and that is
+        // not an oversight in that test — an N+1 behind a cursor runs once per
+        // *row on the page*, and the page size does not change with the
+        // catalogue. It is the per-screen ceiling that catches this shape, and
+        // this screen was one of the five that test could not reach.
+        $assetIds = $this->assetIds($page);
+        $tracks = $this->tracksByAsset($assetIds);
+        $analyses = $this->analysesByAsset($assetIds);
+
         foreach ($page->items() as $suggestion) {
-            $track = Track::query()->where('master_asset_id', $suggestion->asset_id)->first();
+            $track = $tracks[$suggestion->asset_id] ?? null;
 
             $rows[] = [
                 'uuid' => $suggestion->uuid,
@@ -127,7 +140,7 @@ final readonly class SuggestionReviewQuery
                 'decided_at' => $suggestion->decided_at?->toAtomString(),
 
                 'canonical' => $this->canonical($track),
-                'measured' => $this->measured($suggestion),
+                'measured' => $this->measured($analyses[$suggestion->asset_id] ?? null),
                 'proposed' => $this->proposed($suggestion),
                 'suggested' => $this->suggested($suggestion),
 
@@ -142,6 +155,87 @@ final readonly class SuggestionReviewQuery
         }
 
         return $rows;
+    }
+
+    /**
+     * The assets this page of suggestions points at, deduplicated.
+     *
+     * @param  CursorPaginator<int, MetadataSuggestion>  $page
+     * @return list<int>
+     */
+    private function assetIds(CursorPaginator $page): array
+    {
+        $ids = [];
+
+        foreach ($page->items() as $suggestion) {
+            $ids[$suggestion->asset_id] = true;
+        }
+
+        return array_map('intval', array_keys($ids));
+    }
+
+    /**
+     * The track each asset is the master of, if any.
+     *
+     * Keyed by asset rather than by track, because that is the direction this
+     * screen asks in: it holds a suggestion about a file and wants to know
+     * what the catalogue already says about it. Most assets have no track —
+     * a suggestion on an unpromoted candidate is the ordinary case — so this
+     * returns fewer entries than it was given ids, and `canonical` stays null
+     * for the rest, which is the honest answer.
+     *
+     * @param  list<int>  $assetIds
+     * @return array<int, Track>
+     */
+    private function tracksByAsset(array $assetIds): array
+    {
+        if ($assetIds === []) {
+            return [];
+        }
+
+        $tracks = [];
+
+        foreach (Track::query()->whereIn('master_asset_id', $assetIds)->get() as $track) {
+            $tracks[(int) $track->master_asset_id] = $track;
+        }
+
+        return $tracks;
+    }
+
+    /**
+     * The newest successful analysis for each asset.
+     *
+     * Reduced in PHP rather than with a window function or a correlated
+     * subquery: this platform runs on SQLite, MySQL 8 and MariaDB 10.6, and
+     * the shapes that express "latest per group" in SQL are exactly where
+     * those three disagree. The rows fetched are bounded by the page — twenty
+     * five assets, and an asset is analysed once or twice — so the reduction
+     * is over tens of rows, not the table.
+     *
+     * @param  list<int>  $assetIds
+     * @return array<int, AudioAnalysis>
+     */
+    private function analysesByAsset(array $assetIds): array
+    {
+        if ($assetIds === []) {
+            return [];
+        }
+
+        $analyses = [];
+
+        // Ascending, so the last one written for an asset is the one left in
+        // the map — the same row `latest('id')->first()` used to return.
+        $found = AudioAnalysis::query()
+            ->whereIn('asset_id', $assetIds)
+            ->where('succeeded', true)
+            ->orderBy('id')
+            ->get();
+
+        foreach ($found as $analysis) {
+            $analyses[(int) $analysis->asset_id] = $analysis;
+        }
+
+        return $analyses;
     }
 
     /**
@@ -179,14 +273,8 @@ final readonly class SuggestionReviewQuery
      *
      * @return array<string, mixed>|null
      */
-    private function measured(MetadataSuggestion $suggestion): ?array
+    private function measured(?AudioAnalysis $analysis): ?array
     {
-        $analysis = AudioAnalysis::query()
-            ->where('asset_id', $suggestion->asset_id)
-            ->where('succeeded', true)
-            ->latest('id')
-            ->first();
-
         if (! $analysis instanceof AudioAnalysis) {
             return null;
         }
