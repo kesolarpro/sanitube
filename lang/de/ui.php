@@ -546,7 +546,6 @@ return [
         'cover_prompt' => 'Beschreiben Sie das Cover',
         'cover_prompt_hint' => 'Was das Bild zeigen soll. Das geht an den Anbieter und kostet eine Anfrage — ein Satz lohnt sich mehr als ein Wort.',
         'cover_generate' => 'Cover anfragen',
-        'cover_generation_queued' => 'Angefragt. Es läuft im Hintergrund — neu laden, um das Ergebnis zu sehen.',
         'cover_remaining' => 'noch :left :window',
         'cover_window' => ['daily' => 'heute', 'weekly' => 'diese Woche', 'monthly' => 'diesen Monat'],
         'cover_history' => 'Was angefragt wurde. Ein fertiges Bild muss noch als Cover gewählt werden.',
@@ -576,7 +575,6 @@ return [
         'p_line_hint' => 'Wird von Stores neben der Aufnahme abgedruckt. Ein Vermerk, keine Berechnung — SaniTube führt keine Buchhaltung.',
         'no_date' => 'Kein Datum gesetzt',
         'save' => 'Angaben speichern',
-        'saved' => 'Gespeichert.',
         'locked' => 'Diese Veröffentlichung kann nicht mehr bearbeitet werden',
         'locked_note' => 'Eine an einen Vertrieb übergebene Veröffentlichung kann hier nicht bearbeitet werden, weil die Fassung beim Vertrieb sonst nicht mehr übereinstimmt.',
         'reopen' => 'Zur Bearbeitung wieder öffnen',
@@ -681,8 +679,6 @@ return [
         'blank_means_unchanged' => 'Leere Felder bleiben unberührt.',
         'save' => 'Änderungen speichern',
         'not_saved' => 'Es wurde nichts gespeichert',
-        'saved' => 'Gespeichert.',
-        'unchanged' => 'Es hatte sich nichts geändert.',
         'failure' => [
             'SETTINGS_NOT_WRITTEN' => 'Die .env-Datei konnte nicht geschrieben werden. Sie wurde zuvor gesichert und exakt so belassen, wie sie war.',
             'SETTINGS_CACHE_NOT_REBUILT' => 'Der Konfigurations-Cache konnte nicht neu erstellt werden, deshalb wurde die vorherige .env wiederhergestellt. Ein Cache, der nicht mehr zur Datei passt, wäre schlimmer als gar keine Änderung.',
@@ -748,10 +744,6 @@ return [
         'cancel_occasion' => 'Diese Gelegenheit absagen',
         'cancel_occasion_description' => 'Markiert die Gelegenheit als von einer Person abgesagt. Eine bereits angefragte Generierung wird dadurch nicht zurückgeholt.',
         'cancel_occasion_confirm' => 'Absagen',
-        'plan_paused' => 'Der Plan ist pausiert.',
-        'plan_resumed' => 'Der Plan läuft wieder.',
-        'autonomy_changed' => 'Was dieser Plan allein darf, hat sich geändert.',
-        'occasion_cancelled' => 'Die Gelegenheit wurde abgesagt.',
         'spends_money' => 'Gelegenheiten eines Plans, der allein handeln darf, sind bei einem Anbieter bezahlte Anfragen.',
         'failure' => [
             'PLAN_NOT_RESUMABLE' => 'Ein erschöpfter Plan braucht ein höheres Ziel und ein deaktivierter eine erneute Überlegung. Keines davon sollte eine Fortsetzen-Schaltfläche für Sie erledigen.',
@@ -929,7 +921,6 @@ return [
         'prefix_hint' => 'Alles Verwertbare unter diesem Pfad. Leer lassen, wenn Sie unten Dateien auflisten.',
         'references' => 'Dateien',
         'references_hint' => 'Ein Objektschlüssel pro Zeile. Leer lassen, wenn Sie oben einen Ordner angegeben haben.',
-        'import_started' => 'Der Import steht in der Warteschlange.',
         'import_failure' => [
             'AMBIGUOUS_SELECTION' => 'Ein Ordner und eine Dateiliste sagen beide, was importiert werden soll, und es gibt keine Regel dafür, was gewinnt. Nutzen Sie eines von beiden.',
             'NOTHING_SELECTED' => 'Nennen Sie einen Ordner oder listen Sie Dateien auf. Alles blind zu importieren war nie gemeint.',
@@ -1234,8 +1225,6 @@ return [
             'IDENTIFIER_NAMESPACE_REQUIRED' => 'Diese Art von Kennung wird von einer Gegenstelle ausgestellt und muss sie benennen.',
             'IDENTIFIER_NAMESPACE_FORBIDDEN' => 'Diese Art von Kennung wird global ausgestellt und trägt keinen Gegenstellennamen.',
         ],
-        'identifier_assigned' => 'Kennung eingetragen.',
-        'identifier_revoked' => 'Kennung zurückgezogen.',
         'authoritative' => 'Maßgeblich',
         'releases' => 'Veröffentlichungen',
         'no_releases' => 'Noch auf keiner Veröffentlichung',
@@ -1484,5 +1473,61 @@ return [
             'ENRICHMENT_NO_EVIDENCE' => 'Es gibt noch nichts, worauf sich stützen ließe. Transkribieren Sie die Datei zuerst.',
             'ENRICHMENT_ALREADY_WAITING' => 'Ein Vorschlag wartet bereits auf Durchsicht.',
         ],
+    ],
+    /*
+     | Every sentence the interface says after a write that worked.
+     |
+     | **Keyed by the flash code itself**, dots and all, because the code is
+     | what a controller flashes and one home for all of them is what makes the
+     | set enumerable -- `SuccessIsAnnouncedTest` reads every `with('status',
+     | ...)` in `src/` and asserts each has a line here, in every locale.
+     |
+     | UI-006 exists because there were thirty-six of these codes and no
+     | wiring: `status` was never a shared prop, no screen read it, and ten of
+     | the sentences below had already been written by earlier tickets and
+     | shown to nobody. Every successful write in the interface -- including
+     | handing a release to a distributor, the one act that cannot be undone --
+     | redirected in silence.
+     */
+
+    'flash' => [
+        'candidate.bulk_queued' => 'In der Warteschlange. Jede Entscheidung wird für sich angewendet, die Liste leert sich also, während die Arbeit läuft.',
+        'candidate.promoted' => 'Zum Katalog hinzugefügt.',
+        'candidate.rejected' => 'Abgelehnt. Die Datei ist weiterhin da; festgehalten wurde nur die Entscheidung.',
+        'candidate.revised' => 'Gespeichert.',
+        'catalog.identifier_assigned' => 'Kennung erfasst.',
+        'catalog.identifier_revoked' => 'Kennung zurückgezogen.',
+        'distribution.reconciled' => 'Abgeglichen. Was der Vertrieb hält, ist jetzt das, was hier steht.',
+        'distribution.resolved' => 'Erfasst. Das ist Ihre Aussage darüber, was der Vertrieb hält, nicht seine.',
+        'distribution.submitted' => 'Übergeben. Das lässt sich nicht zurücknehmen — verfolgen Sie die Auslieferung.',
+        'distribution.synced' => 'Beim Vertrieb aktualisiert.',
+        'distribution.takedown_requested' => 'Rücknahme angefragt. Wann sie wirkt, entscheidet der Vertrieb.',
+        'ingestion.import_started' => 'Der Import steht in der Warteschlange.',
+        'ingestion.inbox_discarded' => 'Aus dem Eingang verworfen.',
+        'jobs.forgotten' => 'Aus der Fehlerliste entfernt. Rückgängig gemacht wurde nichts.',
+        'jobs.retried' => 'Erneut eingereiht.',
+        'production.autonomy_changed' => 'Was dieser Plan allein tun darf, hat sich geändert.',
+        'production.occasion_cancelled' => 'Der Anlass wurde abgesagt.',
+        'production.plan_paused' => 'Der Plan pausiert.',
+        'production.plan_resumed' => 'Der Plan läuft wieder.',
+        'release.artists_saved' => 'Credits gespeichert.',
+        'release.cover_saved' => 'Cover gesetzt.',
+        'release.created' => 'Veröffentlichung angelegt.',
+        'release.ready' => 'Als vertriebsbereit markiert. Sie lässt sich nicht mehr an Ort und Stelle ändern.',
+        'release.reopened' => 'Wieder als Entwurf geöffnet. Sie muss die Prüfung erneut bestehen, bevor sie übergeben werden kann.',
+        'release.reordered' => 'Reihenfolge gespeichert.',
+        'release.saved' => 'Gespeichert.',
+        'release.track_added' => 'Titel hinzugefügt.',
+        'release.track_removed' => 'Titel aus dieser Veröffentlichung entfernt. Die Aufnahme selbst bleibt unberührt.',
+        'releases.cover_generation_queued' => 'Angefragt. Läuft im Hintergrund — neu laden, um das Ergebnis zu sehen.',
+        'settings.saved' => 'Gespeichert.',
+        'settings.unchanged' => 'Es hatte sich nichts geändert.',
+        'studio.generation_cancelled' => 'Abgebrochen.',
+        'studio.generation_started' => 'In der Warteschlange. Läuft im Hintergrund — neu laden, um das Ergebnis zu sehen.',
+        'studio.project_created' => 'Projekt angelegt.',
+        'studio.result_selected' => 'Behalten. Kommt wie jede andere Aufnahme in die Prüfliste.',
+        'system.health_refreshed' => 'Gerade eben geprüft.',
+        'track.credits_saved' => 'Credits gespeichert.',
+        'track.ready' => 'Als fertig markiert. Sie kann jetzt auf eine Veröffentlichung.',
     ],
 ];

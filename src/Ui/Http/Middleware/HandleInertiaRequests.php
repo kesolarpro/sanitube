@@ -69,6 +69,17 @@ final class HandleInertiaRequests extends Middleware
             'flash' => [
                 'success' => $request->session()->get('success'),
                 'error' => $request->session()->get('error'),
+
+                // UI-006. A *code*, never a sentence: the interface holds the
+                // copy in six languages, and a controller that flashed English
+                // would hand a Portuguese reader an English confirmation for
+                // the one thing they most need to have understood.
+                //
+                // This was missing, and thirty-six controllers had been
+                // flashing into it for months. Every successful write in the
+                // interface — including handing a release to a distributor,
+                // the one act that cannot be undone — redirected in silence.
+                'status' => $request->session()->get('status'),
             ],
 
             // Resolved server-side for the active locale, so the interface

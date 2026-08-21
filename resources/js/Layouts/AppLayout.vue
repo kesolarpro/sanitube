@@ -175,6 +175,13 @@ function cycleTheme(): void {
             </header>
 
             <main id="main" class="mx-auto w-full max-w-[90rem] p-4 sm:p-6">
+                <!-- UI-006. The confirmation for a write that worked.
+                     Translated here rather than flashed as a sentence, so a
+                     Portuguese reader is told in Portuguese that a release
+                     they cannot take back has been handed over. -->
+                <AppAlert v-if="page.props.flash.status" tone="success" class="mb-4">
+                    {{ trans(`ui.flash.${page.props.flash.status}`) }}
+                </AppAlert>
                 <AppAlert v-if="page.props.flash.success" tone="success" class="mb-4">
                     {{ page.props.flash.success }}
                 </AppAlert>

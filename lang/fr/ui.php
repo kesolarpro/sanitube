@@ -546,7 +546,6 @@ return [
         'cover_prompt' => 'Décrivez la pochette',
         'cover_prompt_hint' => 'Ce que l\'image doit montrer. C\'est envoyé au fournisseur et cela coûte une requête : une phrase vaut mieux qu\'un mot.',
         'cover_generate' => 'Demander une pochette',
-        'cover_generation_queued' => 'Demandée. Cela tourne en arrière-plan — rechargez pour voir le résultat.',
         'cover_remaining' => ':left restante(s) :window',
         'cover_window' => ['daily' => 'aujourd\'hui', 'weekly' => 'cette semaine', 'monthly' => 'ce mois-ci'],
         'cover_history' => 'Ce qui a été demandé. Une image terminée doit encore être choisie comme pochette.',
@@ -576,7 +575,6 @@ return [
         'p_line_hint' => 'Imprimé par les plateformes à côté de l\'enregistrement. Une mention, pas un calcul — SaniTube ne fait aucune comptabilité.',
         'no_date' => 'Aucune date définie',
         'save' => 'Enregistrer les détails',
-        'saved' => 'Enregistré.',
         'locked' => 'Cette sortie ne peut plus être modifiée',
         'locked_note' => 'Une sortie confiée à un distributeur ne peut plus être modifiée ici, car la copie détenue par le distributeur ne correspondrait plus.',
         'reopen' => 'Rouvrir pour modification',
@@ -681,8 +679,6 @@ return [
         'blank_means_unchanged' => 'Les champs vides sont laissés tels quels.',
         'save' => 'Enregistrer',
         'not_saved' => 'Rien n\'a été enregistré',
-        'saved' => 'Enregistré.',
-        'unchanged' => 'Rien n\'avait changé.',
         'failure' => [
             'SETTINGS_NOT_WRITTEN' => 'Le fichier .env n\'a pas pu être écrit. Il a d\'abord été sauvegardé et laissé exactement tel qu\'il était.',
             'SETTINGS_CACHE_NOT_REBUILT' => 'Le cache de configuration n\'a pas pu être reconstruit, donc le .env précédent a été restauré. Un cache qui ne correspond plus au fichier serait pire qu\'aucun changement.',
@@ -748,10 +744,6 @@ return [
         'cancel_occasion' => 'Annuler cette occasion',
         'cancel_occasion_description' => 'Marque l\'occasion comme annulée par une personne. Une génération déjà demandée n\'est pas rappelée par ceci.',
         'cancel_occasion_confirm' => 'Annuler',
-        'plan_paused' => 'Le plan est en pause.',
-        'plan_resumed' => 'Le plan tourne à nouveau.',
-        'autonomy_changed' => 'Ce que ce plan peut faire seul a changé.',
-        'occasion_cancelled' => 'L\'occasion a été annulée.',
         'spends_money' => 'Les occasions d\'un plan qui peut agir seul sont des requêtes payées chez un fournisseur.',
         'failure' => [
             'PLAN_NOT_RESUMABLE' => 'Un plan épuisé demande que son objectif soit relevé et un plan désactivé demande à être reconsidéré. Ni l\'un ni l\'autre n\'est une chose qu\'un bouton « reprendre » devrait faire à votre place.',
@@ -929,7 +921,6 @@ return [
         'prefix_hint' => 'Tout ce qui est exploitable sous ce chemin. Laissez vide si vous listez les fichiers ci-dessous.',
         'references' => 'Fichiers',
         'references_hint' => 'Une clé d’objet par ligne. Laissez vide si vous avez indiqué un dossier ci-dessus.',
-        'import_started' => 'L’import a été mis en file.',
         'import_failure' => [
             'AMBIGUOUS_SELECTION' => 'Un dossier et une liste de fichiers désignent tous deux ce qu’il faut importer, sans règle pour départager. Utilisez l’un ou l’autre.',
             'NOTHING_SELECTED' => 'Indiquez un dossier ou listez des fichiers. Importer tout à l’aveugle n’est jamais ce que quelqu’un voulait.',
@@ -1234,8 +1225,6 @@ return [
             'IDENTIFIER_NAMESPACE_REQUIRED' => 'Ce type d\'identifiant est délivré par un tiers et doit le nommer.',
             'IDENTIFIER_NAMESPACE_FORBIDDEN' => 'Ce type d\'identifiant est délivré globalement et ne prend pas de nom de tiers.',
         ],
-        'identifier_assigned' => 'Identifiant enregistré.',
-        'identifier_revoked' => 'Identifiant retiré.',
         'authoritative' => 'Fait autorité',
         'releases' => 'Sorties',
         'no_releases' => 'Sur aucune sortie pour l\'instant',
@@ -1484,5 +1473,61 @@ return [
             'ENRICHMENT_NO_EVIDENCE' => 'Il n’y a encore rien sur quoi raisonner. Transcrivez d’abord le fichier.',
             'ENRICHMENT_ALREADY_WAITING' => 'Une suggestion attend déjà une relecture.',
         ],
+    ],
+    /*
+     | Every sentence the interface says after a write that worked.
+     |
+     | **Keyed by the flash code itself**, dots and all, because the code is
+     | what a controller flashes and one home for all of them is what makes the
+     | set enumerable -- `SuccessIsAnnouncedTest` reads every `with('status',
+     | ...)` in `src/` and asserts each has a line here, in every locale.
+     |
+     | UI-006 exists because there were thirty-six of these codes and no
+     | wiring: `status` was never a shared prop, no screen read it, and ten of
+     | the sentences below had already been written by earlier tickets and
+     | shown to nobody. Every successful write in the interface -- including
+     | handing a release to a distributor, the one act that cannot be undone --
+     | redirected in silence.
+     */
+
+    'flash' => [
+        'candidate.bulk_queued' => 'Mis en file. Chaque décision s\'applique séparément, donc la file se vide à mesure que le travail se fait.',
+        'candidate.promoted' => 'Ajouté au catalogue.',
+        'candidate.rejected' => 'Rejeté. Le fichier est toujours là ; seule la décision a été enregistrée.',
+        'candidate.revised' => 'Enregistré.',
+        'catalog.identifier_assigned' => 'Identifiant enregistré.',
+        'catalog.identifier_revoked' => 'Identifiant retiré.',
+        'distribution.reconciled' => 'Réconcilié. Ce que détient le distributeur est désormais ce qui est enregistré ici.',
+        'distribution.resolved' => 'Enregistré. C\'est votre affirmation sur ce que détient le distributeur, pas la sienne.',
+        'distribution.submitted' => 'Remis. Cela ne peut pas être repris — suivez la livraison pour la suite.',
+        'distribution.synced' => 'Actualisé auprès du distributeur.',
+        'distribution.takedown_requested' => 'Retrait demandé. Le distributeur décide quand il prend effet.',
+        'ingestion.import_started' => 'L\'import a été mis en file.',
+        'ingestion.inbox_discarded' => 'Écarté de la boîte de dépôt.',
+        'jobs.forgotten' => 'Retiré de la liste des échecs. Rien n\'a été défait.',
+        'jobs.retried' => 'Remis en file.',
+        'production.autonomy_changed' => 'Ce que ce plan peut faire seul a changé.',
+        'production.occasion_cancelled' => 'L\'occasion a été annulée.',
+        'production.plan_paused' => 'Le plan est en pause.',
+        'production.plan_resumed' => 'Le plan tourne à nouveau.',
+        'release.artists_saved' => 'Crédits enregistrés.',
+        'release.cover_saved' => 'Pochette définie.',
+        'release.created' => 'Sortie créée.',
+        'release.ready' => 'Marquée prête pour la distribution. Elle ne peut plus être modifiée en place.',
+        'release.reopened' => 'Rouverte en brouillon. Elle devra repasser la validation avant d\'être remise.',
+        'release.reordered' => 'Ordre de passage enregistré.',
+        'release.saved' => 'Enregistré.',
+        'release.track_added' => 'Piste ajoutée.',
+        'release.track_removed' => 'Piste retirée de cette sortie. L\'enregistrement lui-même est intact.',
+        'releases.cover_generation_queued' => 'Demandé. Cela tourne en arrière-plan — rechargez pour voir le résultat.',
+        'settings.saved' => 'Enregistré.',
+        'settings.unchanged' => 'Rien n\'avait changé.',
+        'studio.generation_cancelled' => 'Annulé.',
+        'studio.generation_started' => 'Mis en file. Cela tourne en arrière-plan — rechargez pour voir le résultat.',
+        'studio.project_created' => 'Projet créé.',
+        'studio.result_selected' => 'Conservé. Rejoint la file de revue comme tout autre enregistrement.',
+        'system.health_refreshed' => 'Vérifié à l\'instant.',
+        'track.credits_saved' => 'Crédits enregistrés.',
+        'track.ready' => 'Marquée prête. Elle peut maintenant figurer sur une sortie.',
     ],
 ];

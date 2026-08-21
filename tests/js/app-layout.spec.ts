@@ -2,7 +2,7 @@ import { mount } from '@vue/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { resetModalSurfaces } from '@/Composables/useModalSurface';
-import { navigationListeners } from './support/inertia';
+import { navigationListeners, sharedProps } from './support/inertia';
 import { flush, openDialog, pressKeyInDialog } from './support/environment';
 
 vi.mock('@inertiajs/vue3', () => import('./support/inertia'));
@@ -21,12 +21,39 @@ describe('application shell', () => {
     beforeEach(() => {
         resetModalSurfaces();
         navigationListeners.clear();
+        sharedProps.flash = {};
+        sharedProps.translations = {};
         document.body.innerHTML = '';
         document.body.style.overflow = '';
     });
 
     afterEach(() => {
         resetModalSurfaces();
+    });
+
+    /**
+     * UI-006. The confirmation for a write that worked.
+     *
+     * Thirty-six controllers were flashing a status code that the shell never
+     * received and never rendered, so every successful write in the interface
+     * redirected in silence. The code carries the *identity* of what happened;
+     * the shell is where it becomes a sentence in the reader's language.
+     */
+    it('announces a write that worked, in the reader\'s language', () => {
+        sharedProps.flash = { status: 'release.ready' };
+        sharedProps.translations = { 'ui.flash.release.ready': 'Marked ready for distribution.' };
+
+        const wrapper = mount(AppLayout, { attachTo: document.body });
+
+        expect(wrapper.text()).toContain('Marked ready for distribution.');
+        // The code itself never reaches the reader.
+        expect(wrapper.text()).not.toContain('release.ready');
+    });
+
+    it('says nothing when nothing was flashed', () => {
+        const wrapper = mount(AppLayout, { attachTo: document.body });
+
+        expect(wrapper.text()).not.toContain('Marked ready');
     });
 
     it('moves focus into the drawer when it opens', async () => {

@@ -33,6 +33,13 @@ export interface NavigationItem {
 export interface FlashMessages {
     success: string | null;
     error: string | null;
+    /**
+     * A translation code for a write that worked, e.g. `release.ready`.
+     *
+     * A code rather than a sentence, so the confirmation is in the reader's
+     * language: the copy lives at `ui.flash.<code>` in all six catalogues.
+     */
+    status: string | null;
 }
 
 export interface SharedProps extends InertiaPageProps {
