@@ -2,7 +2,7 @@
  "$comment": "Machine-readable project state. Any new session reads this first, then verifies it against GitHub before trusting it. Written at the end of each ticket, so a stale entry means a session ended mid-ticket — check the branch and CI rather than the status field.",
  "updated_at": "2026-08-21",
  "current_phase": "Mission finalisation + deploiement automatise : d'INTERNAL_PHASE2_COMPLETE vers une installation de production reproductible. Installeur a point d'entree unique, profils, machine a etats reprenable, generation de services, artefact frontend, mise a jour/retour arriere, cadre de certification des fournisseurs.",
- "last_completed_ticket": "DEP-008",
+ "last_completed_ticket": "DEP-009",
  "default_branch": "main — confirmed by API this session. The EXTERNAL_ADMIN_ACTION_REQUIRED blocker is cleared.",
  "tickets": {
   "ARCH-001": {
@@ -940,11 +940,11 @@
    "recorded_from": "git log origin/main (03d6358)"
   },
   "DEP-009": {
-   "status": "in_review",
-   "pr": null,
-   "ci": "pending",
-   "branch": "claude/sanitube-autonomous-v1-5pycx0",
-   "note": "Installation sans surveillance depuis un fichier de configuration protege. Dialecte .env, liste blanche egale a celle de l'installeur web (tenue par un test par reflexion) ; un fichier lisible au-dela de son proprietaire est refuse avant d'en lire un octet ; une cle inconnue arrete l'execution par son nom ; le mot de passe du proprietaire vient du fichier ou de SANITUBE_OWNER_PASSWORD, jamais d'argv."
+   "status": "merged",
+   "pr": 139,
+   "ci": "green 10/10",
+   "note": "Installation sans surveillance depuis un fichier de configuration protege. Dialecte .env, liste blanche egale a celle de l'installeur web (tenue par un test par reflexion) ; un fichier lisible au-dela de son proprietaire est refuse avant d'en lire un octet ; une cle inconnue arrete l'execution par son nom ; le mot de passe du proprietaire vient du fichier ou de SANITUBE_OWNER_PASSWORD, jamais d'argv.",
+   "recorded_from": "git log origin/main (62e6aa9)"
   },
   "DEP-010": {
    "status": "in_review",
@@ -966,6 +966,13 @@
    "ci": "pending",
    "branch": "claude/sanitube-autonomous-v1-5pycx0",
    "note": "bin/update.sh + verrou de deploiement. La revision est un argument obligatoire sans defaut ; arbre sale refuse ; sauvegarde avant le rideau ; maintenance relachee par trap ; le docteur a le dernier mot une fois le site remonte. sanitube:deploy prend un verrou fichier — refus avec l'age du detenteur, perime apres une heure, relache meme quand une etape echoue. Le 'x' O_EXCL est nomme comme non tenu par les tests : la course est le point."
+  },
+  "DEP-013": {
+   "status": "in_review",
+   "pr": null,
+   "ci": "pending",
+   "branch": "claude/sanitube-autonomous-v1-5pycx0",
+   "note": "sanitube:providers — un modele de certification, six etats, aucun booleen vague. CERTIFIED ne se gagne que par les commandes qui parlent aux vrais services, enregistre dans un registre empreinte sur la configuration exacte : changer de bucket ou d'adresse de-certifie en silence. La suite de tests lie le registre ailleurs — la reussite d'un test ne peut jamais se lire comme une vraie certification."
   }
  },
  "architecture_amendments": [
@@ -1065,7 +1072,7 @@
    "history": "Not rewritten. PRs #111-#122 were merged by earlier sessions and #123-#129 by the 2026-08-21 session while this policy still read active:true. That happened and stays on the record; the policy is superseded from today rather than retroactively."
   }
  },
- "main_sha": "03d6358",
+ "main_sha": "62e6aa9",
  "current_ticket": "DEP-009",
  "tests": "1820 passed, 1 skipped, 23189 assertions",
  "phpstan": {

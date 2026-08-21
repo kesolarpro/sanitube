@@ -4,6 +4,7 @@ namespace Tests;
 
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 use SaniTube\Installer\Services\InstallationJournal;
+use SaniTube\Observability\Certification\CertificationLedger;
 
 abstract class TestCase extends BaseTestCase
 {
@@ -57,6 +58,18 @@ abstract class TestCase extends BaseTestCase
             InstallationJournal::class,
             fn (): InstallationJournal => new InstallationJournal(
                 storage_path('framework/testing/installer-journal'),
+            ),
+        );
+
+        // Same rule, same reason, for the certification ledger: the worker
+        // and storage certification tests run the real commands, and a
+        // passing run *records*. Left on the production binding they would
+        // write storage/framework/certifications.json into the checkout —
+        // and a test's pass must never read as a real certification.
+        $this->app->bind(
+            CertificationLedger::class,
+            fn (): CertificationLedger => new CertificationLedger(
+                storage_path('framework/testing/certification-ledger'),
             ),
         );
     }
