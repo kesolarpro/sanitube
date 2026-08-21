@@ -335,6 +335,10 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Detection names the package manager and refuses to act unasked
+        # Explicit bash: the container default `sh` is dash on Debian-family
+        # images, which rejects pipefail — exactly the class of distro
+        # assumption this job exists to catch, caught on its first run.
+        shell: bash
         run: |
           set -euo pipefail
           status=0
