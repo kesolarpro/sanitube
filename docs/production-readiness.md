@@ -209,7 +209,8 @@ written down.
 | A worker declares; Core asks | READY | WRK-001. A capability named in the vocabulary is not a promise any worker answers to it. A newer worker talking to an older Core is usable for what they share. |
 | The boundary knows nothing about what it carries | READY | WRK-001. Asserted: no module import in the transport. A handler declares the fields it accepts and nothing else reaches it. |
 | The worker decides nothing about the catalogue | READY | Identity, duplicate deletion, promotion, release membership and distribution eligibility stay in Core. A worker returns a measurement. |
-| **Certified against a real remote worker** | BLOCKED_EXTERNAL | Never executed against one. The handshake, the refusals and the containment are tested against a faked transport. |
+| **Certified against a real remote worker** | BLOCKED_EXTERNAL | Never executed against one — but WRK-003 means somebody now can. `sanitube:worker:check` proves the handshake, the capability vocabulary, that it refuses work it does not announce, and that its token is enforced. A real job round-trip is named as not covered rather than approximated. |
+| A worker can be certified before it is trusted | READY | WRK-003. The counterpart to `sanitube:storage:check --certify`, which the worker had no equivalent of. Read-only against the worker's world; prints neither the token nor any address. |
 
 ## Deduplication
 
