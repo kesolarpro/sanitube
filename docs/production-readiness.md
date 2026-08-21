@@ -235,6 +235,8 @@ written down.
 | Reconciliation via lookup capability | READY | "Cannot look" is a type, not an exception. |
 | Manual resolution, actor recorded | READY | `decided_by` with a RESTRICT foreign key. |
 | Hand-typed references marked as such | READY | Provenance shown on the screen. |
+| Delivery without a distributor API | READY | DIST-004. `sanitube:distribution:export` builds a metadata sheet and a checked file list for a person to upload to a portal. The columns are configuration; no distributor is named in the code. Not a submission: no delivery row, nothing irreversible. |
+| Nothing is invented to fill a delivery cell | READY | DIST-004. An unassigned ISRC is an empty cell and a warning, never a generated code. A revoked identifier is never exported — the one place presenting a withdrawn code would put it back into circulation. |
 | Real distributor (Too Lost / TuneCore) | BLOCKED_EXTERNAL | DIST-002. Their API is not invented here. |
 
 ## Backup and restore

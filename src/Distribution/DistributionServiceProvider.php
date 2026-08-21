@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SaniTube\Distribution;
 
 use Illuminate\Support\ServiceProvider;
+use SaniTube\Distribution\Console\ExportReleaseCommand;
 use SaniTube\Distribution\Contracts\Distributor;
 
 final class DistributionServiceProvider extends ServiceProvider
@@ -25,5 +26,12 @@ final class DistributionServiceProvider extends ServiceProvider
             Distributor::class,
             fn ($app): Distributor => $app->make(DistributorManager::class)->default(),
         );
+    }
+
+    public function boot(): void
+    {
+        if ($this->app->runningInConsole()) {
+            $this->commands([ExportReleaseCommand::class]);
+        }
     }
 }
