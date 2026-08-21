@@ -23,6 +23,7 @@ use SaniTube\Distribution\DeliveryStatus;
 use SaniTube\Distribution\DistributorManager;
 use SaniTube\Distribution\Enums\DistributionDeliveryStatus;
 use SaniTube\Distribution\Exceptions\DistributionException;
+use SaniTube\Distribution\Export\BuildDeliveryPackage;
 use SaniTube\Distribution\Models\DistributionAttempt;
 use SaniTube\Distribution\Models\DistributionDelivery;
 use SaniTube\Distribution\Services\SubmitDelivery;
@@ -85,9 +86,12 @@ use Tests\TestCase;
  *
  * **What this walk does not cover.** Installation itself, which cannot
  * meaningfully run against the database the suite is already connected to and
- * has its own tests; and the unknown-submission outcome, which lives on an
- * open branch awaiting review. Both are named here rather than left as silent
- * gaps.
+ * has its own tests. Named here rather than left as a silent gap.
+ *
+ * The unknown-submission outcome used to be listed here too, as living on an
+ * open branch. It has since landed and `UnknownSubmissionOutcomeTest` walks it
+ * end to end; the sentence outlived the gap it described, which is its own
+ * small version of the thing this file exists to catch.
  */
 final class AcceptanceWalkTest extends TestCase
 {
@@ -460,6 +464,58 @@ final class AcceptanceWalkTest extends TestCase
         }
     }
 
+    /**
+     * The default installation, which has no distributor at all.
+     *
+     * `SANITUBE_DISTRIBUTOR` ships as `none`, and almost no distributor
+     * publishes an API — so for most labels the walk above ends at a wall, and
+     * the release goes out the way releases actually go out: a person, a
+     * spreadsheet and a set of files.
+     *
+     * This is the leg that proves the platform is usable by an installation
+     * that will never configure an adapter. It is deliberately the *whole* path
+     * — refused submission, built package, and the sheet coming back down
+     * through the browser — because each half was already tested alone and the
+     * question here is whether they are connected.
+     */
+    #[Test]
+    public function an_installation_with_no_distributor_still_gets_its_release_out(): void
+    {
+        $release = $this->deliverableRelease();
+
+        // ------------------------------------- 1. there is nowhere to submit
+        try {
+            $this->app->make(SubmitDelivery::class)->handle($release, 'none');
+            $this->fail('A release was submitted to a distributor that does not exist.');
+        } catch (DistributionException $exception) {
+            $this->assertSame('DISTRIBUTOR_UNAVAILABLE', $exception->refusalCode());
+        }
+
+        // ------------------------------------------- 2. and yet: a package
+        $package = $this->app->make(BuildDeliveryPackage::class)->handle($release);
+
+        $sheet = $this->store->get($package->metadataKey);
+
+        // The catalogue's own words, in a file a portal will accept.
+        $this->assertStringContainsString('Night Bus', $sheet);
+        $this->assertStringContainsString('GBAAA2600001', $sheet);
+        $this->assertStringContainsString('088500000001', $sheet);
+
+        // And the master named with what an operator checks an upload against.
+        $this->assertNotNull($package->tracks[0]->checksum);
+        $this->assertNotSame('', $package->tracks[0]->fileName);
+
+        // ------------------------------- 3. nothing was handed to anybody
+        $this->assertSame(0, DistributionDelivery::query()->count());
+
+        // ------------------------- 4. and it comes down through the browser
+        $response = $this->actingAs($this->operator())
+            ->get("/releases/{$release->uuid}/distribution/package/metadata");
+
+        $response->assertSuccessful();
+        $this->assertStringContainsString('Night Bus', $response->streamedContent());
+    }
+
     #[Test]
     public function every_locale_can_render_what_the_walk_produces(): void
     {
@@ -595,9 +651,13 @@ final class AcceptanceWalkTest extends TestCase
         $builder = $this->app->make(ReleaseBuilder::class);
         $release = $builder->createDraft('Night Bus');
 
-        $track = Track::factory()->create([
+        // `ready()` rather than a forced status: the factory's own docblock
+        // warns that writing the status directly produces a track the domain
+        // considers impossible, and this helper was doing exactly that — a
+        // "deliverable" release whose track had no master audio at all, which
+        // the packager refuses and the submission path never noticed.
+        $track = Track::factory()->ready()->create([
             'title' => 'Night Bus',
-            'status' => TrackStatus::Ready,
             'language_code' => ContentLanguage::UNKNOWN,
             'is_instrumental' => false,
         ]);
