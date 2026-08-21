@@ -1,0 +1,185 @@
+<?php
+
+declare(strict_types=1);
+
+namespace SaniTube\Deployment\Provisioning;
+
+use SaniTube\Deployment\Exceptions\ProvisionException;
+
+/**
+ * The service files a VPS installation needs, generated and never templated
+ * by hand again.
+ *
+ * Everything variable comes through {@see ProvisionInputs}, which has already
+ * refused anything that could smuggle a directive. Everything constant is
+ * deliberate and commented in the output itself, because the operator who
+ * reads `/etc/systemd/system/<instance>-queue@.service` in two years is owed
+ * the reasons, not just the values.
+ *
+ * The queue unit is a **template unit** (`@.service`): concurrency is how
+ * many instances the operator enables — `systemctl enable sanitube-queue@1
+ * sanitube-queue@2` — never a number baked into a file.
+ *
+ * Nothing here writes to /etc. Generating text and installing text are
+ * different privileges, and this class holds only the first. The bootstrap
+ * script installs what this renders, validates it (`nginx -t`,
+ * `systemd-analyze verify`) and reloads — with root, where root belongs.
+ */
+final readonly class ServiceFileGenerator
+{
+    public function __construct(private ProvisionInputs $inputs) {}
+
+    /**
+     * One crontab line, both profiles' scheduler answer.
+     */
+    public function cronLine(): string
+    {
+        return sprintf(
+            '* * * * * cd %s && %s artisan schedule:run >> /dev/null 2>&1',
+            $this->inputs->applicationPath,
+            $this->inputs->phpBinary,
+        );
+    }
+
+    public function queueServiceName(): string
+    {
+        return $this->inputs->instance.'-queue@.service';
+    }
+
+    public function queueService(): string
+    {
+        $i = $this->inputs;
+
+        return <<<UNIT
+            # {$i->instance}: one queue worker. Concurrency is how many of these you
+            # enable ({$i->instance}-queue@1, {$i->instance}-queue@2, ...), never a number
+            # inside this file.
+            [Unit]
+            Description={$i->instance} queue worker %i
+            After=network.target
+
+            [Service]
+            User={$i->user}
+            Group={$i->group}
+            WorkingDirectory={$i->applicationPath}
+            # --max-time recycles the worker hourly so deployed code is picked up even
+            # if a restart signal is missed; --memory stops a leak before the kernel
+            # does it less politely.
+            ExecStart={$i->phpBinary} {$i->applicationPath}/artisan queue:work --sleep=3 --tries=3 --max-time=3600 --memory=256
+            Restart=on-failure
+            RestartSec=5
+            # queue:work finishes the job in hand on SIGTERM; this is how long systemd
+            # lets it. Longer than any honest job, shorter than a stuck one.
+            TimeoutStopSec=90
+
+            [Install]
+            WantedBy=multi-user.target
+
+            UNIT;
+    }
+
+    public function schedulerServiceName(): string
+    {
+        return $this->inputs->instance.'-scheduler.service';
+    }
+
+    public function schedulerService(): string
+    {
+        $i = $this->inputs;
+
+        return <<<UNIT
+            [Unit]
+            Description={$i->instance} scheduler tick
+
+            [Service]
+            Type=oneshot
+            User={$i->user}
+            Group={$i->group}
+            WorkingDirectory={$i->applicationPath}
+            ExecStart={$i->phpBinary} {$i->applicationPath}/artisan schedule:run
+
+            UNIT;
+    }
+
+    public function schedulerTimerName(): string
+    {
+        return $this->inputs->instance.'-scheduler.timer';
+    }
+
+    public function schedulerTimer(): string
+    {
+        $i = $this->inputs;
+
+        return <<<UNIT
+            [Unit]
+            Description={$i->instance} scheduler — every minute, like cron
+
+            [Timer]
+            OnCalendar=*-*-* *:*:00
+            # Not Persistent: a missed minute is a missed minute. The scheduler's own
+            # withoutOverlapping handles the catch-up semantics; replaying ticks from
+            # a downtime would stack them.
+            Persistent=false
+
+            [Install]
+            WantedBy=timers.target
+
+            UNIT;
+    }
+
+    public function nginxServerName(): string
+    {
+        return $this->inputs->instance.'.conf';
+    }
+
+    /**
+     * An HTTP server block. Deliberately not HTTPS: certificate paths belong
+     * to the ACME client, and certbot's nginx integration rewrites this very
+     * block once a real certificate exists. Guessing its paths here would
+     * produce a config that fails `nginx -t` until certbot has run — which
+     * reads as "the installer generated a broken file".
+     */
+    public function nginxServer(): string
+    {
+        $i = $this->inputs;
+
+        $domain = $i->domain ?? throw ProvisionException::missing('domain', 'an nginx server block');
+        $socket = $i->phpFpmSocket ?? throw ProvisionException::missing('php-fpm socket', 'an nginx server block');
+
+        return <<<NGINX
+            # {$i->instance} — generated by sanitube:provision. HTTP only on purpose:
+            # run certbot --nginx after DNS resolves and it will add the TLS half to
+            # this block itself.
+            server {
+                listen 80;
+                listen [::]:80;
+                server_name {$domain};
+
+                root {$i->applicationPath}/public;
+                index index.php;
+
+                # Masters upload through here on installations without direct-to-bucket
+                # storage. Matches the PHP limits the doctor checks.
+                client_max_body_size {$i->uploadMax};
+
+                location / {
+                    try_files \$uri \$uri/ /index.php?\$query_string;
+                }
+
+                location ~ \.php$ {
+                    fastcgi_pass unix:{$socket};
+                    fastcgi_index index.php;
+                    fastcgi_param SCRIPT_FILENAME \$realpath_root\$fastcgi_script_name;
+                    include fastcgi_params;
+                }
+
+                # Nothing dotted is ever served — .env would be the catastrophe, but
+                # .git and .htaccess are on the same rule for the same reason.
+                location ~ /\. {
+                    deny all;
+                }
+            }
+
+            NGINX;
+    }
+}

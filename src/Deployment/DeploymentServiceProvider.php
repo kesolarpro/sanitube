@@ -9,6 +9,7 @@ use Illuminate\Support\ServiceProvider;
 use SaniTube\Deployment\Console\BackupCommand;
 use SaniTube\Deployment\Console\DoctorCommand;
 use SaniTube\Deployment\Console\HostCommand;
+use SaniTube\Deployment\Console\ProvisionCommand;
 use SaniTube\Deployment\Console\RestoreCommand;
 use SaniTube\Deployment\Host\HostProbe;
 use SaniTube\Deployment\Host\RealHostProbe;
@@ -34,7 +35,7 @@ final class DeploymentServiceProvider extends ServiceProvider
     public function boot(): void
     {
         if ($this->app->runningInConsole()) {
-            $this->commands([BackupCommand::class, RestoreCommand::class, DoctorCommand::class, HostCommand::class]);
+            $this->commands([BackupCommand::class, RestoreCommand::class, DoctorCommand::class, HostCommand::class, ProvisionCommand::class]);
         }
     }
 }

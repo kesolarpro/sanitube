@@ -36,45 +36,54 @@ Point the web server's document root at **`public/`**. With it one level too hig
 
 `storage/` and `bootstrap/cache/` must be writable by the web server user.
 
-## The scheduler
+## The scheduler, the queue and nginx — generated, not copied
+
+Do not hand-copy unit files from a document (this one included). The
+installation generates its own, with its real paths, its real PHP and the
+account you choose:
 
 ```
-* * * * * cd /srv/sanitube && php artisan schedule:run >> /dev/null 2>&1
+php artisan sanitube:provision --domain=your.domain --socket=/run/php/php8.3-fpm.sock --user=sanitube --into=/tmp/provision
 ```
 
-Without it, retries never retry and distribution status is never refreshed —
-silently. The Operations screen reports a scheduler that has never run, which
-is the only warning you get.
+That writes, named after `SANITUBE_INSTANCE_NAME` so two installations on one
+VPS cannot collide:
 
-## A persistent queue worker
+- `<instance>-queue@.service` — a **template** unit. Concurrency is how many
+  you enable — `systemctl enable --now sanitube-queue@1 sanitube-queue@2` —
+  never a number inside a file. `Restart=on-failure` plus `--max-time=3600`
+  is what makes deployment work: `bin/deploy.sh` signals workers to finish
+  the job in hand and exit so they pick up new code, and systemd starts them
+  again.
+- `<instance>-scheduler.service` + `.timer` — every minute, like cron.
+  Without a scheduler, retries never retry and distribution status is never
+  refreshed — silently. The Operations screen reports a scheduler that has
+  never run, which is the only warning you get. On a machine without
+  systemd, the generated `crontab.line` is the same tick as a cron entry:
 
-```ini
-# /etc/systemd/system/sanitube-worker.service
-[Unit]
-Description=SaniTube queue worker
-After=network.target
+  ```
+  * * * * * cd <application> && <php> artisan schedule:run >> /dev/null 2>&1
+  ```
+- `<instance>.conf` — an nginx server block: `root <app>/public`, everything
+  dotted denied, `client_max_body_size` mirroring this PHP's `post_max_size`.
+  **HTTP only, on purpose**: run `certbot --nginx` once DNS resolves and it
+  adds the TLS half against a real certificate instead of paths we would
+  have had to guess.
 
-[Service]
-User=www-data
-WorkingDirectory=/srv/sanitube
-# --max-time recycles the process hourly. A long-lived PHP worker accumulates
-# memory, and a scheduled exit is cheaper than an OOM kill mid-job.
-ExecStart=/usr/bin/php artisan queue:work --sleep=3 --tries=3 --max-time=3600
-Restart=always
-RestartSec=5
+Installing what was generated is root's job, and validation comes before any
+reload:
 
-[Install]
-WantedBy=multi-user.target
+```
+install -m 0644 /tmp/provision/*.service /tmp/provision/*.timer /etc/systemd/system/
+systemd-analyze verify /etc/systemd/system/sanitube-*
+systemctl daemon-reload
+install -m 0644 /tmp/provision/sanitube.conf /etc/nginx/conf.d/
+nginx -t && systemctl reload nginx
 ```
 
-```
-systemctl enable --now sanitube-worker
-```
-
-**`Restart=always` is what makes deployment work.** `bin/deploy.sh` signals
-workers to finish the job in hand and exit, so that they pick up the new code —
-it does not start them again. Without a supervisor that restarts them, the
-queue stops after every deploy and nobody notices until an import hangs.
+If a file by the same name already exists, look at it before replacing it —
+`sanitube:provision` regenerates yours from current facts, but a hand-edited
+unit holds somebody's intent.
 
 ## Deploying an update
 
