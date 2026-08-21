@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace SaniTube\Worker\Console;
 
 use Illuminate\Console\Command;
+use SaniTube\Observability\Certification\CertificationLedger;
+use SaniTube\Observability\Certification\ProviderStandings;
 use SaniTube\Worker\Certification\CertifyWorker;
 use SaniTube\Worker\Certification\WorkerCheck;
 use SaniTube\Worker\Certification\WorkerCheckOutcome;
@@ -71,6 +73,22 @@ final class WorkerCheckCommand extends Command
         foreach ($checks as $check) {
             if ($check->outcome === WorkerCheckOutcome::Failed) {
                 return self::FAILURE;
+            }
+        }
+
+        // A full pass against the configured worker becomes a record,
+        // fingerprinted to its address: sanitube:providers reports CERTIFIED
+        // from this and nothing else, and pointing at a different worker
+        // silently un-certifies itself. At least one check must have
+        // *passed*: an unconfigured worker comes back as a single skip, and
+        // "nothing to certify" certifying something would be this command
+        // lying in its own ledger. Skips beyond that do not disqualify —
+        // what a worker was not built with is reported, not failed.
+        foreach ($checks as $check) {
+            if ($check->outcome === WorkerCheckOutcome::Passed) {
+                $this->laravel->make(CertificationLedger::class)->record('worker', ProviderStandings::workerFingerprint());
+
+                break;
             }
         }
 

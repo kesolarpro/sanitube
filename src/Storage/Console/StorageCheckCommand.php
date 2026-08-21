@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace SaniTube\Storage\Console;
 
 use Illuminate\Console\Command;
+use SaniTube\Observability\Certification\CertificationLedger;
+use SaniTube\Observability\Certification\ProviderStandings;
 use SaniTube\Storage\Certification\CertificationCheck;
 use SaniTube\Storage\Certification\CertificationOutcome;
 use SaniTube\Storage\Certification\CertificationReport;
@@ -107,13 +109,24 @@ final class StorageCheckCommand extends Command
             $this->renderCertification($reports);
         }
 
+        $failed = false;
+
         foreach ($reports as $report) {
-            if (! $report->certified()) {
-                return self::FAILURE;
+            if ($report->certified()) {
+                // The pass becomes a record, fingerprinted to the exact
+                // configuration it certified: sanitube:providers reports
+                // CERTIFIED from this and from nothing else, and a changed
+                // bucket or endpoint silently un-certifies itself.
+                $this->laravel->make(CertificationLedger::class)->record(
+                    'storage:'.$report->provider,
+                    ProviderStandings::storageFingerprint($report->provider),
+                );
+            } else {
+                $failed = true;
             }
         }
 
-        return self::SUCCESS;
+        return $failed ? self::FAILURE : self::SUCCESS;
     }
 
     /**
