@@ -27,9 +27,9 @@ summary.
 
 | Verdict | Count | Meaning |
 |---|---|---|
-| READY | 174 | Built, tested, exercised end to end inside the platform |
+| READY | 176 | Built, tested, exercised end to end inside the platform |
 | BLOCKED_EXTERNAL | 10 | Complete on our side; needs a credential, a real provider, or a real host |
-| NOT_READY | 7 | Internal work remains, each one named |
+| NOT_READY | 6 | Internal work remains, each one named |
 | NOT_REQUIRED | 3 | Deliberately out of scope for V1 |
 
 **BLOCKED_EXTERNAL is not NOT_READY**, and the distinction is the point. A
@@ -130,6 +130,7 @@ No source change between them; each is a legitimate configuration.
 | E2E-003 | The owner the installer creates can actually sign in. Neither suite held that joint. |
 | PERF-003 | A payload comparison was measuring its own fixture; the tolerance came *down* from 1024 to 256. |
 | PERF-004 | The enrichment queue cost 2 queries per row; it now costs the same for one row as for a page. |
+| PERF-005 | The five screens the scale test could not reach are measured, and the list of screens is now read from the router instead of kept by hand. |
 | CAT-003 | Nothing but the three granting methods may write an earned state. |
 | UI-A11Y-001 | Three raw inputs were orphaning their labels on the enrichment review screen; two file inputs sat unnamed in the accessibility tree. |
 | DOC-001 / DOC-002 | This report, with its counts held by a test; and the machine-readable status file, which was 20 tickets behind while carrying today's date. |
