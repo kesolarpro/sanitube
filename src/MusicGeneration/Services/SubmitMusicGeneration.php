@@ -6,8 +6,8 @@ namespace SaniTube\MusicGeneration\Services;
 
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
+use SaniTube\Foundation\Contracts\CarriesRefusalCode;
 use SaniTube\Localization\ContentLanguage;
-use SaniTube\MusicGeneration\Contracts\CarriesRefusalCode;
 use SaniTube\MusicGeneration\Contracts\MusicGenerationProvider;
 use SaniTube\MusicGeneration\Contracts\SynchronousMusicGenerationProvider;
 use SaniTube\MusicGeneration\Enums\ExecutionMode;
