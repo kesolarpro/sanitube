@@ -136,6 +136,74 @@ final class UnknownSubmissionOutcomeTest extends TestCase
         $this->assertSame(0, $this->distributor->submitCalls);
     }
 
+    /**
+     * What a real client says when an upload dies.
+     *
+     * Not "the upload was interrupted" — that is the polite sentence a fake
+     * produces. A client throws the request it was making, and for
+     * S3-compatible storage or a distributor's signed endpoint that request
+     * *is* the credential. Both the delivery's `failure_reason` and the
+     * attempt's `response_summary` are durable columns: read by the detail
+     * screen, by the internal API, and carried into every database backup.
+     *
+     * `DeliveryDetailQuery` already knew — its comment said the outage path
+     * stores an exception message "and those quote URLs" — and answered with a
+     * length limit. A limit removes the end of a message.
+     */
+    #[Test]
+    public function a_providers_own_words_are_not_stored_with_the_address_they_name(): void
+    {
+        $release = $this->readyRelease();
+
+        $this->distributor->failingPreparation(
+            'PUT https://ingest.distributor.example/upload/abc'
+                .'?X-Amz-Credential=AKIAEXAMPLE&X-Amz-Signature=deadbeefcafe failed with 403',
+        );
+
+        $delivery = $this->submit()->handle($release, 'fake');
+
+        $stored = (string) $delivery->failure_reason;
+        $attempt = (string) $delivery->attempts()->latest('id')->firstOrFail()->response_summary;
+
+        foreach (['failure_reason' => $stored, 'response_summary' => $attempt] as $column => $value) {
+            $this->assertStringNotContainsString('X-Amz-Signature', $value, $column.' stored a signature.');
+            $this->assertStringNotContainsString('ingest.distributor.example', $value, $column.' stored an address.');
+            $this->assertStringContainsString('403', $value, $column.' was scrubbed to nothing.');
+        }
+    }
+
+    /**
+     * The internal API is a boundary too, and it had no test at all.
+     *
+     * `GET /api/v1/distributions/{delivery}` publishes `failure_reason`.
+     * Writes are clean from now on; rows written before they were are already
+     * in the column, and this is the read that covers them. A token-guarded
+     * machine caller is a narrower audience than a browser, not a trusted one
+     * — what it is handed can be logged, cached and forwarded by whatever
+     * holds the token.
+     */
+    #[Test]
+    public function the_delivery_api_does_not_publish_an_address_from_a_stored_failure(): void
+    {
+        config(['sanitube.api.internal_token' => 'internal-token']);
+
+        $delivery = $this->submit()->handle($this->readyRelease(), 'fake');
+
+        $delivery->forceFill([
+            'failure_reason' => 'PUT https://ingest.distributor.example/upload/abc'
+                .'?X-Amz-Signature=deadbeefcafe failed with 403',
+        ])->save();
+
+        $reason = (string) $this->withHeader('X-SaniTube-Api-Token', 'internal-token')
+            ->getJson('api/v1/distributions/'.$delivery->uuid)
+            ->assertOk()
+            ->json('data.failure_reason');
+
+        $this->assertStringNotContainsString('X-Amz-Signature', $reason);
+        $this->assertStringNotContainsString('ingest.distributor.example', $reason);
+        $this->assertStringContainsString('403', $reason, 'Scrubbed to nothing says less than an empty cell.');
+    }
+
     #[Test]
     public function an_unconfirmed_delivery_cannot_be_submitted_again(): void
     {

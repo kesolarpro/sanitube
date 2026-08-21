@@ -7,6 +7,7 @@ namespace SaniTube\Api\Http\Resources\V1;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use SaniTube\Distribution\Models\DistributionDelivery;
+use SaniTube\Storage\CredentialRedactor;
 
 /**
  * The public face of a delivery.
@@ -33,7 +34,10 @@ final class DistributionDeliveryResource extends JsonResource
             'provider' => $this->provider,
             'status' => $this->status->value,
             'release' => $this->whenLoaded('release', fn (): ?string => $this->release?->uuid),
-            'failure_reason' => $this->failure_reason,
+            // Scrubbed on the way out as well as on the way in. The outage
+            // path in SubmitDelivery stores an exception's own words, and a
+            // client's 403 quotes the signed request it was making.
+            'failure_reason' => CredentialRedactor::scrub($this->failure_reason),
             'submitted_at' => $this->submitted_at?->toIso8601String(),
             'delivered_at' => $this->delivered_at?->toIso8601String(),
             'live_at' => $this->live_at?->toIso8601String(),

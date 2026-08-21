@@ -9,6 +9,7 @@ use RuntimeException;
 use SaniTube\Distribution\DistributorManager;
 use SaniTube\Distribution\Models\DistributionAttempt;
 use SaniTube\Distribution\Models\DistributionDelivery;
+use SaniTube\Storage\CredentialRedactor;
 
 /**
  * One handover, and every conversation it has had.
@@ -149,8 +150,8 @@ final readonly class DeliveryDetailQuery
      *
      * `response_summary` is a summary the domain wrote, never a raw payload —
      * DIST-001 is explicit that distributor responses quote the request and
-     * the request is signed. It is truncated here anyway, because the outage
-     * path stores an exception message and those quote URLs.
+     * the request is signed. The outage path stores an exception message all
+     * the same, so it is scrubbed as well as shortened; see {@see reason()}.
      *
      * @return list<array<string, mixed>>
      */
@@ -179,6 +180,19 @@ final readonly class DeliveryDetailQuery
         return $rows;
     }
 
+    /**
+     * Scrubbed, then shortened — and that order is the correction.
+     *
+     * This used to take the first line and truncate it, which is what the
+     * comment above still described as sufficient: "those quote URLs" was
+     * known, and a length limit was the answer. A limit removes the *end* of a
+     * message. A client's 403 arrives as
+     * `PUT https://…?X-Amz-Signature=… failed`, comfortably inside the limit,
+     * and that signature is a bearer credential.
+     *
+     * Writes are clean from now on; rows written before they were are already
+     * in the column, and this is what covers them.
+     */
     private function reason(?string $reason): ?string
     {
         if ($reason === null || trim($reason) === '') {
@@ -191,6 +205,8 @@ final readonly class DeliveryDetailQuery
             return null;
         }
 
-        return mb_strimwidth($firstLine, 0, self::REASON_LIMIT, '…');
+        $clean = CredentialRedactor::scrub($firstLine);
+
+        return $clean === null ? null : mb_strimwidth($clean, 0, self::REASON_LIMIT, '…');
     }
 }

@@ -157,8 +157,17 @@ final class DistributionScreensTest extends TestCase
         $this->assertTrue($row['has_external_reference']);
     }
 
+    /**
+     * Renamed to what it holds.
+     *
+     * It was called "without the url it came from" and asserted no newline, no
+     * `/var/www` and a length — `distributor.example.test port 443` went
+     * straight through every one of them. A name that promises more than the
+     * assertions is worse than no test, because it is the reason nobody writes
+     * the missing one. The address case is the test below.
+     */
     #[Test]
-    public function a_failure_is_reported_without_the_url_it_came_from(): void
+    public function a_failure_is_reported_as_one_line_with_no_stack_trace(): void
     {
         $release = $this->deliverableRelease();
 
@@ -179,6 +188,40 @@ final class DistributionScreensTest extends TestCase
         $this->assertStringNotContainsString("\n", $reason);
         $this->assertStringNotContainsString('/var/www', $reason);
         $this->assertLessThanOrEqual(201, mb_strlen($reason));
+    }
+
+    /**
+     * And an address is removed rather than shortened.
+     *
+     * A client's 403 arrives as `PUT https://…?X-Amz-Signature=… failed`, well
+     * inside the length cap the test above checks, and that signature is a
+     * bearer credential. Written straight to the column here, as a row taken
+     * before `SubmitDelivery` scrubbed on the way in would hold it.
+     *
+     * **A bare hostname is not removed.** The rule is anchored on a scheme, so
+     * `Failed to connect to distributor.example.test port 443` survives it —
+     * deliberately, because a heuristic loose enough to catch that catches
+     * every dotted word in every message. What it removes is what carries a
+     * credential.
+     */
+    #[Test]
+    public function a_signed_address_in_a_stored_failure_is_removed_where_it_is_read(): void
+    {
+        $release = $this->deliverableRelease();
+
+        $this->fake()->down();
+
+        $delivery = $this->app->make(SubmitDelivery::class)->handle($release, 'fake');
+        $delivery->forceFill([
+            'failure_reason' => 'PUT https://ingest.distributor.example/upload/abc'
+                .'?X-Amz-Signature=deadbeefcafe failed with 403',
+        ])->save();
+
+        $reason = (string) $this->detail($delivery->refresh(), $this->owner())['failure_reason'];
+
+        $this->assertStringNotContainsString('X-Amz-Signature', $reason);
+        $this->assertStringNotContainsString('ingest.distributor.example', $reason);
+        $this->assertStringContainsString('403', $reason, 'Scrubbed to nothing says less than an empty cell.');
     }
 
     // ------------------------------------------- unknown, failed, rejected

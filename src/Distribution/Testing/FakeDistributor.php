@@ -61,6 +61,10 @@ final class FakeDistributor implements Distributor, SupportsSubmissionLookup
         private readonly bool $sandbox = true,
     ) {}
 
+    private ?string $preparationFailure = null;
+
+    private ?string $outageMessage = null;
+
     public function name(): string
     {
         return $this->name;
@@ -86,7 +90,7 @@ final class FakeDistributor implements Distributor, SupportsSubmissionLookup
     public function prepareRelease(Release $release, string $idempotencyKey): DistributorSubmission
     {
         if ($this->breakPreparation) {
-            throw new RuntimeException('The upload was interrupted.');
+            throw new RuntimeException($this->preparationFailure ?? 'The upload was interrupted.');
         }
 
         $this->refuseIfDown();
@@ -215,9 +219,16 @@ final class FakeDistributor implements Distributor, SupportsSubmissionLookup
      * exactly how a test meant to cover the prepare path quietly covers the
      * validation path instead.
      */
-    public function failingPreparation(): self
+    public function failingPreparation(?string $message = null): self
     {
         $this->breakPreparation = true;
+
+        // A caller may choose the words. What a real client says when an
+        // upload dies is not "the upload was interrupted" — it is the request
+        // it was making, address and signature and all, and a test that can
+        // only produce the polite sentence cannot check what happens to the
+        // other one.
+        $this->preparationFailure = $message;
 
         return $this;
     }
@@ -233,9 +244,14 @@ final class FakeDistributor implements Distributor, SupportsSubmissionLookup
      * Behave like a distributor whose API is down. Distinct from unavailable,
      * which means "not configured here".
      */
-    public function down(): self
+    public function down(?string $message = null): self
     {
         $this->outage = true;
+
+        // As with failingPreparation(): a caller may choose the words. A real
+        // client's outage message is the request it was making, not a
+        // sentence about availability.
+        $this->outageMessage = $message;
 
         return $this;
     }
@@ -277,7 +293,7 @@ final class FakeDistributor implements Distributor, SupportsSubmissionLookup
     private function refuseIfDown(): void
     {
         if ($this->outage) {
-            throw new RuntimeException('The distributor API is unavailable.');
+            throw new RuntimeException($this->outageMessage ?? 'The distributor API is unavailable.');
         }
     }
 }

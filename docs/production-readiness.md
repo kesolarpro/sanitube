@@ -290,6 +290,8 @@ written down.
 | CSRF on every write | READY | Laravel `web` group. |
 | No secrets in logs, payloads or diagnostics | READY | Asserted, including in the doctor. |
 | No secret or address in a failure message a person reads | READY | OBS-001. The failed-jobs screen rendered an S3 client's 403 verbatim — presigned signature and all — because the first line was truncated rather than scrubbed. One rule now, `CredentialRedactor::scrub()`: configured secrets masked, every address removed, at four boundaries. |
+| Delivery failure text carries no address | READY | OBS-001. `SubmitDelivery` stores a provider's own words in `failure_reason` and `response_summary`; `sync`, `reconcile` and `takedown` reach the recorder without passing the failure path, so it is scrubbed there too. Read boundaries scrubbed for rows written earlier. |
+| A bare hostname is *not* removed from a failure message | NOT_READY | OBS-001, deliberately. The rule is anchored on a scheme, because a heuristic loose enough to catch `distributor.example port 443` catches every dotted word in every message. What it removes is what carries a credential. |
 | Capability details carry no credential | READY | OBS-001. `CapabilityRegistry` wraps every detector including object storage, and resolving an S3-compatible provider builds a client from the configured key and secret. Scrubbed in the one `Capability` constructor, like `StorageHealth` and `CertificationCheck`. |
 | Stored failure text carries no address | READY | OBS-001. `ingestion_items.failure_message` and `audio_analyses.failure_message` are durable and go into every backup, so they are scrubbed on write *and* on read — rows written before the rule are already in the column. |
 | Preview URLs signed, expiring, throttled | READY | |
