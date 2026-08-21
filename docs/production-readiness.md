@@ -311,6 +311,14 @@ written down.
 | Backup → destroy → restore | READY | |
 | Install → OWNER → login | NOT_READY | Covered by installer tests, not by the walk. |
 
+## Scale
+
+| Control | Verdict | Notes |
+|---|---|---|
+| No screen costs more queries as the catalogue grows | READY | PERF-001, measured at two sizes. |
+| Every measured screen is measured with rows in it | READY | PERF-002. Five of the nine screens had been measured against empty tables; a guard now fails by name when a listed screen renders nothing. |
+| Index screens this test does not reach | NOT_READY | PERF-002 names five — enrichment, distribution, production, generations, projects — with what each would need. Each requires a chain of domain objects the catalogue fixture does not build. |
+
 ## Accessibility
 
 | Control | Verdict | Notes |

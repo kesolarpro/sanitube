@@ -9,9 +9,27 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use PHPUnit\Framework\Attributes\Test;
 use SaniTube\Artists\Models\Artist;
+use SaniTube\Assets\Models\Asset;
+use SaniTube\Audit\Enums\AuditAction;
+use SaniTube\Audit\Services\RecordAuditEvent;
 use SaniTube\Catalog\Enums\TrackArtistRole;
+use SaniTube\Catalog\Enums\TrackContributorRole;
+use SaniTube\Catalog\Models\Composition;
 use SaniTube\Catalog\Models\Track;
+use SaniTube\Contributors\Models\Contributor;
+use SaniTube\Deduplication\Enums\DuplicateBasis;
+use SaniTube\Deduplication\Enums\DuplicateDecision;
+use SaniTube\Deduplication\Enums\DuplicateLevel;
+use SaniTube\Deduplication\Models\DuplicateRelation;
 use SaniTube\Identity\Enums\UserRole;
+use SaniTube\Ingestion\Enums\IngestionBatchStatus;
+use SaniTube\Ingestion\Enums\IngestionItemStatus;
+use SaniTube\Ingestion\Enums\IngestionSource;
+use SaniTube\Ingestion\Enums\TrackCandidateStatus;
+use SaniTube\Ingestion\Models\IngestionBatch;
+use SaniTube\Ingestion\Models\IngestionItem;
+use SaniTube\Ingestion\Models\TrackCandidate;
+use SaniTube\Releases\Models\Release;
 use Tests\TestCase;
 
 /**
@@ -34,6 +52,18 @@ use Tests\TestCase;
  * eager-load their relations. The dashboard is about thirty queries — one per
  * aggregate it displays, none of them per-row — and also identical at both
  * sizes.
+ *
+ * **PERF-002: four of the nine screens were measured against empty tables.**
+ * The fixture seeded tracks and artists, and nothing else — so
+ * `/catalog/assets`, `/ingestion/candidates`, `/ingestion/batches` and
+ * `/duplicates` rendered nothing at sixty tracks and nothing at four hundred.
+ * "The same number of queries at both sizes" is true of a screen with no rows,
+ * and an N+1 over candidates could never have shown itself.
+ *
+ * So each screen now declares **where its rows live in the payload**, and a
+ * test asserts every one of them is non-empty before anything is measured. A
+ * screen listed with nothing in it fails loudly rather than passing quietly,
+ * which is the only way this stays true as screens are added.
  */
 final class CatalogueScaleTest extends TestCase
 {
@@ -54,19 +84,121 @@ final class CatalogueScaleTest extends TestCase
     private const INDEX_QUERY_CEILING = 10;
 
     /**
-     * @var list<string>
+     * Every screen measured, and where the rows it lists live in its payload.
+     *
+     * **`null` means the screen lists nothing**, and each one says why. It is
+     * not an escape hatch: a screen with rows and a `null` here would be
+     * measured against whatever the fixture happened to contain, which is the
+     * defect PERF-002 exists to fix.
+     *
+     * @var array<string, string|null>
      */
     private const SCREENS = [
-        '/',
-        '/catalog/tracks',
-        '/catalog/artists',
-        '/catalog/assets',
-        '/catalog/contributors',
-        '/releases',
-        '/ingestion/candidates',
-        '/ingestion/batches',
-        '/duplicates',
+        // Aggregates, not rows. Counted, never listed.
+        '/' => null,
+
+        '/catalog/tracks' => 'page.rows',
+        '/catalog/artists' => 'page.rows',
+        '/catalog/assets' => 'page.rows',
+        '/catalog/contributors' => 'page.rows',
+        '/catalog/compositions' => 'page.rows',
+        '/releases' => 'page.rows',
+        '/ingestion/candidates' => 'page.rows',
+        '/ingestion/batches' => 'page.rows',
+        '/duplicates' => 'page.rows',
+        '/system/audit' => 'page.rows',
     ];
+
+    /**
+     * Index screens this test does not reach yet, and what each would need.
+     *
+     * Named rather than left out silently: an uncovered screen that nobody has
+     * written down is indistinguishable from one somebody checked. Every entry
+     * here is a screen whose rows need a chain of domain objects the catalogue
+     * fixture does not build — a configured provider, a plan, a delivery — and
+     * half-seeding one would put it back in the state this ticket found the
+     * other four in.
+     *
+     * @var array<string, string>
+     */
+    private const NOT_YET_MEASURED = [
+        '/enrichment/suggestions' => 'Needs an AI provider and accepted suggestions.',
+        '/distribution' => 'Needs a configured distributor and submitted deliveries.',
+        '/production' => 'Needs production plans and opened occasions.',
+        '/studio/generations' => 'Needs a generation provider and submitted generations.',
+        '/studio/projects' => 'Needs studio projects.',
+    ];
+
+    /**
+     * The guard that makes every other assertion here mean something.
+     *
+     * PERF-002 found four screens measured against empty tables. "The same
+     * number of queries at sixty tracks and at four hundred" is trivially true
+     * of a screen that renders nothing at both, and an N+1 over a page of rows
+     * cannot appear in a page with no rows.
+     *
+     * So this runs first, in spirit: every screen that lists something must be
+     * listing something. A screen added to the list without the fixture to fill
+     * it fails here, by name, rather than joining the four.
+     */
+    #[Test]
+    public function every_measured_screen_actually_has_rows_in_it(): void
+    {
+        $this->seedCatalogue(self::SMALL);
+
+        $user = $this->user();
+        $checked = 0;
+
+        foreach (self::SCREENS as $screen => $path) {
+            if ($path === null) {
+                continue;
+            }
+
+            $response = $this->actingAs($user)->get($screen);
+            $response->assertOk();
+
+            /** @var array<string, mixed> $props */
+            $props = $response->viewData('page')['props'];
+
+            $rows = data_get($props, $path);
+
+            $this->assertIsArray($rows, sprintf('[%s] has nothing at [%s].', $screen, $path));
+            $this->assertNotSame(
+                [],
+                $rows,
+                sprintf(
+                    '[%s] was measured with nothing in it, so it agreed with itself about everything.',
+                    $screen,
+                ),
+            );
+
+            $checked++;
+        }
+
+        // A loop over nothing passes every assertion it does not make.
+        $this->assertGreaterThan(5, $checked);
+    }
+
+    /**
+     * And the screens this test does not reach are written down.
+     *
+     * An uncovered screen nobody has named is indistinguishable from one
+     * somebody checked. Each entry carries what it would need, so the next
+     * person picking one up starts from a sentence rather than a guess.
+     */
+    #[Test]
+    public function every_unmeasured_index_screen_says_what_it_would_need(): void
+    {
+        foreach (self::NOT_YET_MEASURED as $screen => $reason) {
+            $this->assertArrayNotHasKey(
+                $screen,
+                self::SCREENS,
+                sprintf('[%s] is both measured and listed as unmeasured.', $screen),
+            );
+
+            $this->assertNotSame('', trim($reason), sprintf('[%s] is excluded with no reason.', $screen));
+        }
+    }
 
     #[Test]
     public function no_screen_costs_more_queries_because_the_catalogue_is_larger(): void
@@ -74,7 +206,7 @@ final class CatalogueScaleTest extends TestCase
         $small = $this->measureAt(self::SMALL);
         $large = $this->measureAt(self::LARGE);
 
-        foreach (self::SCREENS as $screen) {
+        foreach (array_keys(self::SCREENS) as $screen) {
             $this->assertSame(
                 $small[$screen]['queries'],
                 $large[$screen]['queries'],
@@ -100,7 +232,7 @@ final class CatalogueScaleTest extends TestCase
         $small = $this->measureAt(self::SMALL);
         $large = $this->measureAt(self::LARGE);
 
-        foreach (self::SCREENS as $screen) {
+        foreach (array_keys(self::SCREENS) as $screen) {
             $growth = $large[$screen]['bytes'] - $small[$screen]['bytes'];
 
             // A small tolerance rather than equality, and the reason is the
@@ -142,7 +274,7 @@ final class CatalogueScaleTest extends TestCase
 
         $user = $this->user();
 
-        foreach (self::SCREENS as $screen) {
+        foreach (array_keys(self::SCREENS) as $screen) {
             if ($screen === '/') {
                 // The dashboard is a different shape: about thirty distinct
                 // aggregates, one per figure it displays, none per row. Held by
@@ -227,7 +359,7 @@ final class CatalogueScaleTest extends TestCase
         $user = $this->user();
         $measured = [];
 
-        foreach (self::SCREENS as $screen) {
+        foreach (array_keys(self::SCREENS) as $screen) {
             // A cold container per screen, so each reading is what a real
             // request costs. `SchemaPresence` is bound `scoped` and would
             // otherwise stay warm from the previous measurement — which would
@@ -254,6 +386,17 @@ final class CatalogueScaleTest extends TestCase
         return $measured;
     }
 
+    /**
+     * Grow every table the measured screens read.
+     *
+     * **PERF-002 rewrote this.** It used to seed tracks and artists only, which
+     * left four of the nine measured screens rendering nothing at either size —
+     * and a screen with no rows agrees with itself about everything.
+     *
+     * Each row here exists because a screen lists it. Nothing is seeded for
+     * decoration, and nothing that a screen needs is left out: the guard above
+     * fails if it is.
+     */
     private function seedCatalogue(int $tracks): void
     {
         if ($tracks < 1) {
@@ -268,6 +411,14 @@ final class CatalogueScaleTest extends TestCase
             ? Artist::query()->orderBy('id')->take(10)->get()
             : Artist::factory()->count(10)->create();
 
+        $batch = IngestionBatch::query()->create([
+            'source' => IngestionSource::CloudImport,
+            'status' => IngestionBatchStatus::Completed,
+        ]);
+
+        $operator = $this->user();
+        $previous = Asset::query()->orderByDesc('id')->first();
+
         // Every track credited, because an uncredited catalogue is the one
         // shape in which a credits N+1 cannot show itself.
         foreach (Track::factory()->count($tracks)->create() as $index => $track) {
@@ -275,7 +426,73 @@ final class CatalogueScaleTest extends TestCase
                 'role' => TrackArtistRole::Primary->value,
                 'position' => 0,
             ]);
+
+            // A master per track, so `/catalog/assets` has something to list
+            // and the candidate below has bytes to point at.
+            $master = Asset::factory()->master()->verified()->create();
+
+            IngestionItem::query()->create([
+                'batch_id' => $batch->id,
+                'ingestion_key' => hash('sha256', 'scale-'.$track->id),
+                'source_reference' => 'library/'.$track->id.'.wav',
+                'original_filename' => $track->id.'.wav',
+                'status' => IngestionItemStatus::Imported,
+            ]);
+
+            TrackCandidate::query()->create([
+                'source' => IngestionSource::CloudImport,
+                'asset_id' => $master->id,
+                'original_filename' => $track->id.'.wav',
+                'suggested_title' => $track->title,
+                'status' => TrackCandidateStatus::Ready,
+            ]);
+
+            // Each master proposed as a duplicate of the one before it, so the
+            // review queue grows with the catalogue.
+            //
+            // Every track, not every other: both readings have to exceed the
+            // review page size or the *page* legitimately grows between them,
+            // and a fixture that produces thirty rows at sixty tracks and fifty
+            // at four hundred reports a bounded screen as unbounded. That is
+            // how this line was first written, and the payload test said so.
+            if ($previous instanceof Asset) {
+                DuplicateRelation::query()->create([
+                    'asset_id' => $master->id,
+                    'related_asset_id' => $previous->id,
+                    'level' => DuplicateLevel::ExactDuplicate,
+                    'basis' => DuplicateBasis::Checksum,
+                    'decision' => DuplicateDecision::Proposed,
+                ]);
+            }
+
+            $previous = $master;
+
+            // A contributor per track, credited, because an uncredited
+            // catalogue is the one shape in which a credits N+1 cannot show
+            // itself — and because `/catalog/contributors` lists them.
+            $track->contributors()->attach(
+                Contributor::factory()->create()->id,
+                ['role' => TrackContributorRole::Producer->value, 'position' => 0],
+            );
+
+            Composition::factory()->create();
+            Release::factory()->create();
+
+            // The audit log grows with what an installation does, and it is
+            // the one screen where "show me everything" is the whole point.
+            //
+            // Through the recording service rather than by writing the row:
+            // it derives the subject from the action and the actor from the
+            // request, and a fixture that guessed those columns would drift
+            // from the shape the screen actually reads.
+            $this->actingAs($operator);
+            $this->audit()->record(AuditAction::IngestionBatchStarted, subjectUuid: $batch->uuid);
         }
+    }
+
+    private function audit(): RecordAuditEvent
+    {
+        return $this->app->make(RecordAuditEvent::class);
     }
 
     private function user(): User
