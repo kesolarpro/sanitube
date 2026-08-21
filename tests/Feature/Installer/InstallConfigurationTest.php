@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature\Installer;
 
 use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\Test;
 use SaniTube\Installer\Exceptions\InstallConfigurationException;
 use SaniTube\Installer\Http\Controllers\InstallController;
@@ -23,6 +24,8 @@ use Tests\TestCase;
  */
 final class InstallConfigurationTest extends TestCase
 {
+    use RefreshDatabase;
+
     private string $root;
 
     protected function setUp(): void

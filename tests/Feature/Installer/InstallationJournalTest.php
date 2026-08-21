@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Installer;
 
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\Test;
 use SaniTube\Deployment\Profiles\InstallationProfile;
 use SaniTube\Installer\Services\InstallationJournal;
@@ -21,6 +22,8 @@ use Tests\TestCase;
  */
 final class InstallationJournalTest extends TestCase
 {
+    use RefreshDatabase;
+
     private string $root;
 
     protected function setUp(): void
