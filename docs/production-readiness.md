@@ -280,6 +280,7 @@ written down.
 | Control | Verdict | Notes |
 |---|---|---|
 | Authorization on routes, not controllers | READY | |
+| Every route is guarded, or named with a reason | READY | SEC-002. Read from the router after every module registers: no write without a credential, no web write without a role, no read without a guard. Eleven exemptions, each a sentence. |
 | MEMBER cannot write, proven by posting past the UI | READY | |
 | No internal ids in URLs | READY | |
 | CSRF on every write | READY | Laravel `web` group. |

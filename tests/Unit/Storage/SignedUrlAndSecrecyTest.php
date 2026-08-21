@@ -151,6 +151,20 @@ final class SignedUrlAndSecrecyTest extends TestCase
                 ),
             );
 
+            // SEC-002. `serve => true` makes Laravel register a public
+            // `GET /storage/{path}` *and* a `PUT` for any local disk, which
+            // would put every master behind a signed link the application does
+            // not control the lifetime of. The framework's own `local` disk
+            // sets it; no disk SaniTube stores on may.
+            $this->assertNotTrue(
+                $configuration['serve'] ?? false,
+                sprintf(
+                    'The [%s] disk, which the %s provider stores on, is served over HTTP by the framework.',
+                    $disk,
+                    $provider,
+                ),
+            );
+
             $checked++;
         }
 
