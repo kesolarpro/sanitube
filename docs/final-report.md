@@ -27,7 +27,7 @@ summary.
 
 | Verdict | Count | Meaning |
 |---|---|---|
-| READY | 177 | Built, tested, exercised end to end inside the platform |
+| READY | 178 | Built, tested, exercised end to end inside the platform |
 | BLOCKED_EXTERNAL | 10 | Complete on our side; needs a credential, a real provider, or a real host |
 | NOT_READY | 6 | Internal work remains, each one named |
 | NOT_REQUIRED | 3 | Deliberately out of scope for V1 |

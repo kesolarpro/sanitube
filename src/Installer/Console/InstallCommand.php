@@ -6,6 +6,8 @@ namespace SaniTube\Installer\Console;
 
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Validator;
+use SaniTube\Deployment\Profiles\InstallationProfile;
+use SaniTube\Installer\Services\InstallationJournal;
 use SaniTube\Installer\Services\InstallationService;
 use SaniTube\Installer\StageResult;
 
@@ -31,12 +33,28 @@ final class InstallCommand extends Command
     protected $signature = 'sanitube:install
                             {--owner-name= : The first owner\'s display name}
                             {--owner-email= : The first owner\'s email address}
-                            {--skip-owner : Run every stage except creating the first owner}';
+                            {--skip-owner : Run every stage except creating the first owner}
+                            {--profile= : The installation profile — see sanitube:host for a suggestion}
+                            {--status : Show what previous runs recorded, without running anything}';
 
     protected $description = 'Prepare this installation: environment, key, database, schema and the first owner';
 
-    public function handle(InstallationService $installer): int
+    private ?InstallationJournal $journal = null;
+
+    public function handle(InstallationService $installer, InstallationJournal $journal): int
     {
+        $this->journal = $journal;
+
+        if ($this->option('status') === true) {
+            return $this->status($journal);
+        }
+
+        $profile = $this->profile($journal);
+
+        if ($profile === false) {
+            return self::FAILURE;
+        }
+
         $this->line('SaniTube installation');
         $this->newLine();
 
@@ -68,9 +86,118 @@ final class InstallCommand extends Command
 
         $this->newLine();
         $this->info('SaniTube is installed.');
-        $this->line('Sign in, then run a queue worker or add the scheduler to cron so imports and retries happen.');
+
+        foreach ($this->nextSteps($profile) as $step) {
+            $this->line($step);
+        }
 
         return self::SUCCESS;
+    }
+
+    /**
+     * The chosen profile, null when none was given, false when the choice
+     * cannot be honoured.
+     *
+     * No profile is ever chosen *for* the operator: with no --profile the run
+     * proceeds exactly as before, under whatever a previous run recorded. A
+     * profile this build does not know fails by name with the list;
+     * WORKER_ONLY fails because this command installs Core — a database, a
+     * schema, an owner — and a worker host wants none of that.
+     */
+    private function profile(InstallationJournal $journal): InstallationProfile|null|false
+    {
+        $option = $this->stringOption('profile');
+
+        if ($option === null) {
+            return $journal->recordedProfile();
+        }
+
+        $profile = InstallationProfile::tryFrom(strtoupper($option));
+
+        if ($profile === null) {
+            $this->error(sprintf(
+                'Unknown profile [%s]. Known profiles: %s. Run sanitube:host for a suggestion.',
+                $option,
+                implode(', ', array_map(static fn (InstallationProfile $p): string => $p->value, InstallationProfile::cases())),
+            ));
+
+            return false;
+        }
+
+        if (! $profile->includesCore()) {
+            $this->error(sprintf(
+                '[%s] does not install Core, and this command installs Core. See docs/deployment/worker.md '
+                .'for setting up a worker host.',
+                $profile->value,
+            ));
+
+            return false;
+        }
+
+        $previous = $journal->recordedProfile();
+
+        if ($previous !== null && $previous !== $profile) {
+            // Not refused — machines get reprofiled — but never silent: the
+            // services configured for the old profile do not remove themselves.
+            $this->warn(sprintf(
+                'This installation was previously profiled %s. Recording %s; anything configured for the '
+                .'old profile (cron lines, service units) is not undone by this.',
+                $previous->value,
+                $profile->value,
+            ));
+        }
+
+        $journal->rememberProfile($profile);
+
+        return $profile;
+    }
+
+    private function status(InstallationJournal $journal): int
+    {
+        if ($journal->isEmpty()) {
+            $this->line('No installation has been recorded on this machine.');
+
+            return self::SUCCESS;
+        }
+
+        $profile = $journal->recordedProfile();
+
+        $this->line(sprintf('Installation started %s', (string) $journal->startedAt()));
+        $this->line(sprintf('Profile: %s', $profile === null ? '(none recorded)' : $profile->value.' — '.$profile->label()));
+        $this->newLine();
+
+        foreach ($journal->stages() as $name => $entry) {
+            $this->line(sprintf('  %-8s %-18s %s  %s', strtolower($entry['outcome']), $name, $entry['at'], $entry['detail']));
+        }
+
+        return self::SUCCESS;
+    }
+
+    /**
+     * What to do next, in the vocabulary of the profile that was chosen.
+     *
+     * The generic sentence survives for a run with no profile: guessing one
+     * here would contradict everything profile() refuses to guess.
+     *
+     * @return list<string>
+     */
+    private function nextSteps(?InstallationProfile $profile): array
+    {
+        return match ($profile?->queueStrategy()) {
+            'scheduled-bursts' => [
+                'Sign in, then add the scheduler to cron — every minute:',
+                '  * * * * * cd '.base_path().' && php artisan schedule:run >> /dev/null 2>&1',
+                'The queue is worked in short bursts from the scheduler on this profile; no persistent process is needed.',
+            ],
+            'persistent-worker' => [
+                'Sign in, then give the scheduler and the queue a home:',
+                '  - scheduler: a cron line or a systemd timer running `php artisan schedule:run` every minute',
+                '  - queue: a persistent `php artisan queue:work` under systemd or a supervisor',
+            ],
+            default => [
+                'Sign in, then run a queue worker or add the scheduler to cron so imports and retries happen.',
+            ],
+        };
     }
 
     /**
@@ -165,6 +292,12 @@ final class InstallCommand extends Command
 
     private function reportLine(StageResult $result): void
     {
+        // Every outcome reaches the journal, skips and failures included: a
+        // resumed install is debugged from what actually happened, and a
+        // journal of successes only would say nothing about the stage that
+        // matters.
+        $this->journal?->record($result);
+
         $label = str_pad($result->stage, 18);
 
         match ($result->outcome) {

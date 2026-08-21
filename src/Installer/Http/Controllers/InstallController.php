@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use SaniTube\Installer\Services\EnvironmentFile;
+use SaniTube\Installer\Services\InstallationJournal;
 use SaniTube\Installer\Services\InstallationLock;
 use SaniTube\Installer\Services\InstallationService;
 use SaniTube\Installer\StageResult;
@@ -40,6 +41,8 @@ use SaniTube\Installer\StageResult;
  */
 final class InstallController
 {
+    private ?InstallationJournal $journal = null;
+
     /**
      * The keys this form may write, and the only ones.
      *
@@ -75,6 +78,7 @@ final class InstallController
     public function store(
         Request $request,
         InstallationService $installation,
+        InstallationJournal $journal,
         InstallationLock $lock,
         EnvironmentFile $environment,
     ): RedirectResponse {
@@ -100,6 +104,8 @@ final class InstallController
             // guessing has not earned.
             throw ValidationException::withMessages(['token' => __('installer.token_refused')]);
         }
+
+        $this->journal = $journal;
 
         $results = [];
 
@@ -148,6 +154,10 @@ final class InstallController
 
         if ($verify->hasFailed()) {
             return $this->stopped($results);
+        }
+
+        foreach ($results as $result) {
+            $journal->record($result);
         }
 
         // Last, and only after verification asked the installation itself
@@ -231,6 +241,13 @@ final class InstallController
      */
     private function stopped(array $results): RedirectResponse
     {
+        // The journal hears about a stopped run too — `sanitube:install
+        // --status` on the shell afterwards must tell the same story this
+        // screen just did, or the two installers stop being one installer.
+        foreach ($results as $result) {
+            $this->journal?->record($result);
+        }
+
         // Deliberately not `withInput()`. It would put the database password
         // and the owner's password into the session and then into the HTML of
         // the next response, which is the one thing this screen must not do —

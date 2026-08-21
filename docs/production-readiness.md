@@ -292,6 +292,7 @@ written down.
 | Production doctor | READY | Read-only; non-zero exit on internal blockers. |
 | **Certified on a real cPanel/VPS host** | BLOCKED_EXTERNAL | Never claimed as tested. Nobody has run it on one. |
 | `sanitube:host` — read the machine, suggest a profile | READY | DEP-007. File reads and PATH lookups only — no process is ever executed to inspect. Five profiles: CPANEL, VPS_CORE, VPS_CORE_AND_WORKER, WORKER_ONLY, CORE_ONLY_GENERIC; the advisor only suggests the three that are detectable and names the two that are choices. cPanel evidence outranks everything a VPS would have, because a cPanel server has root and systemd for cPanel's own use. |
+| Installer journal — resumable, recorded, never authorising | READY | DEP-008. Every stage outcome from both installers (shell and web) lands in storage/installer/journal.json, 0600, scrubbed through the shared credential rule. `sanitube:install --status` reads it; `--profile` records the chosen shape and the completion message speaks its language. The journal records and never authorises — skipping is re-decided from the machine, so a stale journal cannot contradict the filesystem. A corrupt journal is preserved aside, not replaced. |
 
 ## Security
 

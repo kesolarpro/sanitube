@@ -3,6 +3,7 @@
 namespace Tests;
 
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
+use SaniTube\Installer\Services\InstallationJournal;
 
 abstract class TestCase extends BaseTestCase
 {
@@ -44,5 +45,19 @@ abstract class TestCase extends BaseTestCase
         if (! is_file(public_path('build/manifest.json'))) {
             $this->withoutVite();
         }
+
+        // The installation journal records real runs of the real installer,
+        // and several tests run the real installer. Left on the production
+        // binding they would write storage/installer/journal.json into the
+        // developer's checkout — state from a test, indistinguishable from
+        // state from an install. Every test therefore journals under the
+        // framework's testing directory; a test that wants its own journal
+        // still swaps in its own path over this one.
+        $this->app->bind(
+            InstallationJournal::class,
+            fn (): InstallationJournal => new InstallationJournal(
+                storage_path('framework/testing/installer-journal'),
+            ),
+        );
     }
 }

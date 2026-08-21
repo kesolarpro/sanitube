@@ -24,6 +24,10 @@
 /storage/pail
 # Local object storage: masters, derivatives, artwork. Never committed.
 /storage/app/sanitube
+# Installer runtime state: the web installer's token and lock, and the
+# installation journal. State of a machine, never of the codebase — and on a
+# git-deployed install it must not dirty the tree an update will refuse.
+/storage/installer
 /phpstan.neon
 /vendor
 Homestead.json
