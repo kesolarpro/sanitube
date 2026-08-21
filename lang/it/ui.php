@@ -831,6 +831,8 @@ return [
         'select_result_description' => 'L\'audio viene scaricato, archiviato e verificato, poi proposto per il catalogo. Non diventa una traccia: qualcuno deve ancora ascoltarlo e decidere.',
         'select_result_confirm' => 'Mandalo in revisione',
         'capability' => [
+            'SYNCHRONOUS' => 'Risponde con l\'audio',
+            'ASYNC_POLLING' => 'Risponde più tardi, se richiesto',
             'TEXT_TO_MUSIC' => 'Musica da una descrizione',
             'LYRICS_TO_MUSIC' => 'Canta il testo che fornisci',
             'INSTRUMENTAL' => 'Strumentali',

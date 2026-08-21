@@ -130,9 +130,33 @@ final class ProviderProvenanceTest extends TestCase
         // real adapter is allowed -- it just has to be a deliberate act that
         // updates this list, and at that point ADR-0018's four conditions are
         // the question being answered.
+        //
+        // **GEN-008 added `SelfHostedAceStepProvider`, and here are the four
+        // answers**, so that a reader of this list does not have to go looking:
+        //
+        //   1. *Published by its supplier?* Yes. `infer-api.py` in ACE-Step's
+        //      own repository, read from `raw.githubusercontent.com`, md5
+        //      `783d768bdb8f32255cd6e4ac65ed7e67`, re-read at the start of both
+        //      GEN-007 and GEN-008 and unchanged.
+        //   2. *Read from a primary source?* Yes -- the project's repository,
+        //      not a mirror, not a blog, and not a reseller.
+        //   3. *No reverse engineering?* Nothing here was inferred from
+        //      traffic. Every field sent is a field that file declares, and the
+        //      capabilities this adapter claims are only those it documents:
+        //      no stems, no extend, no remix, no cancel, no webhook.
+        //   4. *Commercially usable?* The **code** is Apache 2.0. The model
+        //      weights' licence could not be read from this environment, so the
+        //      commercial-rights status of anything it produces stays UNKNOWN
+        //      -- which is the platform's default and is never inferred from
+        //      the fact of a generation.
+        //
+        // `StorageGeneratedAudioReader` is not an adapter to anybody: it opens
+        // a key in this installation's own storage.
         $this->assertSame([
             'FakeMusicGenerationProvider',
             'HttpGeneratedAudioReader',
+            'SelfHostedAceStepProvider',
+            'StorageGeneratedAudioReader',
             'UnavailableMusicGenerationProvider',
         ], $names);
     }

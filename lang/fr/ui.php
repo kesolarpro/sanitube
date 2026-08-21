@@ -831,6 +831,8 @@ return [
         'select_result_description' => 'L\'audio est récupéré, stocké et vérifié, puis proposé pour le catalogue. Il ne devient pas un titre — quelqu\'un doit encore l\'écouter et décider.',
         'select_result_confirm' => 'L\'envoyer en relecture',
         'capability' => [
+            'SYNCHRONOUS' => 'Répond avec l\'audio',
+            'ASYNC_POLLING' => 'Répond plus tard, quand on redemande',
             'TEXT_TO_MUSIC' => 'Musique à partir d\'une description',
             'LYRICS_TO_MUSIC' => 'Chante les paroles fournies',
             'INSTRUMENTAL' => 'Instrumentaux',

@@ -7,8 +7,13 @@ namespace SaniTube\MusicGeneration\Services;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
 use SaniTube\Localization\ContentLanguage;
+use SaniTube\MusicGeneration\Contracts\CarriesRefusalCode;
+use SaniTube\MusicGeneration\Contracts\MusicGenerationProvider;
+use SaniTube\MusicGeneration\Contracts\SynchronousMusicGenerationProvider;
+use SaniTube\MusicGeneration\Enums\ExecutionMode;
 use SaniTube\MusicGeneration\Enums\MusicGenerationStatus;
 use SaniTube\MusicGeneration\Exceptions\GenerationException;
+use SaniTube\MusicGeneration\GenerationExecution;
 use SaniTube\MusicGeneration\GenerationRequest;
 use SaniTube\MusicGeneration\Models\MusicGeneration;
 use SaniTube\MusicGeneration\MusicGenerationManager;
@@ -49,15 +54,24 @@ final readonly class SubmitMusicGeneration
         private MusicGenerationManager $providers,
         private GenerationSpendGuard $ceiling,
         private GenerationCircuitBreaker $breaker,
+        private RecordGenerationResults $results,
     ) {}
 
     public function handle(MusicGeneration $generation): MusicGeneration
     {
-        if ($generation->provider_job_id !== null || $generation->status->isTerminal()) {
+        if ($generation->submitted_at !== null || $generation->status->isTerminal()) {
             // Already submitted, or cancelled before a worker got to it. Read
             // first so the common redelivery costs one SELECT rather than a
             // write, but never trusted on its own -- the claim below is what
             // actually decides.
+            //
+            // **`submitted_at`, not `provider_job_id`.** GEN-007 made the
+            // distinction load-bearing: a synchronous provider returns no job
+            // identifier and never will, so a guard keyed on that column would
+            // let every redelivery call such a supplier again. `submitted_at`
+            // is written exactly when a request leaves this server, which is
+            // the question being asked, and it is already what the spend guard
+            // counts.
             return $generation;
         }
 
@@ -87,17 +101,29 @@ final readonly class SubmitMusicGeneration
             return $this->fail($generation, GenerationException::providerCircuitOpen($provider->name())->getMessage());
         }
 
+        $request = new GenerationRequest(
+            prompt: $generation->prompt,
+            stylePrompt: $generation->style_prompt,
+            lyrics: $generation->lyrics,
+            instrumental: $generation->instrumental,
+            language: $generation->language_code === ContentLanguage::UNKNOWN
+                ? null
+                : ContentLanguage::fromCode($generation->language_code),
+            model: $generation->model,
+            parameters: $this->scalarParameters($generation),
+        );
+
         try {
-            $result = $provider->createGeneration(new GenerationRequest(
-                prompt: $generation->prompt,
-                stylePrompt: $generation->style_prompt,
-                lyrics: $generation->lyrics,
-                instrumental: $generation->instrumental,
-                language: $generation->language_code === ContentLanguage::UNKNOWN
-                    ? null
-                    : ContentLanguage::fromCode($generation->language_code),
-                model: $generation->model,
-                parameters: $this->scalarParameters($generation),
+            $execution = $this->execute($provider, $request);
+        } catch (CarriesRefusalCode $refusal) {
+            // A code from a closed set this repository defines. It cannot
+            // contain a credential and it is the only useful thing an operator
+            // can be told about a failure on the far side of a worker, so it
+            // travels -- unlike the supplier text below.
+            return $this->fail($generation, ProviderFailure::fromProvider(
+                $provider->name(),
+                $refusal->refusalCode(),
+                'The provider refused the request.',
             ));
         } catch (Throwable $exception) {
             // A provider outage is an ordinary condition for an optional
@@ -109,22 +135,101 @@ final readonly class SubmitMusicGeneration
             return $this->fail($generation, ProviderFailure::fromThrowable($provider->name(), $exception));
         }
 
-        if ($result->providerJobId === '') {
+        if ($execution === null) {
+            // Two different faults, and they get two different sentences. An
+            // asynchronous supplier that answered without an identifier has a
+            // bug; a provider that implements neither execution contract has
+            // not been finished. Telling an operator the second when the first
+            // happened would send them to read the wrong file.
             return $this->fail($generation, ProviderFailure::fromProvider(
                 $provider->name(),
-                $result->failureReason,
-                'The provider returned no job identifier.',
+                null,
+                $provider instanceof MusicGenerationProvider
+                    ? 'The provider returned no job identifier, so nothing could ever collect the result.'
+                    : 'The provider cannot generate: it implements no execution contract.',
             ));
         }
 
+        return $execution->finished
+            ? $this->finish($generation, $execution)
+            : $this->inFlight($generation, $execution);
+    }
+
+    /**
+     * Ask the supplier, in whatever shape it has.
+     *
+     * The **only** place in the platform that branches on execution shape, and
+     * the reason {@see GenerationExecution} exists: both roads end in one value
+     * that says what happened, so everything downstream is written once.
+     *
+     * Synchronous is tried first. A supplier that implements both contracts has
+     * offered a way to get the audio without a second round trip, and taking it
+     * is strictly better: nothing to poll, nothing to lose track of, and no row
+     * left PROCESSING if the queue stops.
+     */
+    private function execute(object $provider, GenerationRequest $request): ?GenerationExecution
+    {
+        if ($provider instanceof SynchronousMusicGenerationProvider) {
+            return $provider->generate($request);
+        }
+
+        if ($provider instanceof MusicGenerationProvider) {
+            $result = $provider->createGeneration($request);
+
+            if (trim($result->providerJobId) === '') {
+                // An asynchronous answer with no identifier can never be
+                // collected. Distinguished from a synchronous answer, which
+                // legitimately has none -- before GEN-007 the two were the same
+                // branch, and that is what would have forced a synchronous
+                // adapter to invent one.
+                return null;
+            }
+
+            return GenerationExecution::inFlight(
+                providerJobId: $result->providerJobId,
+                model: $result->model,
+            );
+        }
+
+        return null;
+    }
+
+    /**
+     * A synchronous supplier answered with the audio.
+     *
+     * `provider_job_id` stays **null**, deliberately and for ever: there is no
+     * job, so there is no identifier, and writing a made-up one would leave a
+     * row that looks pollable to anything reading it later.
+     */
+    private function finish(MusicGeneration $generation, GenerationExecution $execution): MusicGeneration
+    {
+        $now = Carbon::now();
+
         $generation->forceFill([
-            'provider_job_id' => $result->providerJobId,
+            'submission_claimed_at' => null,
+            'execution_mode' => ExecutionMode::Synchronous,
+            'model' => $execution->model ?? $generation->model,
+            // Written even though the work is already done. The spend guard
+            // counts requests that left this server, and this one did.
+            'submitted_at' => $now,
+        ])->save();
+
+        $this->results->handle($generation, $execution->results);
+
+        return $this->results->complete($generation);
+    }
+
+    private function inFlight(MusicGeneration $generation, GenerationExecution $execution): MusicGeneration
+    {
+        $generation->forceFill([
+            'provider_job_id' => $execution->providerJobId,
             // Released deliberately. The claim protected the call; keeping it
             // afterwards would make an already-submitted row look busy for the
             // rest of the expiry window.
             'submission_claimed_at' => null,
+            'execution_mode' => $execution->mode,
             'status' => MusicGenerationStatus::Processing,
-            'model' => $result->model ?? $generation->model,
+            'model' => $execution->model ?? $generation->model,
             'submitted_at' => Carbon::now(),
         ])->save();
 
@@ -164,7 +269,9 @@ final readonly class SubmitMusicGeneration
 
         return MusicGeneration::query()
             ->where('id', $generation->id)
-            ->whereNull('provider_job_id')
+            // GEN-007: `submitted_at`, for the same reason the early return
+            // uses it. A synchronous provider never fills `provider_job_id`.
+            ->whereNull('submitted_at')
             ->where(function (Builder $query) use ($cutoff): void {
                 $query->whereNull('submission_claimed_at')
                     ->orWhere('submission_claimed_at', '<=', $cutoff);

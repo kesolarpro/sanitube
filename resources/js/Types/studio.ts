@@ -31,6 +31,8 @@ export type GenerationCapability =
     | 'STEM_SEPARATION'
     | 'AUDIO_UNDERSTANDING'
     | 'LYRICS_TIMESTAMPS'
+    | 'SYNCHRONOUS'
+    | 'ASYNC_POLLING'
     | 'CANCEL'
     | 'WEBHOOK'
     | 'SELF_HOSTED';

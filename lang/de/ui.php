@@ -831,6 +831,8 @@ return [
         'select_result_description' => 'Das Audio wird geholt, abgelegt und verifiziert und dann für den Katalog vorgeschlagen. Es wird kein Titel — jemand muss es noch anhören und entscheiden.',
         'select_result_confirm' => 'In die Prüfliste übernehmen',
         'capability' => [
+            'SYNCHRONOUS' => 'Antwortet mit dem Audio',
+            'ASYNC_POLLING' => 'Antwortet später, auf Nachfrage',
             'TEXT_TO_MUSIC' => 'Musik aus einer Beschreibung',
             'LYRICS_TO_MUSIC' => 'Singt einen vorgegebenen Text',
             'INSTRUMENTAL' => 'Instrumentalstücke',

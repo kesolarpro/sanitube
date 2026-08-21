@@ -1,8 +1,8 @@
 {
     "$comment": "Machine-readable project state. Any new session reads this first, then verifies it against GitHub before trusting it. Written at the end of each ticket, so a stale entry means a session ended mid-ticket — check the branch and CI rather than the status field.",
     "updated_at": "2026-08-21",
-    "current_phase": "Phase 2. PROD-005 ferme la lacune que PROD-004 avait nommee : une occasion reclamee par un worker mort restait CLAIMED pour toujours. La question n'est pas « cette reclamation est-elle vieille » mais « quelqu'un a-t-il ete sollicite » — d'ou UNKNOWN_RESULT, distinct de FAILED et jamais rejoue. Prochain : contrat de generation V2 (synchrone + asynchrone).",
-    "last_completed_ticket": "PROD-005",
+    "current_phase": "Phase 2. GEN-007 : un fournisseur peut etre synchrone (ADR-0019). GEN-008 : le worker de generation. output_path est un detail d'implementation de l'hote du moteur et ne franchit aucune frontiere ; Core recoit une cle de stockage. Aucun systeme de fichiers partage entre cPanel et le GPU. Premier adaptateur reel : ACE-Step auto-heberge. CODE READY, pas PRODUCTION VERIFIED.",
+    "last_completed_ticket": "GEN-008",
     "default_branch": "main — confirmed by API this session. The EXTERNAL_ADMIN_ACTION_REQUIRED blocker is cleared.",
     "tickets": {
         "ARCH-001": {
@@ -680,12 +680,32 @@
             "note": "Ecrans de production. 16 mutations, 16 tuees ; harnais de mutation corrige (texte via fichiers + garde NO_TESTS_RAN)."
         },
         "PROD-005": {
+            "status": "merged",
+            "branch": "claude/sanitube-autonomous-v1-5pycx0",
+            "pr": 107,
+            "ci": "green (10/10)",
+            "report": "docs/reports/PROD-005.md",
+            "merge_commit": "aaafe35",
+            "note": "Reaper de reclamations expirees. Nouvel etat UNKNOWN_RESULT, distinct de FAILED."
+        },
+        "GEN-007": {
             "status": "open",
             "branch": "claude/sanitube-autonomous-v1-5pycx0",
             "pr": null,
             "ci": "pending",
-            "report": "docs/reports/PROD-005.md",
-            "note": "Reaper de reclamations expirees. Nouvel etat UNKNOWN_RESULT. 12 mutations, 10 tuees, 2 equivalentes (prouvees : les gardes qu'elles masquent sont tuees separement)."
+            "report": "docs/reports/GEN-007.md",
+            "adr": "docs/adr/ADR-0019-a-provider-may-be-synchronous.md",
+            "review": "REVIEW_REQUIRED — change la forme du contrat fournisseur",
+            "note": "Contrat de generation V2 : modes d'execution synchrone et asynchrone. 10 mutations, 9 tuees, 1 equivalente."
+        },
+        "GEN-008": {
+            "status": "open",
+            "branch": "claude/sanitube-autonomous-v1-5pycx0",
+            "pr": null,
+            "ci": "pending",
+            "report": "docs/reports/GEN-008.md",
+            "deployment": "docs/deployment/generation-worker.md",
+            "note": "Worker de generation + adaptateur ACE-Step auto-heberge. 17 mutations, 17 tuees. Aucun ACE-Step reel contacte."
         }
     },
     "architecture_amendments": [

@@ -17,8 +17,15 @@ use SaniTube\MusicGeneration\Providers\FakeMusicGenerationProvider;
  * platform must be fully developable and testable before any such API is
  * available — hence {@see FakeMusicGenerationProvider}.
  *
- * Generation is asynchronous by nature: `createGeneration()` starts a job and
- * returns immediately; results are collected later by polling.
+ * **Asynchronous, and no longer by assumption.** GEN-001 wrote "generation is
+ * asynchronous by nature" and it was true of every supplier then in view;
+ * GEN-006's research found one whose own reference server blocks and returns
+ * the audio. So this is now one of two sub-contracts under
+ * {@see GenerationProvider} rather than the only shape a supplier may have —
+ * see {@see SynchronousMusicGenerationProvider} for the other.
+ *
+ * Here, `createGeneration()` starts a job and returns immediately; results are
+ * collected later by polling.
  *
  * **Four methods, and no more.** ARCH-001 left this provisional pending a real
  * provider's semantics, and GEN-001 finalises it deliberately small.
@@ -34,20 +41,8 @@ use SaniTube\MusicGeneration\Providers\FakeMusicGenerationProvider;
  * once the job is done. Providers bill and rate-limit them differently, and a
  * contract that returned both together would make a status poll expensive.
  */
-interface MusicGenerationProvider
+interface MusicGenerationProvider extends GenerationProvider
 {
-    /**
-     * Configuration name, e.g. "suno", "fake".
-     */
-    public function name(): string;
-
-    /**
-     * Whether this provider can be used right now — credentials present,
-     * terms accepted. A provider that is merely unconfigured must report
-     * false rather than throwing at call time.
-     */
-    public function isAvailable(): bool;
-
     /**
      * Start a generation. Returns a result in a pending state carrying the
      * provider's job identifier.
