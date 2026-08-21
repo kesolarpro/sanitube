@@ -43,6 +43,7 @@ written down.
 | `APP_DEBUG` off in production | READY | Blocker in production, warning elsewhere. |
 | `APP_URL` set and https in production | READY | Signed URLs and emailed links build from it. |
 | Six-language interface | READY | `en fr es it pt de`, gated both directions. |
+| A write that worked says so | READY | UI-006. The interface flashes a *code*; the shell translates it, so a confirmation is in the reader's language. A test reads every `with('status', …)` in `src/` and demands a line for it in all six locales. |
 | Error pages do not leak internals | READY | Analyser failure messages and storage paths are stripped at the query boundary. |
 
 ## Auth and identity

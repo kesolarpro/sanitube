@@ -546,7 +546,6 @@ return [
         'cover_prompt' => 'Describe the cover',
         'cover_prompt_hint' => 'What the image should show. This is sent to the provider and costs a request, so it is worth a sentence rather than a word.',
         'cover_generate' => 'Ask for a cover',
-        'cover_generation_queued' => 'Asked for. It runs in the background — reload to see the result.',
         'cover_remaining' => ':left left :window',
         'cover_window' => ['daily' => 'today', 'weekly' => 'this week', 'monthly' => 'this month'],
         'cover_history' => 'What has been asked for. A finished image still has to be chosen as the cover.',
@@ -576,7 +575,6 @@ return [
         'p_line_hint' => 'Printed by stores beside the recording. A notice, not a calculation — SaniTube does no accounting.',
         'no_date' => 'No date set',
         'save' => 'Save details',
-        'saved' => 'Saved.',
         'locked' => 'This release can no longer be edited',
         'locked_note' => 'A release that has been handed to a distributor cannot be edited here, because the copy the distributor holds would no longer match.',
         'reopen' => 'Reopen for editing',
@@ -681,8 +679,6 @@ return [
         'blank_means_unchanged' => 'Blank fields are left alone.',
         'save' => 'Save changes',
         'not_saved' => 'Nothing was saved',
-        'saved' => 'Saved.',
-        'unchanged' => 'Nothing had changed.',
         'failure' => [
             'SETTINGS_NOT_WRITTEN' => 'The .env file could not be written. It was backed up first and has been left exactly as it was.',
             'SETTINGS_CACHE_NOT_REBUILT' => 'The configuration cache could not be rebuilt, so the previous .env has been restored. A cache that no longer matches the file would be worse than no change at all.',
@@ -748,10 +744,6 @@ return [
         'cancel_occasion' => 'Call off this occasion',
         'cancel_occasion_description' => 'Marks the occasion as cancelled by a person. A generation already requested is not recalled by this.',
         'cancel_occasion_confirm' => 'Call it off',
-        'plan_paused' => 'The plan is paused.',
-        'plan_resumed' => 'The plan is running again.',
-        'autonomy_changed' => 'What this plan may do alone has changed.',
-        'occasion_cancelled' => 'The occasion was called off.',
         'spends_money' => 'Occasions on a plan that may act alone are requests paid for at a supplier.',
         'failure' => [
             'PLAN_NOT_RESUMABLE' => 'An exhausted plan needs its target raised and a disabled one needs reconsidering. Neither is something a resume button should do on your behalf.',
@@ -929,7 +921,6 @@ return [
         'prefix_hint' => 'Everything acceptable under this path. Leave empty if you are listing files below.',
         'references' => 'Files',
         'references_hint' => 'One object key per line. Leave empty if you gave a folder above.',
-        'import_started' => 'The import has been queued.',
         'import_failure' => [
             'AMBIGUOUS_SELECTION' => 'A folder and a list of files both say what to import, and there is no rule for which one wins. Use one or the other.',
             'NOTHING_SELECTED' => 'Name a folder or list some files. Importing everything blindly is never what somebody meant.',
@@ -1234,8 +1225,6 @@ return [
             'IDENTIFIER_NAMESPACE_REQUIRED' => 'That kind of identifier is issued by a counterparty and must name it.',
             'IDENTIFIER_NAMESPACE_FORBIDDEN' => 'That kind of identifier is issued globally and takes no counterparty name.',
         ],
-        'identifier_assigned' => 'Identifier recorded.',
-        'identifier_revoked' => 'Identifier withdrawn.',
         'authoritative' => 'Authoritative',
         'releases' => 'Releases',
         'no_releases' => 'Not on any release yet',
@@ -1484,5 +1473,61 @@ return [
             'ENRICHMENT_NO_EVIDENCE' => 'There is nothing to reason from yet. Transcribe the file first.',
             'ENRICHMENT_ALREADY_WAITING' => 'A suggestion is already waiting for review.',
         ],
+    ],
+    /*
+     | Every sentence the interface says after a write that worked.
+     |
+     | **Keyed by the flash code itself**, dots and all, because the code is
+     | what a controller flashes and one home for all of them is what makes the
+     | set enumerable -- `SuccessIsAnnouncedTest` reads every `with('status',
+     | ...)` in `src/` and asserts each has a line here, in every locale.
+     |
+     | UI-006 exists because there were thirty-six of these codes and no
+     | wiring: `status` was never a shared prop, no screen read it, and ten of
+     | the sentences below had already been written by earlier tickets and
+     | shown to nobody. Every successful write in the interface -- including
+     | handing a release to a distributor, the one act that cannot be undone --
+     | redirected in silence.
+     */
+
+    'flash' => [
+        'candidate.bulk_queued' => 'Queued. Each decision is applied on its own, so the queue empties as the work is done.',
+        'candidate.promoted' => 'Added to the catalogue.',
+        'candidate.rejected' => 'Rejected. The file is still here; only the decision was recorded.',
+        'candidate.revised' => 'Saved.',
+        'catalog.identifier_assigned' => 'Identifier recorded.',
+        'catalog.identifier_revoked' => 'Identifier withdrawn.',
+        'distribution.reconciled' => 'Reconciled. What the distributor holds is now what is recorded here.',
+        'distribution.resolved' => 'Recorded. This is your statement about what the distributor holds, not theirs.',
+        'distribution.submitted' => 'Handed over. This cannot be taken back — follow the delivery for what happens next.',
+        'distribution.synced' => 'Refreshed from the distributor.',
+        'distribution.takedown_requested' => 'Takedown requested. The distributor decides when it takes effect.',
+        'ingestion.import_started' => 'The import has been queued.',
+        'ingestion.inbox_discarded' => 'Discarded from the inbox.',
+        'jobs.forgotten' => 'Removed from the failed list. Nothing was undone.',
+        'jobs.retried' => 'Queued again.',
+        'production.autonomy_changed' => 'What this plan may do alone has changed.',
+        'production.occasion_cancelled' => 'The occasion was called off.',
+        'production.plan_paused' => 'The plan is paused.',
+        'production.plan_resumed' => 'The plan is running again.',
+        'release.artists_saved' => 'Credits saved.',
+        'release.cover_saved' => 'Cover set.',
+        'release.created' => 'Release created.',
+        'release.ready' => 'Marked ready for distribution. It can no longer be changed in place.',
+        'release.reopened' => 'Reopened as a draft. It has to pass validation again before it can be handed over.',
+        'release.reordered' => 'Running order saved.',
+        'release.saved' => 'Saved.',
+        'release.track_added' => 'Track added.',
+        'release.track_removed' => 'Track removed from this release. The recording itself is untouched.',
+        'releases.cover_generation_queued' => 'Asked for. It runs in the background — reload to see the result.',
+        'settings.saved' => 'Saved.',
+        'settings.unchanged' => 'Nothing had changed.',
+        'studio.generation_cancelled' => 'Cancelled.',
+        'studio.generation_started' => 'Queued. It runs in the background — reload to see the result.',
+        'studio.project_created' => 'Project created.',
+        'studio.result_selected' => 'Kept. It joins the review queue like any other recording.',
+        'system.health_refreshed' => 'Checked just now.',
+        'track.credits_saved' => 'Credits saved.',
+        'track.ready' => 'Marked ready. It can now be put on a release.',
     ],
 ];

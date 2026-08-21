@@ -546,7 +546,6 @@ return [
         'cover_prompt' => 'Descrivi la copertina',
         'cover_prompt_hint' => 'Cosa deve mostrare l\'immagine. Viene inviato al fornitore e costa una richiesta: meglio una frase che una parola.',
         'cover_generate' => 'Chiedi una copertina',
-        'cover_generation_queued' => 'Richiesta. Gira in background — ricarica per vedere il risultato.',
         'cover_remaining' => 'ne restano :left :window',
         'cover_window' => ['daily' => 'oggi', 'weekly' => 'questa settimana', 'monthly' => 'questo mese'],
         'cover_history' => 'Cosa è stato chiesto. Un\'immagine finita va comunque scelta come copertina.',
@@ -576,7 +575,6 @@ return [
         'p_line_hint' => 'Gli store la stampano accanto alla registrazione. È una dicitura, non un calcolo: SaniTube non tiene alcuna contabilità.',
         'no_date' => 'Nessuna data impostata',
         'save' => 'Salva i dettagli',
-        'saved' => 'Salvato.',
         'locked' => 'Questa pubblicazione non può più essere modificata',
         'locked_note' => 'Una pubblicazione affidata a un distributore non può essere modificata qui, perché la copia che il distributore possiede non corrisponderebbe più.',
         'reopen' => 'Riapri per modificare',
@@ -681,8 +679,6 @@ return [
         'blank_means_unchanged' => 'I campi vuoti vengono lasciati invariati.',
         'save' => 'Salva modifiche',
         'not_saved' => 'Non è stato salvato nulla',
-        'saved' => 'Salvato.',
-        'unchanged' => 'Non era cambiato nulla.',
         'failure' => [
             'SETTINGS_NOT_WRITTEN' => 'Il file .env non è stato scritto. È stato prima salvato e lasciato esattamente com’era.',
             'SETTINGS_CACHE_NOT_REBUILT' => 'La cache di configurazione non è stata ricostruita, quindi il .env precedente è stato ripristinato. Una cache che non corrisponde più al file sarebbe peggio di nessuna modifica.',
@@ -748,10 +744,6 @@ return [
         'cancel_occasion' => 'Annulla questa occasione',
         'cancel_occasion_description' => 'Segna l\'occasione come annullata da una persona. Una generazione già richiesta non viene richiamata da questo.',
         'cancel_occasion_confirm' => 'Annulla',
-        'plan_paused' => 'Il piano è in pausa.',
-        'plan_resumed' => 'Il piano gira di nuovo.',
-        'autonomy_changed' => 'Ciò che questo piano può fare da solo è cambiato.',
-        'occasion_cancelled' => 'L\'occasione è stata annullata.',
         'spends_money' => 'Le occasioni di un piano che può agire da solo sono richieste pagate presso un fornitore.',
         'failure' => [
             'PLAN_NOT_RESUMABLE' => 'Un piano esaurito ha bisogno che il suo obiettivo sia alzato e uno disattivato di essere riconsiderato. Nessuno dei due è qualcosa che un pulsante di ripresa dovrebbe fare al posto tuo.',
@@ -929,7 +921,6 @@ return [
         'prefix_hint' => 'Tutto ciò che è utilizzabile sotto questo percorso. Lascia vuoto se elenchi i file qui sotto.',
         'references' => 'File',
         'references_hint' => 'Una chiave oggetto per riga. Lascia vuoto se hai indicato una cartella sopra.',
-        'import_started' => 'L’importazione è stata messa in coda.',
         'import_failure' => [
             'AMBIGUOUS_SELECTION' => 'Una cartella e un elenco di file dicono entrambi cosa importare, e non c’è una regola per decidere. Usane uno solo.',
             'NOTHING_SELECTED' => 'Indica una cartella o elenca dei file. Importare tutto alla cieca non è mai ciò che qualcuno voleva.',
@@ -1234,8 +1225,6 @@ return [
             'IDENTIFIER_NAMESPACE_REQUIRED' => 'Quel tipo di identificativo è rilasciato da una controparte e deve nominarla.',
             'IDENTIFIER_NAMESPACE_FORBIDDEN' => 'Quel tipo di identificativo è rilasciato globalmente e non prende un nome di controparte.',
         ],
-        'identifier_assigned' => 'Identificativo registrato.',
-        'identifier_revoked' => 'Identificativo ritirato.',
         'authoritative' => 'Autorevole',
         'releases' => 'Pubblicazioni',
         'no_releases' => 'Ancora in nessuna pubblicazione',
@@ -1484,5 +1473,61 @@ return [
             'ENRICHMENT_NO_EVIDENCE' => 'Non c’è ancora nulla su cui ragionare. Trascrivi prima il file.',
             'ENRICHMENT_ALREADY_WAITING' => 'Un suggerimento è già in attesa di revisione.',
         ],
+    ],
+    /*
+     | Every sentence the interface says after a write that worked.
+     |
+     | **Keyed by the flash code itself**, dots and all, because the code is
+     | what a controller flashes and one home for all of them is what makes the
+     | set enumerable -- `SuccessIsAnnouncedTest` reads every `with('status',
+     | ...)` in `src/` and asserts each has a line here, in every locale.
+     |
+     | UI-006 exists because there were thirty-six of these codes and no
+     | wiring: `status` was never a shared prop, no screen read it, and ten of
+     | the sentences below had already been written by earlier tickets and
+     | shown to nobody. Every successful write in the interface -- including
+     | handing a release to a distributor, the one act that cannot be undone --
+     | redirected in silence.
+     */
+
+    'flash' => [
+        'candidate.bulk_queued' => 'In coda. Ogni decisione si applica per conto suo, quindi la coda si svuota man mano che il lavoro procede.',
+        'candidate.promoted' => 'Aggiunto al catalogo.',
+        'candidate.rejected' => 'Rifiutato. Il file è ancora qui; è stata registrata solo la decisione.',
+        'candidate.revised' => 'Salvato.',
+        'catalog.identifier_assigned' => 'Identificativo registrato.',
+        'catalog.identifier_revoked' => 'Identificativo ritirato.',
+        'distribution.reconciled' => 'Riconciliato. Ciò che il distributore detiene è ora ciò che risulta qui.',
+        'distribution.resolved' => 'Registrato. È la vostra affermazione su ciò che il distributore detiene, non la sua.',
+        'distribution.submitted' => 'Consegnato. Non si può tornare indietro — seguite la consegna per il seguito.',
+        'distribution.synced' => 'Aggiornato dal distributore.',
+        'distribution.takedown_requested' => 'Rimozione richiesta. È il distributore a decidere quando ha effetto.',
+        'ingestion.import_started' => 'L\'importazione è in coda.',
+        'ingestion.inbox_discarded' => 'Scartato dalla casella di deposito.',
+        'jobs.forgotten' => 'Rimosso dall\'elenco dei fallimenti. Nulla è stato annullato.',
+        'jobs.retried' => 'Rimesso in coda.',
+        'production.autonomy_changed' => 'Ciò che questo piano può fare da solo è cambiato.',
+        'production.occasion_cancelled' => 'L\'occasione è stata annullata.',
+        'production.plan_paused' => 'Il piano è in pausa.',
+        'production.plan_resumed' => 'Il piano è di nuovo in esecuzione.',
+        'release.artists_saved' => 'Crediti salvati.',
+        'release.cover_saved' => 'Copertina impostata.',
+        'release.created' => 'Pubblicazione creata.',
+        'release.ready' => 'Contrassegnata pronta per la distribuzione. Non può più essere modificata sul posto.',
+        'release.reopened' => 'Riaperta come bozza. Dovrà superare di nuovo la validazione prima di essere consegnata.',
+        'release.reordered' => 'Ordine di riproduzione salvato.',
+        'release.saved' => 'Salvato.',
+        'release.track_added' => 'Traccia aggiunta.',
+        'release.track_removed' => 'Traccia rimossa da questa pubblicazione. La registrazione in sé è intatta.',
+        'releases.cover_generation_queued' => 'Richiesto. Viene eseguito in background — ricaricate per vedere il risultato.',
+        'settings.saved' => 'Salvato.',
+        'settings.unchanged' => 'Non era cambiato nulla.',
+        'studio.generation_cancelled' => 'Annullato.',
+        'studio.generation_started' => 'In coda. Viene eseguito in background — ricaricate per vedere il risultato.',
+        'studio.project_created' => 'Progetto creato.',
+        'studio.result_selected' => 'Conservato. Entra nella coda di revisione come ogni altra registrazione.',
+        'system.health_refreshed' => 'Verificato adesso.',
+        'track.credits_saved' => 'Crediti salvati.',
+        'track.ready' => 'Contrassegnata pronta. Ora può figurare in una pubblicazione.',
     ],
 ];

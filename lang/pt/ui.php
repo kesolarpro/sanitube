@@ -546,7 +546,6 @@ return [
         'cover_prompt' => 'Descreva a capa',
         'cover_prompt_hint' => 'O que a imagem deve mostrar. É enviado ao fornecedor e custa um pedido, por isso vale mais uma frase do que uma palavra.',
         'cover_generate' => 'Pedir uma capa',
-        'cover_generation_queued' => 'Pedida. Corre em segundo plano — recarregue para ver o resultado.',
         'cover_remaining' => 'faltam :left :window',
         'cover_window' => ['daily' => 'hoje', 'weekly' => 'esta semana', 'monthly' => 'este mês'],
         'cover_history' => 'O que foi pedido. Uma imagem terminada ainda tem de ser escolhida como capa.',
@@ -576,7 +575,6 @@ return [
         'p_line_hint' => 'As lojas imprimem-no junto à gravação. É uma menção, não um cálculo — o SaniTube não faz contabilidade.',
         'no_date' => 'Sem data definida',
         'save' => 'Guardar detalhes',
-        'saved' => 'Guardado.',
         'locked' => 'Este lançamento já não pode ser editado',
         'locked_note' => 'Um lançamento entregue a um distribuidor não pode ser editado aqui, porque a cópia que o distribuidor tem deixaria de corresponder.',
         'reopen' => 'Reabrir para edição',
@@ -681,8 +679,6 @@ return [
         'blank_means_unchanged' => 'Os campos vazios ficam como estão.',
         'save' => 'Guardar alterações',
         'not_saved' => 'Nada foi guardado',
-        'saved' => 'Guardado.',
-        'unchanged' => 'Nada tinha mudado.',
         'failure' => [
             'SETTINGS_NOT_WRITTEN' => 'O ficheiro .env não pôde ser escrito. Foi primeiro copiado e deixado exatamente como estava.',
             'SETTINGS_CACHE_NOT_REBUILT' => 'A cache de configuração não pôde ser reconstruída, por isso o .env anterior foi restaurado. Uma cache que já não corresponde ao ficheiro seria pior do que nenhuma alteração.',
@@ -748,10 +744,6 @@ return [
         'cancel_occasion' => 'Cancelar esta ocasião',
         'cancel_occasion_description' => 'Marca a ocasião como cancelada por uma pessoa. Uma geração já solicitada não é recolhida por isto.',
         'cancel_occasion_confirm' => 'Cancelar',
-        'plan_paused' => 'O plano está pausado.',
-        'plan_resumed' => 'O plano corre novamente.',
-        'autonomy_changed' => 'O que este plano pode fazer sozinho mudou.',
-        'occasion_cancelled' => 'A ocasião foi cancelada.',
         'spends_money' => 'As ocasiões de um plano que pode agir sozinho são pedidos pagos junto de um fornecedor.',
         'failure' => [
             'PLAN_NOT_RESUMABLE' => 'Um plano esgotado precisa que o seu objetivo seja elevado e um desativado precisa de ser reconsiderado. Nenhum deles é algo que um botão de retomar deva fazer por si.',
@@ -929,7 +921,6 @@ return [
         'prefix_hint' => 'Tudo o que for aproveitável neste caminho. Deixe vazio se for listar ficheiros abaixo.',
         'references' => 'Ficheiros',
         'references_hint' => 'Uma chave de objeto por linha. Deixe vazio se indicou uma pasta acima.',
-        'import_started' => 'A importação foi posta em fila.',
         'import_failure' => [
             'AMBIGUOUS_SELECTION' => 'Uma pasta e uma lista de ficheiros dizem ambas o que importar, e não há regra para decidir. Use uma ou outra.',
             'NOTHING_SELECTED' => 'Indique uma pasta ou liste ficheiros. Importar tudo às cegas nunca é o que alguém quis.',
@@ -1234,8 +1225,6 @@ return [
             'IDENTIFIER_NAMESPACE_REQUIRED' => 'Esse tipo de identificador é emitido por uma contraparte e tem de a nomear.',
             'IDENTIFIER_NAMESPACE_FORBIDDEN' => 'Esse tipo de identificador é emitido globalmente e não leva nome de contraparte.',
         ],
-        'identifier_assigned' => 'Identificador registado.',
-        'identifier_revoked' => 'Identificador retirado.',
         'authoritative' => 'Autoritativo',
         'releases' => 'Lançamentos',
         'no_releases' => 'Ainda em nenhum lançamento',
@@ -1484,5 +1473,61 @@ return [
             'ENRICHMENT_NO_EVIDENCE' => 'Ainda não há nada em que se basear. Transcreva primeiro o ficheiro.',
             'ENRICHMENT_ALREADY_WAITING' => 'Já há uma sugestão a aguardar revisão.',
         ],
+    ],
+    /*
+     | Every sentence the interface says after a write that worked.
+     |
+     | **Keyed by the flash code itself**, dots and all, because the code is
+     | what a controller flashes and one home for all of them is what makes the
+     | set enumerable -- `SuccessIsAnnouncedTest` reads every `with('status',
+     | ...)` in `src/` and asserts each has a line here, in every locale.
+     |
+     | UI-006 exists because there were thirty-six of these codes and no
+     | wiring: `status` was never a shared prop, no screen read it, and ten of
+     | the sentences below had already been written by earlier tickets and
+     | shown to nobody. Every successful write in the interface -- including
+     | handing a release to a distributor, the one act that cannot be undone --
+     | redirected in silence.
+     */
+
+    'flash' => [
+        'candidate.bulk_queued' => 'Na fila. Cada decisão é aplicada por si só, por isso a fila esvazia à medida que o trabalho avança.',
+        'candidate.promoted' => 'Adicionado ao catálogo.',
+        'candidate.rejected' => 'Rejeitado. O ficheiro continua aqui; apenas a decisão foi registada.',
+        'candidate.revised' => 'Guardado.',
+        'catalog.identifier_assigned' => 'Identificador registado.',
+        'catalog.identifier_revoked' => 'Identificador retirado.',
+        'distribution.reconciled' => 'Reconciliado. O que o distribuidor tem é agora o que consta aqui.',
+        'distribution.resolved' => 'Registado. É a sua afirmação sobre o que o distribuidor tem, não a dele.',
+        'distribution.submitted' => 'Entregue. Isto não pode ser retirado — siga a entrega para saber o que se segue.',
+        'distribution.synced' => 'Atualizado junto do distribuidor.',
+        'distribution.takedown_requested' => 'Remoção pedida. O distribuidor decide quando produz efeito.',
+        'ingestion.import_started' => 'A importação está na fila.',
+        'ingestion.inbox_discarded' => 'Descartado da caixa de entrada.',
+        'jobs.forgotten' => 'Retirado da lista de falhas. Nada foi desfeito.',
+        'jobs.retried' => 'De novo na fila.',
+        'production.autonomy_changed' => 'O que este plano pode fazer sozinho mudou.',
+        'production.occasion_cancelled' => 'A ocasião foi cancelada.',
+        'production.plan_paused' => 'O plano está em pausa.',
+        'production.plan_resumed' => 'O plano está de novo a correr.',
+        'release.artists_saved' => 'Créditos guardados.',
+        'release.cover_saved' => 'Capa definida.',
+        'release.created' => 'Lançamento criado.',
+        'release.ready' => 'Marcado pronto para distribuição. Já não pode ser alterado no lugar.',
+        'release.reopened' => 'Reaberto como rascunho. Terá de passar a validação de novo antes de ser entregue.',
+        'release.reordered' => 'Ordem de reprodução guardada.',
+        'release.saved' => 'Guardado.',
+        'release.track_added' => 'Faixa adicionada.',
+        'release.track_removed' => 'Faixa retirada deste lançamento. A gravação em si fica intacta.',
+        'releases.cover_generation_queued' => 'Pedido. Corre em segundo plano — recarregue para ver o resultado.',
+        'settings.saved' => 'Guardado.',
+        'settings.unchanged' => 'Nada tinha mudado.',
+        'studio.generation_cancelled' => 'Cancelado.',
+        'studio.generation_started' => 'Na fila. Corre em segundo plano — recarregue para ver o resultado.',
+        'studio.project_created' => 'Projeto criado.',
+        'studio.result_selected' => 'Guardado. Entra na fila de revisão como qualquer outra gravação.',
+        'system.health_refreshed' => 'Verificado agora mesmo.',
+        'track.credits_saved' => 'Créditos guardados.',
+        'track.ready' => 'Marcada pronta. Pode agora figurar num lançamento.',
     ],
 ];
