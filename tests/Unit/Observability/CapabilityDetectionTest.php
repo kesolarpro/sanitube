@@ -132,6 +132,35 @@ final class CapabilityDetectionTest extends TestCase
         $this->assertStringContainsString('Detection failed', (string) $report->all()[0]->detail);
     }
 
+    /**
+     * The catch-all is where a credential arrives.
+     *
+     * `CapabilityRegistry` wraps *every* detector, including the one that
+     * resolves object storage — and resolving an S3-compatible provider builds
+     * a client from the configured key and secret, so the exception that comes
+     * back out is exactly the one that quotes them. A detail is rendered on
+     * the System screen, returned by `/api/v1/health/capabilities`, and
+     * printed by the doctor, whose output is what somebody pastes into a
+     * support thread.
+     */
+    #[Test]
+    public function a_detector_that_throws_holding_a_credential_does_not_publish_it(): void
+    {
+        config(['filesystems.disks.r2.secret' => 'sk-live-abcdefghijklmnop']);
+
+        $registry = new CapabilityRegistry($this->app, [LeakingDetector::class]);
+
+        $detail = (string) $registry->report()->all()[0]->detail;
+
+        $this->assertStringNotContainsString('sk-live-abcdefghijklmnop', $detail);
+        $this->assertStringNotContainsString('X-Amz-Signature', $detail);
+        $this->assertStringNotContainsString('bucket.r2.cloudflarestorage.com', $detail);
+
+        // And still says a detector broke, which is the whole point of the
+        // catch-all. Scrubbed to nothing would pass every assertion above.
+        $this->assertStringContainsString('Detection failed', $detail);
+    }
+
     #[Test]
     public function the_report_separates_blocking_gaps_from_optional_ones(): void
     {
@@ -157,6 +186,21 @@ final class ExplodingDetector implements CapabilityDetector
     public function detect(): Capability
     {
         throw new \RuntimeException('disk on fire');
+    }
+}
+
+/**
+ * A detector that fails the way the object-storage one would: holding the
+ * request it was making, signature and configured secret and all.
+ */
+final class LeakingDetector implements CapabilityDetector
+{
+    public function detect(): Capability
+    {
+        throw new \RuntimeException(
+            'PUT https://bucket.r2.cloudflarestorage.com/probe?X-Amz-Signature=deadbeefcafe failed '
+                .'for key sk-live-abcdefghijklmnop',
+        );
     }
 }
 
