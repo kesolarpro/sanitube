@@ -141,6 +141,41 @@ final class DoctorTest extends TestCase
         $this->assertSame(ProductionCheck::READY, $this->check('heartbeat')->verdict);
     }
 
+    /**
+     * Freshness says when the last backup was. This says whether there will be
+     * another.
+     *
+     * DEP-005 refuses a bad include path *at backup time*, which on a shared
+     * account is a cron line failing quietly at three in the morning. The
+     * operator's first sign would be the freshness warning a week later, and by
+     * then they have a week of work to re-do.
+     */
+    #[Test]
+    public function a_backup_configuration_that_can_never_run_is_reported_before_it_fails(): void
+    {
+        config(['backup.include_paths' => ['..']]);
+
+        $check = $this->check('include_paths');
+
+        $this->assertSame(ProductionCheck::WARNING, $check->verdict);
+        $this->assertStringContainsString('..', $check->summary);
+        $this->assertNotNull($check->remediation);
+    }
+
+    #[Test]
+    public function a_workable_backup_configuration_says_nothing_at_all(): void
+    {
+        // No check at all rather than a green one. The doctor's output is read
+        // by somebody looking for what is wrong, and a line per setting that
+        // is fine is how the two lines that are not get scrolled past.
+        $keys = array_map(
+            static fn (ProductionCheck $check): string => $check->key,
+            $this->diagnose(),
+        );
+
+        $this->assertNotContains('include_paths', $keys);
+    }
+
     #[Test]
     public function an_installation_that_has_never_been_backed_up_is_never_reported_as_healthy(): void
     {
