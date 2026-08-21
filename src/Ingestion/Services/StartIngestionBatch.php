@@ -17,7 +17,6 @@ use SaniTube\Ingestion\Models\IngestionBatch;
 use SaniTube\Ingestion\Models\IngestionItem;
 use SaniTube\Ingestion\Sources\SourceReaderFactory;
 use SaniTube\Operations\Services\WorkAdmission;
-use SaniTube\Storage\StorageManager;
 
 /**
  * Turns a request to import things into a batch and a queue of work.
@@ -38,9 +37,9 @@ use SaniTube\Storage\StorageManager;
 final readonly class StartIngestionBatch
 {
     public function __construct(
-        private StorageManager $storage,
         private SourceReaderFactory $readers,
         private WorkAdmission $admission,
+        private PrefixReferences $prefixes,
     ) {}
 
     /**
@@ -88,7 +87,7 @@ final readonly class StartIngestionBatch
         $reader = $this->readers->for($source, $provider);
         $resolved = match (true) {
             $manifest instanceof Manifest => $manifest->references(),
-            $prefix !== null => $this->expand($prefix, $provider),
+            $prefix !== null => $this->prefixes->under($prefix, $provider),
             default => $references,
         };
 
@@ -155,32 +154,6 @@ final readonly class StartIngestionBatch
         $this->dispatchPending($batch);
 
         return $batch->refresh();
-    }
-
-    /**
-     * Object keys under a prefix, with the platform's own output excluded.
-     *
-     * @return list<string>
-     */
-    private function expand(string $prefix, ?string $provider): array
-    {
-        $reader = $this->readers->for(IngestionSource::CloudImport, $provider);
-        $reader->assertAcceptable($prefix);
-
-        $store = $provider === null ? $this->storage->default() : $this->storage->provider($provider);
-
-        return array_values(array_filter(
-            $store->files($prefix),
-            function (string $key) use ($reader): bool {
-                try {
-                    $reader->assertAcceptable($key);
-
-                    return true;
-                } catch (IngestionException) {
-                    return false;
-                }
-            },
-        ));
     }
 
     /**

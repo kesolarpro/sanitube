@@ -149,6 +149,7 @@ blocks going live.
 | Control | Verdict | Notes |
 |---|---|---|
 | Bulk import from cloud storage | READY | 900-file scale is a queueing property, asserted where it belongs. |
+| A catalogue larger than one batch | READY | BULK-003. `sanitube:import --continue` takes the next batch; what is done is read from the items table. CLI only — the browser still refuses an over-cap selection. |
 | CSV manifest import | READY | |
 | Start an import from the interface | READY | ING-002. |
 | Import never creates a Track | READY | The load-bearing negative claim. |

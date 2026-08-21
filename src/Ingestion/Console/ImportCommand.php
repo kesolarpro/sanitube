@@ -12,6 +12,9 @@ use SaniTube\Ingestion\Manifest\Manifest;
 use SaniTube\Ingestion\Manifest\ManifestParser;
 use SaniTube\Ingestion\Manifest\ManifestRowError;
 use SaniTube\Ingestion\Models\IngestionBatch;
+use SaniTube\Ingestion\Services\BulkImportPlan;
+use SaniTube\Ingestion\Services\PlanBulkImport;
+use SaniTube\Ingestion\Services\PrefixReferences;
 use SaniTube\Ingestion\Services\StartIngestionBatch;
 use SaniTube\Ingestion\Sources\SourceReaderFactory;
 
@@ -29,6 +32,15 @@ use SaniTube\Ingestion\Sources\SourceReaderFactory;
  * bytes move: the wrong prefix, a manifest whose reference column points at
  * filenames rather than object keys, three hundred rows that will be refused.
  * It parses, resolves and reports, and writes nothing.
+ *
+ * `--continue` is what makes a catalogue larger than one batch importable at
+ * all. Without it a selection over the batch limit is refused outright, and
+ * `--prefix` has no way to say "the next five hundred" — so a four thousand
+ * file folder could be listed, refused, and imported no further without naming
+ * three and a half thousand object keys by hand. With it, the same command run
+ * again takes the next batch, and run once more after the catalogue is in does
+ * nothing at all. **Nothing is skipped silently:** what has already been dealt
+ * with is read from the items table, and the run says how many are left.
  */
 final class ImportCommand extends Command
 {
@@ -37,6 +49,7 @@ final class ImportCommand extends Command
                             {--prefix= : Import every acceptable object under this prefix}
                             {--reference=* : Import these object keys explicitly}
                             {--manifest= : Path to a CSV manifest naming what to import}
+                            {--continue : Import the next batch of whatever this selection has not dealt with yet}
                             {--provider= : Storage provider to read from; the default when omitted}
                             {--dry-run : Report what would be imported and write nothing}';
 
@@ -46,6 +59,8 @@ final class ImportCommand extends Command
         StartIngestionBatch $starter,
         ManifestParser $parser,
         SourceReaderFactory $readers,
+        PrefixReferences $prefixes,
+        PlanBulkImport $planner,
     ): int {
         $source = IngestionSource::tryFrom(strtoupper((string) $this->option('source')));
 
@@ -100,6 +115,10 @@ final class ImportCommand extends Command
             }
         }
 
+        if ($this->option('continue') === true) {
+            return $this->continueImport($starter, $prefixes, $planner, $source, $prefix, $references, $provider, $manifest);
+        }
+
         if ($this->option('dry-run') === true) {
             return $this->reportDryRun($source, $prefix, $references, $manifest);
         }
@@ -121,6 +140,105 @@ final class ImportCommand extends Command
         $this->reportBatch($batch);
 
         return self::SUCCESS;
+    }
+
+    /**
+     * Take the next batch of whatever this selection has not dealt with yet.
+     *
+     * @param  list<string>  $references
+     */
+    private function continueImport(
+        StartIngestionBatch $starter,
+        PrefixReferences $prefixes,
+        PlanBulkImport $planner,
+        IngestionSource $source,
+        ?string $prefix,
+        array $references,
+        ?string $provider,
+        ?Manifest $manifest,
+    ): int {
+        try {
+            // Unlike a plain dry run, this *does* list the store: what is left
+            // cannot be answered without knowing what is there. An operator who
+            // asked to continue has asked for exactly that.
+            $selection = match (true) {
+                $manifest instanceof Manifest => $manifest->references(),
+                $prefix !== null => $prefixes->under($prefix, $provider),
+                default => $references,
+            };
+        } catch (IngestionException $exception) {
+            $this->error($exception->getMessage());
+
+            return self::FAILURE;
+        }
+
+        $plan = $planner->for($source, $selection, max(1, (int) config('ingestion.max_batch', 500)));
+
+        $this->reportPlan($plan);
+
+        if ($plan->isComplete()) {
+            $this->info('Everything in this selection has already been imported. Nothing to do.');
+
+            return self::SUCCESS;
+        }
+
+        if ($plan->isEmpty()) {
+            $this->error('Nothing to import, and something is still outstanding. This should not happen.');
+
+            return self::FAILURE;
+        }
+
+        if ($this->option('dry-run') === true) {
+            $this->newLine();
+            $this->info('Dry run — nothing was written and nothing was queued.');
+
+            return self::SUCCESS;
+        }
+
+        try {
+            $batch = $starter->handle(
+                source: $source,
+                // The plan is the selection now. Passing the prefix as well
+                // would re-expand it and import the whole folder.
+                references: $manifest instanceof Manifest ? [] : $plan->references,
+                provider: $provider,
+                // Narrowed rather than replaced by a reference list: a batch
+                // that loses the manifest loses every title the operator wrote.
+                manifest: $manifest?->narrowedTo($plan->references),
+            );
+        } catch (IngestionException $exception) {
+            $this->error($exception->getMessage());
+
+            return self::FAILURE;
+        }
+
+        $this->reportBatch($batch);
+
+        if ($plan->remaining > 0) {
+            $this->newLine();
+            $this->line(sprintf(
+                '  <options=bold>%d still to import.</> Run the same command again once this batch has '
+                    .'finished; it will take the next %d.',
+                $plan->remaining,
+                min($plan->remaining, count($plan->references)),
+            ));
+        }
+
+        return self::SUCCESS;
+    }
+
+    private function reportPlan(BulkImportPlan $plan): void
+    {
+        $this->newLine();
+        $this->table(
+            ['Found', 'Already handled', 'This batch', 'Remaining'],
+            [[
+                (string) $plan->found,
+                (string) $plan->alreadyHandled,
+                (string) count($plan->references),
+                (string) $plan->remaining,
+            ]],
+        );
     }
 
     private function readManifest(

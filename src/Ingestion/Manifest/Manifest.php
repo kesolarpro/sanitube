@@ -41,6 +41,33 @@ final readonly class Manifest
         return array_keys($this->rows);
     }
 
+    /**
+     * The same manifest, carrying only these references.
+     *
+     * A four thousand row manifest is imported in batches like any other
+     * selection, and each batch has to keep its evidence: narrowing to a list
+     * of references and passing that instead would lose every title, every
+     * artist and every ISRC the operator wrote down.
+     *
+     * The errors and unknown columns travel unchanged. They describe the file,
+     * not the slice, and an operator reading the second batch's report should
+     * still be told which lines their manifest got wrong.
+     *
+     * @param  list<string>  $references
+     */
+    public function narrowedTo(array $references): self
+    {
+        $rows = [];
+
+        foreach ($references as $reference) {
+            if (isset($this->rows[$reference])) {
+                $rows[$reference] = $this->rows[$reference];
+            }
+        }
+
+        return new self($rows, $this->errors, $this->unknownColumns);
+    }
+
     public function rowFor(string $reference): ?ManifestRow
     {
         return $this->rows[$reference] ?? null;

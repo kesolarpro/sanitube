@@ -73,6 +73,16 @@ final class InMemoryStorageProvider implements StorageProvider, SupportsDirectUp
      */
     private bool $honestChecksums = true;
 
+    /**
+     * Set when the store lists objects in whatever order it holds them.
+     *
+     * The default here sorts, which is a convenience this double invented: an
+     * S3-compatible service guarantees lexicographic order per page and
+     * nothing at all across a re-listing where objects have been added or
+     * removed. A test that relies on the sorted default is testing the double.
+     */
+    private bool $sortedListings = true;
+
     public function __construct(
         private readonly string $name = 'memory',
         private readonly ?string $baseUrl = null,
@@ -121,6 +131,14 @@ final class InMemoryStorageProvider implements StorageProvider, SupportsDirectUp
         $this->honestChecksums = false;
     }
 
+    /**
+     * List objects in the order they were written, not in name order.
+     */
+    public function listUnsorted(): void
+    {
+        $this->sortedListings = false;
+    }
+
     public function recover(): void
     {
         $this->moves = true;
@@ -135,7 +153,9 @@ final class InMemoryStorageProvider implements StorageProvider, SupportsDirectUp
     public function keys(): array
     {
         $keys = array_keys($this->objects);
-        sort($keys);
+        if ($this->sortedListings) {
+            sort($keys);
+        }
 
         return $keys;
     }
