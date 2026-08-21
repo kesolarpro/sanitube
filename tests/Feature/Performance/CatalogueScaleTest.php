@@ -7,6 +7,7 @@ namespace Tests\Feature\Performance;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Route as Router;
 use PHPUnit\Framework\Attributes\Test;
 use SaniTube\Artists\Models\Artist;
 use SaniTube\Assets\Models\Asset;
@@ -21,6 +22,11 @@ use SaniTube\Deduplication\Enums\DuplicateBasis;
 use SaniTube\Deduplication\Enums\DuplicateDecision;
 use SaniTube\Deduplication\Enums\DuplicateLevel;
 use SaniTube\Deduplication\Models\DuplicateRelation;
+use SaniTube\Distribution\Enums\DistributionDeliveryStatus;
+use SaniTube\Distribution\Models\DistributionDelivery;
+use SaniTube\Editorial\Models\EditorialProfile;
+use SaniTube\Enrichment\Enums\SuggestionStatus;
+use SaniTube\Enrichment\Models\MetadataSuggestion;
 use SaniTube\Identity\Enums\UserRole;
 use SaniTube\Ingestion\Enums\IngestionBatchStatus;
 use SaniTube\Ingestion\Enums\IngestionItemStatus;
@@ -29,7 +35,18 @@ use SaniTube\Ingestion\Enums\TrackCandidateStatus;
 use SaniTube\Ingestion\Models\IngestionBatch;
 use SaniTube\Ingestion\Models\IngestionItem;
 use SaniTube\Ingestion\Models\TrackCandidate;
+use SaniTube\MusicGeneration\Enums\CommercialRightsStatus;
+use SaniTube\MusicGeneration\Enums\GenerationProjectStatus;
+use SaniTube\MusicGeneration\Enums\MusicGenerationStatus;
+use SaniTube\MusicGeneration\Models\GenerationProject;
+use SaniTube\MusicGeneration\Models\MusicGeneration;
+use SaniTube\Production\Enums\AutonomyMode;
+use SaniTube\Production\Enums\ProductionPlanStatus;
+use SaniTube\Production\Enums\ProductionSlotStatus;
+use SaniTube\Production\Models\ProductionPlan;
+use SaniTube\Production\Models\ProductionSlot;
 use SaniTube\Releases\Models\Release;
+use SaniTube\Transcription\Models\Transcript;
 use Tests\TestCase;
 
 /**
@@ -84,6 +101,21 @@ final class CatalogueScaleTest extends TestCase
     private const INDEX_QUERY_CEILING = 10;
 
     /**
+     * The name every provider column in this fixture carries.
+     *
+     * Deliberately not the name of a real one. These rows record *that* a
+     * suggestion, a delivery and a generation exist and what they cost to
+     * list; nothing here configures a provider or asks one anything, and a
+     * fixture that wrote a real provider's name into four hundred rows would
+     * read, to anyone grepping for it, as an installation that had one.
+     */
+    private const FIXTURE_PROVIDER = 'measured-provider';
+
+    private const FIXTURE_MODEL = 'measured-model';
+
+    private const FIXTURE_VERSION = 'measured-v1';
+
+    /**
      * Every screen measured, and where the rows it lists live in its payload.
      *
      * **`null` means the screen lists nothing**, and each one says why. It is
@@ -107,26 +139,60 @@ final class CatalogueScaleTest extends TestCase
         '/ingestion/batches' => 'page.rows',
         '/duplicates' => 'page.rows',
         '/system/audit' => 'page.rows',
+
+        // PERF-005. These five were named below as out of reach, each needing
+        // a chain of domain objects the catalogue fixture did not build. It
+        // builds them now, and the reason it is worth the fixture is the
+        // comment `SuggestionReviewQuery::rows()` carries: a page query and an
+        // analysis query per suggestion lived on that screen precisely because
+        // no measurement reached it.
+        '/enrichment/suggestions' => 'page.rows',
+        '/distribution' => 'page.rows',
+        '/production' => 'page.rows',
+        '/studio/generations' => 'page.rows',
+        '/studio/projects' => 'page.rows',
     ];
 
     /**
      * Index screens this test does not reach yet, and what each would need.
      *
      * Named rather than left out silently: an uncovered screen that nobody has
-     * written down is indistinguishable from one somebody checked. Every entry
-     * here is a screen whose rows need a chain of domain objects the catalogue
-     * fixture does not build — a configured provider, a plan, a delivery — and
-     * half-seeding one would put it back in the state this ticket found the
-     * other four in.
+     * written down is indistinguishable from one somebody checked.
+     *
+     * **Empty since PERF-005**, and kept rather than deleted: it is where the
+     * guard below sends the next screen that arrives without a fixture, and
+     * deleting it would leave that screen with nowhere to go but the exemption
+     * list next door — which means something else entirely.
      *
      * @var array<string, string>
      */
     private const NOT_YET_MEASURED = [
-        '/enrichment/suggestions' => 'Needs an AI provider and accepted suggestions.',
-        '/distribution' => 'Needs a configured distributor and submitted deliveries.',
-        '/production' => 'Needs production plans and opened occasions.',
-        '/studio/generations' => 'Needs a generation provider and submitted generations.',
-        '/studio/projects' => 'Needs studio projects.',
+    ];
+
+    /**
+     * Screens the router offers whose rows do not grow with the catalogue.
+     *
+     * **Not an exemption list.** Nothing here is skipped because measuring it
+     * was inconvenient; each is a screen that would answer the question this
+     * file asks with "no, and it could not have". A form lists nothing. A
+     * picker answers a search. The queue grows with what is running.
+     *
+     * The distinction from `NOT_YET_MEASURED` is the whole point of having two
+     * lists: that one is work outstanding, this one is work that does not
+     * exist. A screen put in the wrong one is a screen nobody comes back to.
+     *
+     * @var array<string, string>
+     */
+    private const NOT_A_CATALOGUE_LIST = [
+        '/assets/upload' => 'A form. It lists nothing.',
+        '/design-system' => 'A gallery of the components themselves, with no catalogue behind it.',
+        '/ingestion/import' => 'A form. It lists nothing.',
+        '/releases/options/artists' => 'A picker. It answers a search with a bounded number of matches.',
+        '/releases/options/artwork' => 'A picker. It answers a search with a bounded number of matches.',
+        '/settings' => 'A form. It lists nothing.',
+        '/studio' => 'Aggregates, not rows. Counted, never listed.',
+        '/system/jobs' => 'The queue. It grows with what is running, which is not what this test varies.',
+        '/system/operations' => 'One row per registered background operation. A fixed list, not a table.',
     ];
 
     /**
@@ -209,22 +275,63 @@ final class CatalogueScaleTest extends TestCase
     }
 
     /**
-     * And the screens this test does not reach are written down.
+     * And every screen the application serves is accounted for, by the router.
      *
-     * An uncovered screen nobody has named is indistinguishable from one
-     * somebody checked. Each entry carries what it would need, so the next
-     * person picking one up starts from a sentence rather than a guess.
+     * PERF-002 wrote down the screens it knew it was not reaching, which was
+     * the right instinct and the wrong mechanism: a hand-kept list of what is
+     * uncovered is correct on the day it is written and silently wrong from
+     * the first screen added afterwards. It cannot report a screen nobody
+     * remembered to add to it.
+     *
+     * **So this asks the application what it serves.** Every parameterless
+     * `GET` into the interface module is a screen, and every screen must be in
+     * exactly one of three places: measured, named as not yet measured with
+     * what it would need, or named as something whose rows do not grow with
+     * the catalogue. A new screen belongs to none of them and fails here, by
+     * name, with the three choices spelled out.
+     *
+     * It fails in the other direction too. A classified screen that is no
+     * longer a route is a sentence about something that does not exist, and
+     * those accumulate into a list nobody trusts.
      */
     #[Test]
-    public function every_unmeasured_index_screen_says_what_it_would_need(): void
+    public function every_screen_the_router_offers_is_measured_or_accounted_for(): void
     {
-        foreach (self::NOT_YET_MEASURED as $screen => $reason) {
-            $this->assertArrayNotHasKey(
-                $screen,
-                self::SCREENS,
-                sprintf('[%s] is both measured and listed as unmeasured.', $screen),
-            );
+        $classified = array_merge(
+            array_keys(self::SCREENS),
+            array_keys(self::NOT_YET_MEASURED),
+            array_keys(self::NOT_A_CATALOGUE_LIST),
+        );
 
+        $this->assertSame(
+            count($classified),
+            count(array_unique($classified)),
+            'A screen is classified twice, and the two answers disagree about what it is.',
+        );
+
+        $offered = $this->screenRoutes();
+
+        // A loop over nothing passes every assertion it does not make, and a
+        // router scan that matched no route would do exactly that.
+        $this->assertGreaterThan(20, count($offered));
+
+        foreach ($offered as $uri) {
+            $this->assertContains($uri, $classified, sprintf(
+                '[%s] is a screen the application serves and nothing here has looked at it. '
+                .'Measure it, or say in NOT_YET_MEASURED what it would need, or say in '
+                .'NOT_A_CATALOGUE_LIST why its rows do not grow with the catalogue.',
+                $uri,
+            ));
+        }
+
+        foreach ($classified as $uri) {
+            $this->assertContains($uri, $offered, sprintf(
+                '[%s] is written down here and is not a route. The list has drifted.',
+                $uri,
+            ));
+        }
+
+        foreach (array_merge(self::NOT_YET_MEASURED, self::NOT_A_CATALOGUE_LIST) as $screen => $reason) {
             $this->assertNotSame('', trim($reason), sprintf('[%s] is excluded with no reason.', $screen));
         }
     }
@@ -382,6 +489,49 @@ final class CatalogueScaleTest extends TestCase
     // ----------------------------------------------------------- fixtures
 
     /**
+     * Every screen the application serves, read from the router.
+     *
+     * "A screen" is a parameterless `GET` into the interface module. The
+     * module filter is what keeps the API, the health endpoint and the
+     * framework's own routes out; the parameter filter is what keeps detail
+     * pages out, which are a different question — a detail page costs what one
+     * record costs and does not grow with the table.
+     *
+     * @return list<string>
+     */
+    private function screenRoutes(): array
+    {
+        $uris = [];
+
+        // The collection is typed as the interface, which is not iterable;
+        // asking the concrete collection for its routes says so without
+        // widening anything. `RouteAuthorizationTest` reads the router the
+        // same way, for the same reason.
+        foreach (Router::getRoutes()->getRoutes() as $route) {
+            if (! str_starts_with($route->getActionName(), 'SaniTube\\Ui\\Http\\Controllers\\')) {
+                continue;
+            }
+
+            if (! in_array('GET', $route->methods(), true)) {
+                continue;
+            }
+
+            $uri = $route->uri();
+
+            if (str_contains($uri, '{')) {
+                continue;
+            }
+
+            $uris[] = $uri === '/' ? '/' : '/'.$uri;
+        }
+
+        $uris = array_values(array_unique($uris));
+        sort($uris);
+
+        return $uris;
+    }
+
+    /**
      * Measure with at least this many tracks in the catalogue.
      *
      * The database is **grown** between the two measurements rather than
@@ -467,6 +617,16 @@ final class CatalogueScaleTest extends TestCase
         $operator = User::query()->where('name', 'Measured Operator')->first() ?? $this->user();
         $previous = Asset::query()->orderByDesc('id')->first();
 
+        // One editorial profile, for the same reason as the batch: the plan
+        // list renders its name, and a second profile is not a bigger
+        // catalogue.
+        $profile = EditorialProfile::query()->first() ?? EditorialProfile::query()->create([
+            'name' => 'Measured Profile',
+            'slug' => 'measured-profile',
+            'default_language' => 'fr',
+            'is_active' => true,
+        ]);
+
         // Every track credited, because an uncredited catalogue is the one
         // shape in which a credits N+1 cannot show itself.
         foreach (Track::factory()->count($tracks)->create() as $index => $track) {
@@ -524,7 +684,127 @@ final class CatalogueScaleTest extends TestCase
             );
 
             Composition::factory()->create();
-            Release::factory()->create();
+
+            // Fixed width, and that is load-bearing rather than tidy.
+            //
+            // Every list PERF-005 adds orders by `created_at` and breaks the
+            // tie on `uuid`. Sixty rows written inside the same second all tie,
+            // so the order is the uuids' — random — and the twenty-five rows
+            // that land on the first page at four hundred tracks are not the
+            // twenty-five that landed there at sixty. Any value whose *length*
+            // varies from row to row would then move the payload between the
+            // two readings, and the test would be measuring which rows were
+            // drawn rather than whether the page is bounded.
+            //
+            // Six digits because the track id is the only number here that is
+            // unique across both seedings.
+            $key = str_pad((string) $track->id, 6, '0', STR_PAD_LEFT);
+
+            $release = Release::factory()->create(['title' => 'Measured Release '.$key]);
+
+            // What a model said about this master, and the evidence it said it
+            // from.
+            //
+            // The transcript is not decoration. `with('transcript')` loads
+            // nothing when `transcript_id` is null, and reading the relation
+            // back on a null column returns null without a query — so a
+            // suggestion seeded without one cannot tell an eager load from a
+            // missing eager load, and removing the eager load would measure
+            // the same.
+            $transcript = Transcript::query()->create([
+                'asset_id' => $master->id,
+                'provider' => self::FIXTURE_PROVIDER,
+                'provider_version' => self::FIXTURE_VERSION,
+                'detected_language' => 'fr',
+                'language_hint' => 'fr',
+                'text' => 'Measured transcript.',
+                'covered_seconds' => 180,
+            ]);
+
+            MetadataSuggestion::query()->create([
+                'asset_id' => $master->id,
+                'task' => MetadataSuggestion::TASK_TRACK_METADATA,
+                'provider' => self::FIXTURE_PROVIDER,
+                'model' => self::FIXTURE_MODEL,
+                'prompt_version' => self::FIXTURE_VERSION,
+                'transcript_id' => $transcript->id,
+
+                // Matching the transcript it points at, so `evidenceIsCurrent`
+                // answers true rather than the shorter false. The row renders
+                // the answer either way; seeding the shape a reviewer actually
+                // reads is the one that exercises the comparison.
+                'evidence_version' => self::FIXTURE_PROVIDER.':'.self::FIXTURE_VERSION,
+
+                'suggested_title' => 'Suggested Title '.$key,
+                'suggested_language' => 'fr',
+                'suggested_genres' => ['measured-genre'],
+                'suggested_moods' => ['measured-mood'],
+                'suggested_themes' => ['measured-theme'],
+                'suggested_description' => 'Measured description.',
+                'confidence_basis_points' => 8500,
+                'rationale' => 'Measured rationale.',
+                'status' => SuggestionStatus::Proposed,
+            ]);
+
+            // A delivery per release, in the one state that has been handed to
+            // nobody. DRAFT is deliberate: a fixture that wrote SUBMITTED rows
+            // in bulk would be a fixture asserting four hundred releases had
+            // been given to a distributor.
+            DistributionDelivery::query()->create([
+                'release_id' => $release->id,
+                'provider' => self::FIXTURE_PROVIDER,
+                'status' => DistributionDeliveryStatus::Draft,
+                'idempotency_key' => hash('sha256', 'scale-delivery-'.$track->id),
+            ]);
+
+            $plan = ProductionPlan::query()->create([
+                'name' => 'Production Plan '.$key,
+                'slug' => 'production-plan-'.$key,
+                'editorial_profile_id' => $profile->id,
+                'autonomy_mode' => AutonomyMode::Manual,
+                'status' => ProductionPlanStatus::Active,
+                'target_track_count' => 12,
+                'cadence_days' => 7,
+            ]);
+
+            // Two occasions per plan, in two states, because the counts on that
+            // screen are one grouped query over the table that grows fastest
+            // here — one row per plan per cadence, for ever — and a plan whose
+            // occasions are all in one state cannot show a grouping that has
+            // stopped grouping.
+            foreach ([
+                '2026-01-05' => ProductionSlotStatus::Completed,
+                '2026-01-12' => ProductionSlotStatus::Pending,
+            ] as $date => $status) {
+                ProductionSlot::query()->create([
+                    'production_plan_id' => $plan->id,
+                    'scheduled_for' => $date,
+                    'status' => $status,
+                    'intent' => ProductionSlot::INTENT_PRODUCE_TRACK,
+                ]);
+            }
+
+            $project = GenerationProject::query()->create([
+                'name' => 'Generation Project '.$key,
+                'status' => GenerationProjectStatus::Active,
+                'target_track_count' => 12,
+                'default_language' => 'fr',
+                'default_genre' => 'measured-genre',
+            ]);
+
+            // Attached to the project, because the project list counts them and
+            // a count of nought is the same number at both sizes whatever the
+            // query does.
+            MusicGeneration::query()->create([
+                'project_id' => $project->id,
+                'provider' => self::FIXTURE_PROVIDER,
+                'provider_job_id' => 'job-'.$key,
+                'status' => MusicGenerationStatus::Draft,
+                'prompt' => 'Measured prompt '.$key,
+                'language_code' => 'fr',
+                'instrumental' => false,
+                'commercial_rights_status' => CommercialRightsStatus::Unknown,
+            ]);
 
             // The audit log grows with what an installation does, and it is
             // the one screen where "show me everything" is the whole point.
