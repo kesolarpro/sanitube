@@ -281,6 +281,36 @@ The same application, with more options available:
 - Run `sanitube:assets:verify` on a schedule if the egress cost is acceptable;
   the entry is in `routes/console.php`, commented out.
 
+### Configuring storage from the settings screen
+
+An operator with the OWNER or ADMIN role can set the provider and its
+credentials without a shell. The screen shows **the selected provider's own
+variables** — an R2 installation is asked for `R2_ACCESS_KEY_ID`, never
+`AWS_ACCESS_KEY_ID`, because the r2 disk reads nothing beginning with `AWS_`.
+
+The names are declared per provider in `config/storage.php`, and adding a
+provider means adding them there rather than in the interface. Two rules apply
+to that declaration:
+
+- **The vocabulary is closed** — `key`, `secret`, `bucket`, `endpoint`,
+  `region`, and nothing else. In particular a provider cannot declare `url`:
+  that key makes Laravel serve a permanent public address for every object on
+  the disk, and a master is only ever reached through an expiring signed link.
+- **Credentials stay write-only.** The key, the secret and the bucket are
+  reported as *configured* or *not configured* and never as a value, a mask or
+  a length. The endpoint and the region are published, for the same reason an
+  AI provider's base URL is: an installation pointed at the wrong account
+  cannot be diagnosed from a screen that refuses to say where it points.
+
+Moving an existing install to object storage is therefore two saves: set
+`SANITUBE_STORAGE_PROVIDER`, and the screen comes back asking for that
+provider's variables. In between it reports the new provider as unconfigured,
+which is what it is.
+
+A blank field never clears anything, secret or not — emptying a value stays a
+`.env` edit. If the installation has run `config:cache`, the cache is rebuilt
+as part of the save, and the previous `.env` is restored if that fails.
+
 ### Changing provider at runtime
 
 The storage manager reads `storage.default` once, when it is constructed. A

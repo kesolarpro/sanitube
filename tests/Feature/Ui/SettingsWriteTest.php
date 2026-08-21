@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Tests\Feature\Ui;
 
 use App\Models\User;
-use Illuminate\Contracts\Config\Repository;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\Test;
 use SaniTube\Audit\Enums\AuditAction;
@@ -176,8 +175,16 @@ final class SettingsWriteTest extends TestCase
         // section's credentials only when that provider is the one in use —
         // reading it in a single configuration would call three quarters of
         // the list invisible.
+        //
+        // A union is the weaker half of the guarantee: it proves nothing is
+        // writable that no screen ever shows. That the *storage* half agrees
+        // configuration by configuration — which is what STO-004 broke — is
+        // asserted in StorageSettingsTest, where a union would be no proof at
+        // all.
         $published = [
             ...$this->publishedVariables(['storage.default' => 's3', 'ai.default' => 'openai']),
+            ...$this->publishedVariables(['storage.default' => 'r2', 'ai.default' => 'claude']),
+            ...$this->publishedVariables(['storage.default' => 'b2', 'ai.default' => 'openai']),
             ...$this->publishedVariables(['storage.default' => 'local', 'ai.default' => 'claude']),
         ];
 
@@ -324,7 +331,7 @@ final class SettingsWriteTest extends TestCase
     {
         config($configuration);
 
-        $overview = (new SettingsQuery($this->app->make(Repository::class)))->overview();
+        $overview = $this->app->make(SettingsQuery::class)->overview();
         $variables = [];
 
         /** @var list<array<string, mixed>> $sections */

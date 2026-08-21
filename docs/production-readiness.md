@@ -239,7 +239,8 @@ blocks going live.
 | Control | Verdict | Notes |
 |---|---|---|
 | Read what is configured, without values | READY | SET-001. |
-| Write configuration from the interface | NOT_READY | SET-002. A security surface; REVIEW_REQUIRED when built. |
+| Write configuration from the interface | READY | SET-002. Allow-list; blank never clears; config cache rebuilt or the file is restored. |
+| The screen names the variables this install reads | READY | STO-004. Per provider, from `config/storage.php`; a name outside the vocabulary is dropped, not offered. |
 
 ## End to end
 
