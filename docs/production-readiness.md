@@ -337,9 +337,11 @@ written down.
 
 | Control | Verdict | Notes |
 |---|---|---|
-| Keyboard navigation, focus, modal trap | NOT_READY | Design-system primitives do it; not audited per screen. |
+| Modal focus trap, restore, and background inert | READY | Ten tests on the primitive, and UI-A11Y-001 holds that the screens reach their controls through the design system rather than around it. |
+| Keyboard navigation and tab order per screen | NOT_READY | Not audited. The primitives behave; nothing checks that a given screen's controls come in a sensible order, or that there is a way past a long filter bar. Thirty-seven screens, and a scan cannot answer it. |
 | Contrast, light / dark / system | READY | Tokens; no hardcoded colours. |
-| Screen-reader semantics | NOT_READY | Not audited. |
+| Every form control carries its label | READY | UI-A11Y-001. Three raw inputs on the enrichment review screen were orphaning the label `FormField` provides — the exact failure that component's own comment describes — and two off-screen file inputs sat unnamed in the accessibility tree. A scan holds it, with three exemptions and a sentence each. |
+| Screen-reader semantics beyond labelling | NOT_READY | Landmarks, reading order and live regions are unaudited. A scan can hold "every control has a name"; it cannot hold "this page makes sense read aloud", and claiming otherwise from the part that is checkable is how a ledger stops being worth reading. |
 
 ## Localization
 

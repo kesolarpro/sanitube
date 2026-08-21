@@ -8,6 +8,7 @@ import EmptyState from '@/Components/Ui/EmptyState.vue';
 import FormField from '@/Components/Ui/FormField.vue';
 import SelectInput from '@/Components/Ui/SelectInput.vue';
 import StatusBadge from '@/Components/Ui/StatusBadge.vue';
+import TextInput from '@/Components/Ui/TextInput.vue';
 import { dateTime, duration } from '@/Support/format';
 import { trans } from '@/Support/i18n';
 import type { SharedProps } from '@/Types/inertia';
@@ -270,29 +271,23 @@ function list(values: string[]): string {
                         <p class="text-caption text-muted">{{ trans('ui.enrichment.level.suggested_note') }}</p>
 
                         <FormField :label="trans('ui.enrichment.field.title')">
-                            <input
+                            <TextInput
                                 v-model="editFor(row).title"
-                                type="text"
                                 :disabled="!mayDecide || !row.actions.decidable"
-                                class="w-full rounded-control border border-border bg-surface px-2 py-1 text-small text-foreground"
                             />
                         </FormField>
 
                         <FormField :label="trans('ui.enrichment.field.language')">
-                            <input
+                            <TextInput
                                 v-model="editFor(row).language_code"
-                                type="text"
                                 :disabled="!mayDecide || !row.actions.decidable"
-                                class="w-full rounded-control border border-border bg-surface px-2 py-1 text-small text-foreground"
                             />
                         </FormField>
 
                         <FormField :label="trans('ui.enrichment.field.genres')">
-                            <input
+                            <TextInput
                                 v-model="editFor(row).genres"
-                                type="text"
                                 :disabled="!mayDecide || !row.actions.decidable"
-                                class="w-full rounded-control border border-border bg-surface px-2 py-1 text-small text-foreground"
                             />
                         </FormField>
 
