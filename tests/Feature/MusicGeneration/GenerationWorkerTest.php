@@ -359,13 +359,16 @@ final class GenerationWorkerTest extends TestCase
         // reason: that file names these fields in order to explain why it has
         // none of them, and a guard that could not tell prose from code would
         // chase the explanation out of the repository.
-        $source = $this->code('src/MusicGeneration/Worker/Http/GenerateOnWorkerRequest.php');
+        $source = $this->code('src/MusicGeneration/Worker/MusicGenerationJobHandler.php');
 
+        // WRK-001 moved the rules onto the handler, beside the code that would
+        // otherwise use these fields -- which is where a security boundary
+        // belongs.
         foreach (['checkpoint', 'device', 'output_path', 'infer_step', 'guidance'] as $forbidden) {
             $this->assertStringNotContainsString(
                 $forbidden,
                 $source,
-                sprintf('A worker request must have no [%s] field.', $forbidden),
+                sprintf('A worker job payload must have no [%s] field.', $forbidden),
             );
         }
     }
@@ -430,7 +433,9 @@ final class GenerationWorkerTest extends TestCase
             'src/MusicGeneration/AceStep/HttpAceStepEngine.php',
             'src/MusicGeneration/AceStep/ContainedPath.php',
             'src/MusicGeneration/Worker/RunGenerationOnWorker.php',
-            'src/MusicGeneration/Worker/Http/GenerateOnWorkerController.php',
+            'src/MusicGeneration/Worker/MusicGenerationJobHandler.php',
+            'src/Worker/Http/Controllers/RunWorkerJobController.php',
+            'src/Worker/Client/WorkerClient.php',
             'src/MusicGeneration/Providers/SelfHostedAceStepProvider.php',
         ] as $file) {
             $source = $this->code($file);

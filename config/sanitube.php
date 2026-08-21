@@ -26,6 +26,9 @@ return [
         'Assets',
         'Storage',
         'Ingestion',
+        // The one remote boundary. Registered before the modules that use it,
+        // so its registry exists when they register their handlers.
+        'Worker',
         'MusicGeneration',
         'Catalog',
         'Artists',

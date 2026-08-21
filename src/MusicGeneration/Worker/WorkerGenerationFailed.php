@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace SaniTube\MusicGeneration\Worker;
 
 use RuntimeException;
-use SaniTube\MusicGeneration\Contracts\CarriesRefusalCode;
+use SaniTube\Foundation\Contracts\CarriesRefusalCode;
 
 /**
  * The worker will not hand this generation back.

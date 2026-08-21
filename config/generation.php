@@ -61,18 +61,11 @@ return [
     */
 
     'worker' => [
-        // Core: where to reach the worker. Worker: unused.
-        'url' => env('SANITUBE_GENERATION_WORKER_URL', ''),
-
-        // Both sides. A token of its own, never the internal API's: that one
-        // reads a catalogue, this one spends GPU time and writes to storage.
-        'token' => env('SANITUBE_GENERATION_WORKER_TOKEN', ''),
-        'token_header' => env('SANITUBE_GENERATION_WORKER_TOKEN_HEADER', 'X-SaniTube-Worker-Token'),
-
-        // Core's patience. Longer than the worker's engine timeout would be
-        // pointless and shorter would abandon work still running, so an
-        // operator sets the two together.
-        'timeout_seconds' => (int) env('SANITUBE_GENERATION_WORKER_TIMEOUT', 960),
+        // The transport -- address, token, timeouts -- lives in config/worker.php
+        // now. WRK-001 made the boundary general, and a second copy of the
+        // worker's address here would be a second place for it to be wrong.
+        //
+        // What stays is what belongs to *generation*.
 
         // Worker: what it will accept from its own engine before staging.
         // Zero means no ceiling. A limit is checked before the file is read,

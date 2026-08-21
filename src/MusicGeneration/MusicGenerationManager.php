@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace SaniTube\MusicGeneration;
 
-use Illuminate\Http\Client\Factory as HttpFactory;
 use SaniTube\AI\AiManager;
 use SaniTube\MusicGeneration\Contracts\GenerationProvider;
 use SaniTube\MusicGeneration\Providers\FakeMusicGenerationProvider;
 use SaniTube\MusicGeneration\Providers\SelfHostedAceStepProvider;
 use SaniTube\MusicGeneration\Providers\UnavailableMusicGenerationProvider;
+use SaniTube\Worker\Client\WorkerClient;
 
 /**
  * Resolves configured generation providers by name.
@@ -111,7 +111,7 @@ final class MusicGenerationManager
             // provider holds the worker's address and token, never the
             // engine's: Core does not know where ACE-Step is and must not.
             'acestep' => new SelfHostedAceStepProvider(
-                app(HttpFactory::class),
+                app(WorkerClient::class),
                 (array) config('generation.worker', []),
                 $name,
             ),

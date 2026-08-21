@@ -14,9 +14,29 @@ use SaniTube\MusicGeneration\Providers\StorageGeneratedAudioReader;
 use SaniTube\MusicGeneration\Services\GenerationCircuitBreaker;
 use SaniTube\MusicGeneration\Services\ProviderCapabilities;
 use SaniTube\MusicGeneration\Services\SelectGenerationProvider;
+use SaniTube\MusicGeneration\Worker\MusicGenerationJobHandler;
+use SaniTube\Worker\Enums\WorkerCapability;
+use SaniTube\Worker\WorkerRegistry;
 
 final class MusicGenerationServiceProvider extends ServiceProvider
 {
+    /**
+     * Registered from here, not from the Worker module.
+     *
+     * The boundary knows nothing about generation, and this is what keeps that
+     * true: the module that owns the work owns its registration. Lazily, as a
+     * factory — booting must not cost what a handler's dependencies cost. A capability
+     * added later does the same and changes neither the protocol nor Core's
+     * client.
+     */
+    public function boot(): void
+    {
+        $this->app->make(WorkerRegistry::class)->register(
+            WorkerCapability::MusicGeneration,
+            fn (): MusicGenerationJobHandler => $this->app->make(MusicGenerationJobHandler::class),
+        );
+    }
+
     public function register(): void
     {
         $this->app->singleton(MusicGenerationManager::class, function (): MusicGenerationManager {

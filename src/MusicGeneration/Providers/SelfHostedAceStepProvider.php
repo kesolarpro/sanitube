@@ -4,15 +4,15 @@ declare(strict_types=1);
 
 namespace SaniTube\MusicGeneration\Providers;
 
-use Illuminate\Http\Client\Factory as HttpFactory;
 use SaniTube\MusicGeneration\Contracts\DeclaresCapabilities;
 use SaniTube\MusicGeneration\Contracts\SynchronousMusicGenerationProvider;
 use SaniTube\MusicGeneration\Enums\GenerationCapability;
 use SaniTube\MusicGeneration\GenerationExecution;
 use SaniTube\MusicGeneration\GenerationRequest;
 use SaniTube\MusicGeneration\ProviderResult;
-use SaniTube\MusicGeneration\Worker\WorkerGenerationFailed;
-use Throwable;
+use SaniTube\Worker\Client\WorkerClient;
+use SaniTube\Worker\Enums\WorkerCapability;
+use SaniTube\Worker\WorkerJobFailed;
 
 /**
  * Self-hosted ACE-Step, reached through a generation worker.
@@ -45,7 +45,7 @@ final readonly class SelfHostedAceStepProvider implements DeclaresCapabilities, 
      * @param  array<string, mixed>  $settings  the `generation.worker` block
      */
     public function __construct(
-        private HttpFactory $http,
+        private WorkerClient $worker,
         private array $settings = [],
         private string $name = 'acestep',
     ) {}
@@ -64,7 +64,12 @@ final readonly class SelfHostedAceStepProvider implements DeclaresCapabilities, 
      */
     public function isAvailable(): bool
     {
-        return $this->url() !== '' && $this->token() !== '';
+        // Configured, and the worker says it can. The handshake is cached and
+        // short-timeout, so this stays cheap enough for a page load -- and it
+        // is more honest than configuration alone: a worker whose ACE-Step is
+        // switched off should not have a generate button pointed at it.
+        return $this->worker->isConfigured()
+            && $this->worker->can(WorkerCapability::MusicGeneration);
     }
 
     /**
@@ -96,43 +101,19 @@ final readonly class SelfHostedAceStepProvider implements DeclaresCapabilities, 
         // correlate them by, and the worker sanitises it regardless.
         $reference = bin2hex(random_bytes(16));
 
-        try {
-            $response = $this->http
-                ->timeout($this->timeout())
-                ->acceptJson()
-                ->asJson()
-                ->withHeaders([$this->tokenHeader() => $this->token()])
-                ->post($this->url().'/api/generation/worker/render', [
-                    'reference' => $reference,
-                    'prompt' => $request->prompt,
-                    'style_prompt' => $request->stylePrompt,
-                    'lyrics' => $request->instrumental ? null : $request->lyrics,
-                    'instrumental' => $request->instrumental,
-                    'language' => $request->effectiveLanguage()->code,
-                ]);
-        } catch (Throwable) {
-            // The message is not carried: a client exception quotes the
-            // request, and this one carries the worker's address and its token
-            // header. See ProviderFailure.
-            throw WorkerGenerationFailed::because('WORKER_UNREACHABLE');
-        }
+        $answer = $this->worker->run(WorkerCapability::MusicGeneration, [
+            'reference' => $reference,
+            'prompt' => $request->prompt,
+            'style_prompt' => $request->stylePrompt,
+            'lyrics' => $request->instrumental ? null : $request->lyrics,
+            'instrumental' => $request->instrumental,
+            'language' => $request->effectiveLanguage()->code,
+        ]);
 
-        if ($response->status() === 422) {
-            $code = $response->json('code');
-
-            // The worker's own machine-readable reason, passed through
-            // unchanged. It is a code from a closed set, never free text.
-            throw WorkerGenerationFailed::because(is_string($code) ? $code : 'WORKER_REFUSED');
-        }
-
-        if (! $response->successful()) {
-            throw WorkerGenerationFailed::because('WORKER_REFUSED');
-        }
-
-        $key = $response->json('storage_key');
+        $key = $answer['storage_key'] ?? null;
 
         if (! is_string($key) || trim($key) === '') {
-            throw WorkerGenerationFailed::because('WORKER_RETURNED_NO_OBJECT');
+            throw WorkerJobFailed::because('WORKER_RETURNED_NO_OBJECT');
         }
 
         return GenerationExecution::completed(
@@ -146,8 +127,8 @@ final readonly class SelfHostedAceStepProvider implements DeclaresCapabilities, 
                 raw: [
                     // Evidence, kept because provenance is worth having and
                     // because a mismatch later is worth being able to see.
-                    'bytes' => $response->json('bytes'),
-                    'checksum' => $response->json('checksum'),
+                    'bytes' => $answer['bytes'] ?? null,
+                    'checksum' => $answer['checksum'] ?? null,
                 ],
             )],
             model: $this->model(),
@@ -166,36 +147,5 @@ final readonly class SelfHostedAceStepProvider implements DeclaresCapabilities, 
         $configured = $this->settings['model_label'] ?? null;
 
         return is_string($configured) && trim($configured) !== '' ? trim($configured) : null;
-    }
-
-    private function url(): string
-    {
-        $configured = $this->settings['url'] ?? null;
-
-        return is_string($configured) ? rtrim(trim($configured), '/') : '';
-    }
-
-    private function token(): string
-    {
-        $configured = $this->settings['token'] ?? null;
-
-        return is_string($configured) ? trim($configured) : '';
-    }
-
-    private function tokenHeader(): string
-    {
-        $configured = $this->settings['token_header'] ?? null;
-
-        return is_string($configured) && trim($configured) !== ''
-            ? trim($configured)
-            : 'X-SaniTube-Worker-Token';
-    }
-
-    private function timeout(): int
-    {
-        // Longer than the worker's own engine timeout would be pointless and
-        // shorter would abandon work that is still running, so this is
-        // configuration on both sides and the operator sets them together.
-        return max(1, (int) ($this->settings['timeout_seconds'] ?? 960));
     }
 }

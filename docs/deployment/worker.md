@@ -1,9 +1,17 @@
-# The generation worker
+# The SaniTube worker
 
-SaniTube Core does not generate music. A **generation worker** does, and it is
-the same SaniTube application installed on a host that has a GPU.
+SaniTube Core runs where an operator can host PHP: cPanel, a small VPS,
+anywhere. Some work cannot run there — a music model needs a GPU, and shared
+hosting frequently has no FFmpeg at all. A **worker** is the same SaniTube
+application installed on a host that can, reached over one authenticated
+boundary.
 
-This document is why that split exists and how to deploy it.
+**One boundary, addressed by capability.** Music generation is the first thing a
+worker can do and is not meant to be the last; adding another needs a handler
+and a registration, not a second protocol, a second token and a second thing to
+deploy.
+
+This document is why the split exists and how to deploy it.
 
 ---
 
@@ -60,8 +68,12 @@ To use one:
 
 ```dotenv
 SANITUBE_GENERATION_PROVIDER=acestep
-SANITUBE_GENERATION_WORKER_URL=https://gpu.example.internal
-SANITUBE_GENERATION_WORKER_TOKEN=<a long random secret>
+
+# The worker boundary. One address and one token, whatever capabilities the
+# worker offers — generation today, media processing later.
+SANITUBE_WORKER_URL=https://gpu.example.internal
+SANITUBE_WORKER_TOKEN=<a long random secret>
+
 SANITUBE_GENERATION_WORKER_MODEL_LABEL="ACE-Step 1.5"
 ```
 
@@ -74,8 +86,12 @@ both. On a single host it is already the same disk.
 The same application, plus:
 
 ```dotenv
-# Makes the worker endpoint exist. Unset, it answers 404.
-SANITUBE_GENERATION_WORKER_TOKEN=<the same secret Core sends>
+# Makes the worker routes exist. Unset, they answer 404.
+SANITUBE_WORKER_TOKEN=<the same secret Core sends>
+
+# What to call this machine. It appears in audit lines, so it is a label you
+# chose and never a hostname — a rebuilt machine keeps its name here.
+SANITUBE_WORKER_IDENTITY=gpu-one
 
 # Where ACE-Step is listening, on this host. No default: inventing
 # http://localhost:8000 would make a misconfigured worker look like a working
@@ -133,13 +149,24 @@ ACE-Step's reference server takes `checkpoint_path` and `device_id` from its
 client and has no authentication of its own. **Do not expose it.** Bind it to
 `127.0.0.1` and let only the worker on the same host reach it.
 
-The worker endpoint is the only thing that needs to be reachable from Core, over
-one route:
+Two routes need to be reachable from Core, and only two however many
+capabilities the worker offers:
 
 ```
-POST /api/generation/worker/render
+GET  /api/worker                        → who I am and what I can do
+POST /api/worker/jobs/music-generation  → do this
 X-SaniTube-Worker-Token: <secret>
 ```
+
+The handshake is what Core asks first. It reports this worker's name, its
+version, the capabilities it can carry out **right now**, the ones it knows how
+to do at all, and the versions of its tools. It is cheap and cached, because
+screens poll it — a studio deciding whether to offer a generate button asks the
+worker rather than assuming from configuration.
+
+That distinction matters on a bad day: a worker whose ACE-Step is switched off
+still answers the handshake, omits `MUSIC_GENERATION` from its capabilities, and
+Core stops offering generation instead of offering it and failing.
 
 Use TLS. The token is a bearer credential and it buys GPU time and a write into
 your storage — which is why it is a *different* token from the internal API's.

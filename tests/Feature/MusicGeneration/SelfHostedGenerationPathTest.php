@@ -40,6 +40,7 @@ use SaniTube\Production\Services\ProduceForProductionSlot;
 use SaniTube\Production\Services\WriteProductionPlan;
 use SaniTube\Storage\StorageManager;
 use SaniTube\Storage\Testing\InMemoryStorageProvider;
+use SaniTube\Worker\Client\WorkerClient;
 use Tests\TestCase;
 
 /**
@@ -90,8 +91,12 @@ final class SelfHostedGenerationPathTest extends TestCase
         // exist at all.
         config([
             'generation.acestep.output_root' => $this->root,
-            'generation.worker.token' => 'a-worker-token',
-            'generation.worker.url' => 'http://worker.test',
+            'generation.acestep.endpoint' => 'http://engine.test',
+            // WRK-001: the transport lives in config/worker.php now, one copy
+            // for every capability.
+            'worker.token' => 'a-worker-token',
+            'worker.url' => 'http://worker.test',
+            'worker.identity' => 'gpu-one',
             'generation.default' => 'acestep',
             'generation.preference' => ['acestep'],
             'generation.providers.acestep' => ['driver' => 'acestep'],
@@ -191,16 +196,20 @@ final class SelfHostedGenerationPathTest extends TestCase
         // Almost every installation is Core only. None of them should advertise
         // a generation worker, still less expose one that fell back to
         // something permissive.
-        config(['generation.worker.token' => '']);
+        config(['worker.token' => '']);
 
-        $this->postJson('/api/generation/worker/render', ['reference' => 'abc', 'prompt' => 'x'])
+        $this->postJson('/api/worker/jobs/music-generation', ['reference' => 'abc', 'prompt' => 'x'])
             ->assertNotFound();
+
+        // The handshake is gone too. A worker that is not one advertises
+        // nothing at all.
+        $this->getJson('/api/worker')->assertNotFound();
     }
 
     #[Test]
     public function the_worker_endpoint_refuses_a_wrong_token(): void
     {
-        $this->postJson('/api/generation/worker/render', ['reference' => 'abc', 'prompt' => 'x'], [
+        $this->postJson('/api/worker/jobs/music-generation', ['reference' => 'abc', 'prompt' => 'x'], [
             'X-SaniTube-Worker-Token' => 'not-the-token',
         ])->assertUnauthorized();
     }
@@ -210,7 +219,7 @@ final class SelfHostedGenerationPathTest extends TestCase
     {
         // The ordinary installation: cPanel, no GPU, no worker. Everything that
         // is not generation carries on, and the studio renders.
-        config(['generation.worker.url' => '', 'generation.worker.token' => '']);
+        config(['worker.url' => '', 'worker.token' => '']);
         $this->app->forgetInstance(MusicGenerationManager::class);
         $this->app->forgetInstance(SelectGenerationProvider::class);
 
@@ -218,6 +227,34 @@ final class SelfHostedGenerationPathTest extends TestCase
 
         $this->assertFalse($provider->isAvailable(), 'An unconfigured worker means no ACE-Step.');
 
+        $this->actingAs($this->owner())
+            ->get('/studio')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page->where('studio.provider.available', false));
+    }
+
+    #[Test]
+    public function a_worker_that_cannot_generate_is_not_reported_as_a_working_provider(): void
+    {
+        // **Configured is not capable.** The worker is reachable and the token
+        // is right, but its ACE-Step is not set up, so its handshake does not
+        // offer MUSIC_GENERATION. Trusting configuration alone here would put a
+        // generate button on a screen pointed at a worker that must refuse --
+        // a false green, which is worse than a red one.
+        config(['generation.acestep.endpoint' => '', 'generation.acestep.output_root' => '']);
+
+        $this->getJson('/api/worker', ['X-SaniTube-Worker-Token' => 'a-worker-token'])
+            ->assertOk()
+            ->assertJsonMissing(['capabilities' => ['MUSIC_GENERATION']]);
+
+        $this->app->forgetInstance(MusicGenerationManager::class);
+        $this->app->forgetInstance(WorkerClient::class);
+
+        $provider = $this->app->make(MusicGenerationManager::class)->provider('acestep');
+
+        $this->assertFalse($provider->isAvailable());
+
+        // And the studio says so rather than offering the button.
         $this->actingAs($this->owner())
             ->get('/studio')
             ->assertOk()
@@ -312,9 +349,14 @@ final class SelfHostedGenerationPathTest extends TestCase
     private function callWorker(mixed $request): mixed
     {
         /** @var Request $request */
-        $response = $this->postJson('/api/generation/worker/render', (array) $request->data(), [
-            'X-SaniTube-Worker-Token' => (string) config('generation.worker.token'),
-        ]);
+        $headers = ['X-SaniTube-Worker-Token' => (string) config('worker.token')];
+
+        // Two routes on the boundary and the fake honours both: the handshake
+        // is a GET and a job is a POST. Answering one as the other is how an
+        // integration test quietly stops testing the thing it names.
+        $response = $request->method() === 'GET'
+            ? $this->getJson('/api/worker', $headers)
+            : $this->postJson('/api/worker/jobs/music-generation', (array) $request->data(), $headers);
 
         return Http::response($response->json(), $response->getStatusCode());
     }
