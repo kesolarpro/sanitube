@@ -164,6 +164,7 @@ written down.
 | Tracks, artists, contributors, compositions | READY | |
 | Track credits from the interface | READY | CAT-002. |
 | Readiness earned, never assigned | READY | I3 re-run on every attempt. |
+| Nothing else may grant it | READY | CAT-003. Three states are granted after a check and read as authority in thirty-odd places; a scan holds that they are written nowhere else. Guarding the column at runtime was tried and reverted — it broke 450 tests to stop something no code does. The scan's limit is stated: it sees a state written, not one handed to a method that writes it. |
 | ISRC / UPC / EAN never invented | READY | Assigned deliberately; format-normalised. |
 | Revoked identifiers never presented as active | READY | Scoped at the query boundary. |
 
