@@ -121,3 +121,35 @@ export interface Preflight {
     errors: ValidationIssue[];
     warnings: ValidationIssue[];
 }
+
+/**
+ * A master as the delivery package names it.
+ *
+ * The uuid is the asset's public one, so the screen can ask the ordinary
+ * minting endpoint for a link. There is deliberately no object key and no URL:
+ * where a master lives is not a browser's business, and a page that arrived
+ * carrying twelve signed links would have created twelve credentials for
+ * somebody who opened it to read a filename.
+ */
+export interface PackagedMaster {
+    disc_number: number;
+    track_number: number;
+    file_name: string;
+    sha256: string;
+    bytes: number | null;
+    asset_uuid: string;
+}
+
+export interface BuiltPackage {
+    built_at: string;
+    track_count: number;
+    warnings: string[];
+    tracks: PackagedMaster[];
+}
+
+export interface PackagePayload {
+    release: { uuid: string; title: string };
+    release_is_ready: boolean;
+    /** Null until somebody builds one. Read from storage, not from a row. */
+    package: BuiltPackage | null;
+}
