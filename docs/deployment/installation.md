@@ -7,6 +7,21 @@ php artisan sanitube:install
 That is the whole thing. What follows explains what it does, what it refuses to
 do, and what to do when a stage fails.
 
+Not sure what kind of host you are on, or which shape of installation fits it?
+Ask the machine first:
+
+```
+php artisan sanitube:host
+```
+
+It reads the host — never executing anything — and suggests one of five
+installation profiles: `CPANEL`, `VPS_CORE`, `VPS_CORE_AND_WORKER`,
+`WORKER_ONLY`, `CORE_ONLY_GENERIC`. The suggestion comes with its reasons and
+its cautions, and `--json` produces the same report for tooling. Only the three
+detectable profiles are ever suggested; whether a VPS should also carry the
+worker is what you want, not what the machine is, so those two are always
+offered as choices instead.
+
 ## What it needs
 
 - **PHP 8.2 or newer** with the extensions in `.github/workflows/ci.yml`.

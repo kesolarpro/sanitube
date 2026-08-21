@@ -8,7 +8,10 @@ use Illuminate\Database\Connection;
 use Illuminate\Support\ServiceProvider;
 use SaniTube\Deployment\Console\BackupCommand;
 use SaniTube\Deployment\Console\DoctorCommand;
+use SaniTube\Deployment\Console\HostCommand;
 use SaniTube\Deployment\Console\RestoreCommand;
+use SaniTube\Deployment\Host\HostProbe;
+use SaniTube\Deployment\Host\RealHostProbe;
 use SaniTube\Deployment\Services\DatabaseDumper;
 
 final class DeploymentServiceProvider extends ServiceProvider
@@ -22,12 +25,16 @@ final class DeploymentServiceProvider extends ServiceProvider
         ));
 
         $this->app->bind(Connection::class, fn (): Connection => $this->app->make('db')->connection());
+
+        // The seam host inspection is tested through: production asks the real
+        // machine, a test binds a fake and asks anything it likes.
+        $this->app->bind(HostProbe::class, RealHostProbe::class);
     }
 
     public function boot(): void
     {
         if ($this->app->runningInConsole()) {
-            $this->commands([BackupCommand::class, RestoreCommand::class, DoctorCommand::class]);
+            $this->commands([BackupCommand::class, RestoreCommand::class, DoctorCommand::class, HostCommand::class]);
         }
     }
 }

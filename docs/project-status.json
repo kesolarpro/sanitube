@@ -1,7 +1,7 @@
 {
  "$comment": "Machine-readable project state. Any new session reads this first, then verifies it against GitHub before trusting it. Written at the end of each ticket, so a stale entry means a session ended mid-ticket — check the branch and CI rather than the status field.",
  "updated_at": "2026-08-21",
- "current_phase": "Audit et durcissement, termine pour ce qui peut l'etre sans acces externe. Le registre de production (docs/production-readiness.md) est la source sous test, et docs/final-report.md le resume — ses quatre comptes sont tenus par ProductionReadinessLedgerTest. Il reste six lignes NOT_READY et dix BLOCKED_EXTERNAL. Voir internal_phase2_complete.",
+ "current_phase": "Mission finalisation + deploiement automatise : d'INTERNAL_PHASE2_COMPLETE vers une installation de production reproductible. Installeur a point d'entree unique, profils, machine a etats reprenable, generation de services, artefact frontend, mise a jour/retour arriere, cadre de certification des fournisseurs.",
  "last_completed_ticket": "PERF-005",
  "default_branch": "main — confirmed by API this session. The EXTERNAL_ADMIN_ACTION_REQUIRED blocker is cleared.",
  "tickets": {
@@ -924,6 +924,13 @@
    "ci": "green 10/10",
    "note": "Les cinq ecrans que le test d'echelle ne pouvait pas atteindre sont mesures : enrichissement, distribution, production, generations, projets. La liste des ecrans est desormais lue dans le routeur au lieu d'etre tenue a la main — un ecran nouveau echoue par son nom tant qu'il n'est pas mesure, differe avec sa raison, ou declare comme n'ayant pas de lignes qui croissent avec le catalogue.",
    "recorded_from": "git log origin/main (96ebebe)"
+  },
+  "DEP-007": {
+   "status": "in_review",
+   "pr": null,
+   "ci": "pending",
+   "branch": "claude/sanitube-autonomous-v1-5pycx0",
+   "note": "sanitube:host — lire la machine, jamais la supposer. Inspection par lectures de fichiers et recherches PATH uniquement, aucun processus execute. Cinq profils d'installation ; le conseiller ne suggere que les trois detectables et nomme les deux qui sont des choix. La preuve cPanel l'emporte sur tout ce qu'un VPS aurait."
   }
  },
  "architecture_amendments": [
@@ -1024,7 +1031,7 @@
   }
  },
  "main_sha": "96ebebe",
- "current_ticket": null,
+ "current_ticket": "DEP-007",
  "tests": "1820 passed, 1 skipped, 23189 assertions",
  "phpstan": {
   "level": 6,
