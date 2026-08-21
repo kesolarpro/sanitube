@@ -8,6 +8,7 @@ use Illuminate\Contracts\Cache\Repository as Cache;
 use Illuminate\Http\Client\Factory as HttpFactory;
 use Illuminate\Support\ServiceProvider;
 use SaniTube\Worker\Client\WorkerClient;
+use SaniTube\Worker\Console\WorkerCheckCommand;
 
 /**
  * Wires the worker boundary.
@@ -31,5 +32,12 @@ final class WorkerServiceProvider extends ServiceProvider
             $app->make(Cache::class),
             (array) config('worker', []),
         ));
+    }
+
+    public function boot(): void
+    {
+        if ($this->app->runningInConsole()) {
+            $this->commands([WorkerCheckCommand::class]);
+        }
     }
 }

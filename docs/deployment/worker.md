@@ -235,3 +235,11 @@ claim so two workers cannot pay twice for one request, the global background-wor
 pause, and `sanitube:production:run` being **unscheduled by default**.
 
 See `docs/reports/GEN-004.md`, `PROD-004.md` and `PROD-005.md`.
+
+## Before you trust it
+
+`php artisan sanitube:worker:check` proves the handshake, the capability
+vocabulary, that the worker refuses work it does not announce, and that its
+token is enforced — against the real machine rather than a fake. See
+[worker-certification.md](worker-certification.md) for what it does and does not
+cover.

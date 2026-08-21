@@ -2,7 +2,7 @@
  "$comment": "Machine-readable project state. Any new session reads this first, then verifies it against GitHub before trusting it. Written at the end of each ticket, so a stale entry means a session ended mid-ticket — check the branch and CI rather than the status field.",
  "updated_at": "2026-08-21",
  "current_phase": "Audit et durcissement. Le registre de production (docs/production-readiness.md) est la source sous test, et docs/final-report.md le resume — ses quatre comptes sont tenus par ProductionReadinessLedgerTest. Il reste huit lignes NOT_READY, toutes nommees, et dix BLOCKED_EXTERNAL qui attendent un identifiant, un fournisseur reel ou un hote reel.",
- "last_completed_ticket": "DIST-008",
+ "last_completed_ticket": "WRK-003",
  "default_branch": "main — confirmed by API this session. The EXTERNAL_ADMIN_ACTION_REQUIRED blocker is cleared.",
  "tickets": {
   "ARCH-001": {
@@ -902,6 +902,14 @@
    "branch": "claude/sanitube-autonomous-v1-5pycx0",
    "note": "L'oeuvre traverse avec l'enregistrement : ISWC et credits d'auteurs atteignent le distributeur. ADR-0021.",
    "adr": "docs/adr/ADR-0021-the-work-crosses-with-the-recording.md"
+  },
+  "WRK-003": {
+   "status": "in_review",
+   "pr": null,
+   "ci": "pending",
+   "branch": "claude/sanitube-autonomous-v1-5pycx0",
+   "note": "sanitube:worker:check — certifier un vrai worker : poignee de main, vocabulaire de capacites, refus de ce qu'il n'annonce pas, jeton applique. Le stockage avait son equivalent, le worker non.",
+   "deployment": "docs/deployment/worker-certification.md"
   }
  },
  "architecture_amendments": [
