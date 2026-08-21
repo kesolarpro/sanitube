@@ -41,16 +41,50 @@ final readonly class FingerprintAsset
         private AssetStorageService $storage,
     ) {}
 
+    public function isAvailable(): bool
+    {
+        return $this->fingerprinter->isAvailable();
+    }
+
+    /**
+     * What a fingerprint taken right now would be recorded under.
+     *
+     * Published because the backlog has to ask the same question this class
+     * answers — *has this asset been fingerprinted by the tool this
+     * installation has today* — and two spellings of it would drift into a
+     * sweep that queues work already done, or worse, skips work never done
+     * because the version moved.
+     */
+    public function algorithm(): string
+    {
+        return $this->fingerprinter->name().':'.$this->fingerprinter->version();
+    }
+
+    /**
+     * Whether this asset has never been fingerprinted by the current tool.
+     *
+     * A new algorithm version makes every asset outstanding again, which is
+     * the intended behaviour: a recalibration adds a row rather than replacing
+     * one, so old and new can be compared instead of one being lost.
+     */
+    public function needs(Asset $asset): bool
+    {
+        return ! AudioFingerprint::query()
+            ->where('asset_id', $asset->id)
+            ->where('algorithm', $this->algorithm())
+            ->exists();
+    }
+
     /**
      * @return AudioFingerprint|null null when this installation cannot fingerprint
      */
     public function handle(Asset $asset, bool $force = false): ?AudioFingerprint
     {
-        if (! $this->fingerprinter->isAvailable()) {
+        if (! $this->isAvailable()) {
             return null;
         }
 
-        $algorithm = $this->fingerprinter->name().':'.$this->fingerprinter->version();
+        $algorithm = $this->algorithm();
 
         $existing = AudioFingerprint::query()
             ->where('asset_id', $asset->id)

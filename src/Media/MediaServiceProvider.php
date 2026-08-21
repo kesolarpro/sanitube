@@ -13,6 +13,7 @@ use SaniTube\Media\Analyzers\RemoteAudioAnalyzer;
 use SaniTube\Media\Analyzers\StrategyAudioAnalyzer;
 use SaniTube\Media\Analyzers\UnavailableAudioAnalyzer;
 use SaniTube\Media\Console\AnalyzeAudioCommand;
+use SaniTube\Media\Console\FingerprintBacklogCommand;
 use SaniTube\Media\Contracts\AudioAnalyzer;
 use SaniTube\Media\Contracts\AudioFingerprinter;
 use SaniTube\Media\Execution\MediaExecution;
@@ -133,7 +134,7 @@ final class MediaServiceProvider extends ServiceProvider
         $this->app['events']->listen(TrackCandidatePromoted::class, RecordMeasuredDurationOnTrack::class);
 
         if ($this->app->runningInConsole()) {
-            $this->commands([AnalyzeAudioCommand::class]);
+            $this->commands([AnalyzeAudioCommand::class, FingerprintBacklogCommand::class]);
         }
     }
 }

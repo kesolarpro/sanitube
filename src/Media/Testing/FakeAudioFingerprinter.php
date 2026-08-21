@@ -38,6 +38,16 @@ final class FakeAudioFingerprinter implements AudioFingerprinter
 
     private bool $fails = false;
 
+    /**
+     * @param  string  $version  the algorithm version this fake reports
+     *
+     * Configurable because a recalibration is a real event: a new version makes
+     * every asset outstanding again, deliberately, since fingerprints from
+     * different versions are not reliably comparable. A fixture that could only
+     * ever be version 1 could not exercise it.
+     */
+    public function __construct(private readonly string $version = '1') {}
+
     public function willReturn(string $fingerprint, int $durationSeconds): self
     {
         $this->forced = new FingerprintResult($fingerprint, $durationSeconds, $this->name().':'.$this->version());
@@ -66,7 +76,7 @@ final class FakeAudioFingerprinter implements AudioFingerprinter
 
     public function version(): string
     {
-        return '1';
+        return $this->version;
     }
 
     public function isAvailable(): bool
