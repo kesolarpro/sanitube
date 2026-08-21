@@ -6,6 +6,7 @@ namespace SaniTube\Releases\Packaging;
 
 use SaniTube\Artists\Models\Artist;
 use SaniTube\Catalog\Enums\ExternalIdentifierType;
+use SaniTube\Catalog\Models\Composition;
 use SaniTube\Catalog\Models\ExternalIdentifier;
 use SaniTube\Catalog\Models\Track;
 use SaniTube\Catalog\Models\TrackArtist;
@@ -132,6 +133,11 @@ final readonly class PackageRelease
         $trackNumber = $placement instanceof ReleaseTrack ? $placement->track_number : 1;
         $isFocus = $placement instanceof ReleaseTrack && $placement->is_focus_track;
 
+        // A track need not have one. A recording of something nobody has
+        // entered the work for is an ordinary state, and the package says so
+        // with a null rather than by inventing a composition.
+        $composition = $track->composition;
+
         return new PackagedTrack(
             uuid: $track->uuid,
             discNumber: $discNumber,
@@ -153,6 +159,8 @@ final readonly class PackageRelease
             isFocusTrack: $isFocus,
             artists: $this->trackArtists($track),
             contributors: $this->trackContributors($track),
+            iswc: $composition === null ? null : $this->identifier($composition, ExternalIdentifierType::Iswc),
+            writers: $this->trackWriters($composition),
         );
     }
 
@@ -226,6 +234,48 @@ final readonly class PackageRelease
         }
 
         return $contributors;
+    }
+
+    /**
+     * Who wrote the work.
+     *
+     * Read through the credit rather than the contributor, because the share
+     * and the role live on the credit — a person can be composer on one work
+     * and publisher on another, and the pivot is where that is true.
+     *
+     * Ordered by `position`, which is the order somebody entered them in. A
+     * writer list a distributor forwards to a society is one where the order
+     * was a decision, and re-sorting it here would quietly overrule it.
+     *
+     * @return list<PackagedWriter>
+     */
+    private function trackWriters(?Composition $composition): array
+    {
+        if ($composition === null) {
+            return [];
+        }
+
+        $writers = [];
+
+        foreach ($composition->contributorCredits()->orderBy('position')->orderBy('id')->get() as $credit) {
+            $contributor = $credit->contributor;
+
+            if (! $contributor instanceof Contributor) {
+                continue;
+            }
+
+            $writers[] = new PackagedWriter(
+                name: $contributor->legal_name,
+                role: $credit->role->value,
+                // As captured. Nothing here computes anything from it, and
+                // nothing in this platform turns it into money.
+                share: $credit->share === null ? null : (string) $credit->share,
+                ipi: $this->identifier($contributor, ExternalIdentifierType::Ipi),
+                isni: $this->identifier($contributor, ExternalIdentifierType::Isni),
+            );
+        }
+
+        return $writers;
     }
 
     /**

@@ -12,9 +12,12 @@ use SaniTube\Artwork\Contracts\ImageMeasurer;
 use SaniTube\Artwork\Services\MeasureArtwork;
 use SaniTube\Artwork\Testing\FakeImageMeasurer;
 use SaniTube\Assets\Models\Asset;
+use SaniTube\Catalog\Enums\CompositionContributorRole;
+use SaniTube\Catalog\Enums\ExternalIdentifierSource;
 use SaniTube\Catalog\Enums\ExternalIdentifierType;
 use SaniTube\Catalog\Enums\TrackArtistRole;
 use SaniTube\Catalog\Enums\TrackContributorRole;
+use SaniTube\Catalog\Models\Composition;
 use SaniTube\Catalog\Models\ExternalIdentifier;
 use SaniTube\Catalog\Models\Track;
 use SaniTube\Catalog\Services\AssignExternalIdentifier;
@@ -306,10 +309,134 @@ final class ReleasePackagingTest extends TestCase
             'uuid', 'disc_number', 'track_number', 'title', 'version_title', 'isrc', 'language_code',
             'is_instrumental', 'is_explicit', 'duration_ms', 'p_line', 'genre_primary',
             'genre_secondary', 'master_asset_uuid', 'is_focus_track', 'artists', 'contributors',
+
+            // DIST-008. The work alongside the recording: a composition's own
+            // identifier, and the people who wrote it. Added here deliberately,
+            // which is what this test exists to require.
+            'iswc', 'writers',
         ], array_keys($array['tracks'][0]));
     }
 
     // ----------------------------------------------------------- fixtures
+
+    /**
+     * DIST-008. The work crosses, not only the recording.
+     *
+     * The catalogue held composers, lyricists and publishers with their IPIs
+     * and the composition's ISWC, and the package described only who
+     * engineered the master. `trackContributors()` even explained itself by
+     * saying a distributor forwards the name to collecting societies — which is
+     * the writer use case, applied to a relation that can only hold engineers.
+     */
+    #[Test]
+    public function the_work_and_the_people_who_wrote_it_reach_the_package(): void
+    {
+        $release = $this->releaseWithAWork();
+
+        $track = $this->packager()->handle($release)->tracks[0];
+
+        $this->assertSame('T-034.524.680-1', $track->iswc);
+        $this->assertCount(2, $track->writers);
+
+        // Ordered as somebody entered them. A society is told who is first.
+        $this->assertSame('Bacharach, Burt', $track->writers[0]->name);
+        $this->assertSame('COMPOSER', $track->writers[0]->role);
+        $this->assertSame('00052210182', $track->writers[0]->ipi);
+
+        $this->assertSame('David, Hal', $track->writers[1]->name);
+        $this->assertSame('LYRICIST', $track->writers[1]->role);
+    }
+
+    #[Test]
+    public function a_recording_of_a_work_nobody_has_entered_says_so(): void
+    {
+        // The ordinary state, and it must not be an error. SaniTube never
+        // invents an identifier and never invents a composition either.
+        $track = $this->packager()->handle($this->validRelease())->tracks[0];
+
+        $this->assertNull($track->iswc);
+        $this->assertSame([], $track->writers);
+    }
+
+    #[Test]
+    public function a_writers_share_is_carried_as_captured_and_never_computed(): void
+    {
+        // Rights metadata, which a society requires, and not money. The
+        // platform stores what somebody entered and passes it through exactly
+        // as the column holds it — six decimal places and all. Rounding it
+        // here would be this platform having an opinion about a split it was
+        // told, and nothing here adds, splits or converts anything.
+        $release = $this->releaseWithAWork();
+
+        $writers = $this->packager()->handle($release)->tracks[0]->writers;
+
+        $this->assertSame('60.000000', $writers[0]->share);
+        $this->assertSame('40.000000', $writers[1]->share);
+    }
+
+    #[Test]
+    public function a_revoked_work_identifier_is_never_presented_as_current(): void
+    {
+        $release = $this->releaseWithAWork();
+
+        $composition = $release->tracks()->firstOrFail()->composition;
+        $this->assertInstanceOf(Composition::class, $composition);
+
+        $iswc = $composition->externalIdentifiers()
+            ->where('type', ExternalIdentifierType::Iswc->value)
+            ->firstOrFail();
+
+        ($this->app->make(RevokeExternalIdentifier::class))($iswc, 'Registered against the wrong work.');
+
+        // The same rule the ISRC has had since REL-003: a withdrawn code that
+        // reappeared in a delivery would put it back into circulation.
+        $this->assertNull($this->packager()->handle($release->refresh())->tracks[0]->iswc);
+    }
+
+    /**
+     * A release whose one track is a recording of a composition with two
+     * writers and an ISWC.
+     */
+    private function releaseWithAWork(): Release
+    {
+        $release = $this->validRelease();
+
+        $composition = Composition::factory()->create(['title' => 'Night Bus']);
+
+        $composition->externalIdentifiers()->create([
+            'type' => ExternalIdentifierType::Iswc,
+            'value' => 'T-034.524.680-1',
+            'source' => ExternalIdentifierSource::Manual,
+            'assigned_at' => now(),
+        ]);
+
+        $composer = Contributor::factory()->create(['legal_name' => 'Bacharach, Burt']);
+        $composer->externalIdentifiers()->create([
+            'type' => ExternalIdentifierType::Ipi,
+            'value' => '00052210182',
+            'source' => ExternalIdentifierSource::Manual,
+            'assigned_at' => now(),
+        ]);
+
+        $lyricist = Contributor::factory()->create(['legal_name' => 'David, Hal']);
+
+        $composition->contributors()->attach($composer->id, [
+            'role' => CompositionContributorRole::Composer->value,
+            'share' => '60.00',
+            'position' => 0,
+        ]);
+
+        $composition->contributors()->attach($lyricist->id, [
+            'role' => CompositionContributorRole::Lyricist->value,
+            'share' => '40.00',
+            'position' => 1,
+        ]);
+
+        $track = $release->tracks()->firstOrFail();
+        $track->forceFill(['composition_id' => $composition->id])->save();
+
+        return $release->refresh();
+    }
 
     private function validRelease(): Release
     {

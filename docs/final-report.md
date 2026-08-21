@@ -1,6 +1,6 @@
 # SaniTube — Final Status Report
 
-**Date** 2026-08-21 · **Branch** `main` · **Suite** 2133 PHP tests (27 700 assertions), 28 component tests · **CI** 10 checks, green
+**Date** 2026-08-21 · **Branch** `main` · **Suite** 2137 PHP tests (27 727 assertions), 28 component tests · **CI** 10 checks, green
 
 This is the report §83 asks for: every field named, with the verdict the
 platform can actually defend. It is derived from `docs/production-readiness.md`
@@ -27,7 +27,7 @@ summary.
 
 | Verdict | Count | Meaning |
 |---|---|---|
-| READY | 170 | Built, tested, exercised end to end inside the platform |
+| READY | 172 | Built, tested, exercised end to end inside the platform |
 | BLOCKED_EXTERNAL | 10 | Complete on our side; needs a credential, a real provider, or a real host |
 | NOT_READY | 7 | Internal work remains, each one named |
 | NOT_REQUIRED | 3 | Deliberately out of scope for V1 |
@@ -134,6 +134,7 @@ No source change between them; each is a legitimate configuration.
 | UI-A11Y-001 | Three raw inputs were orphaning their labels on the enrichment review screen; two file inputs sat unnamed in the accessibility tree. |
 | DOC-001 / DOC-002 | This report, with its counts held by a test; and the machine-readable status file, which was 20 tickets behind while carrying today's date. |
 | OBS-002 / OBS-003 | The doctor reports a queue nobody is working, and work that failed and nobody has looked at. Neither can see the other’s failure. |
+| DIST-008 | The work crosses with the recording: ISWC and writer credits reach the distributor. ADR-0021. |
 | DIST-007 | A distributor receives the `ReleasePackage`, never the aggregate. ADR-0020. It immediately caught a release with a track that had no master audio being submitted by the suite's own fixture. |
 
 ## 10. The decision that was waiting, and what it changed

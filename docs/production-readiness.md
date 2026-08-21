@@ -165,7 +165,9 @@ written down.
 
 | Control | Verdict | Notes |
 |---|---|---|
-| Tracks, artists, contributors, compositions | READY | |
+| Tracks, artists, contributors, compositions | READY | The recording and the work are separate, with their own roles, their own identifiers and their own credits. |
+| The work reaches the distributor, not only the recording | READY | DIST-008. Every delivery described who engineered the master and said nothing about who wrote the song — on a platform that had already built the writer side, normalised ISWCs and IPIs, and enforced the splits. `PackagedWriter` is a distinct type from `PackagedContributor`: one list would let a reader take a mastering engineer for a rights holder. ADR-0021. |
+| A writer share is metadata, never money | READY | DIST-008. Passed through exactly as captured; nothing computes anything from it. Earnings stay with the distributor. |
 | Track credits from the interface | READY | CAT-002. |
 | Readiness earned, never assigned | READY | I3 re-run on every attempt. |
 | Nothing else may grant it | READY | CAT-003. Three states are granted after a check and read as authority in thirty-odd places; a scan holds that they are written nowhere else. Guarding the column at runtime was tried and reverted — it broke 450 tests to stop something no code does. The scan's limit is stated: it sees a state written, not one handed to a method that writes it. |
