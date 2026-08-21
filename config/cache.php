@@ -112,6 +112,10 @@ return [
     |
     */
 
-    'prefix' => env('CACHE_PREFIX', Str::slug((string) env('APP_NAME', 'laravel')).'-cache-'),
+    // Keyed to the operational instance name, not the display name: two
+    // SaniTubes sharing a VPS (and possibly a Redis) set two different
+    // SANITUBE_INSTANCE_NAME values and their cache keys cannot collide,
+    // while renaming what the *screens* call the app changes nothing here.
+    'prefix' => env('CACHE_PREFIX', Str::slug((string) env('SANITUBE_INSTANCE_NAME', (string) env('APP_NAME', 'sanitube'))).'-cache-'),
 
 ];

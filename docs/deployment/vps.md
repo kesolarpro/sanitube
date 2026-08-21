@@ -141,6 +141,45 @@ prove, is in [Certifying storage](storage-certification.md).
 `docs/production-readiness.md` is the full list, including the parts that need
 a real provider or a real host before anybody can honestly call them certified.
 
+## Firewall and SSH — offered, never sprung
+
+A sensible VPS firewall is three rules, and they are yours to run, in this
+order, from a session you keep open until you have proven a second one still
+connects:
+
+```
+ufw allow OpenSSH        # FIRST, before enable — this is the lockout guard
+ufw allow http
+ufw allow https
+ufw enable
+```
+
+A worker's internal port does not belong in this list: reach it through a
+reverse proxy with TLS, or over a private network. SaniTube never touches
+the firewall itself and never disables password authentication or root
+login: security hardening that strands the operator is not hardening, and
+those two changes belong to a person who has just verified their key works.
+
+## Log rotation
+
+Laravel's `daily` log driver rotates the application log itself (14 days by
+default — `LOG_DAILY_DAYS`). Everything under systemd — the queue workers,
+the scheduler ticks — logs to the journal, which caps itself
+(`SystemMaxUse=` in journald.conf if the default is too generous). What is
+left is nginx: Debian-family and EL images ship a logrotate rule for it. If
+`sanitube:doctor` starts warning about the application disk, logs are the
+first place to look and the safest thing to prune.
+
+## Removing an installation
+
+There is deliberately no uninstall command. Removal is: stop and disable
+the `<instance>-*` units, remove the nginx server block, drop the cron
+line, and then — separately, deliberately, after confirming the backups you
+are keeping actually restore — remove the application directory and the
+database. Production data is never deleted merely because the application
+package is; the order above is the order in which mistakes stay
+recoverable.
+
 ## Backups
 
 There is no backup command yet — that is OPS-001, and until it lands you are

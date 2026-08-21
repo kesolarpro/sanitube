@@ -190,3 +190,17 @@ Supported, and the reason the dump is engine-neutral:
 4. `php artisan sanitube:restore /path/to/backup --verify`, then without
    `--verify`.
 5. Restore audio masters separately, from wherever you keep them.
+
+## Object storage is canonical, not a backup
+
+R2 (or any object storage) holding the masters is the *live* copy, not a
+backup of anything: a deletion or an overwrite propagates to it because it
+is the thing itself. What stands between the catalogue and a bad day is:
+the database backup this page describes (which carries every asset's path,
+checksum and size — the inventory that makes loss *detectable*),
+`sanitube:assets:verify` (which reads objects back against their recorded
+checksums and quarantines what disagrees), and the migration tool's refusal
+to ever delete a source. Missing-object detection is therefore a query away
+— verify reports what no longer answers. A second, independent replica of
+the objects themselves is legitimate future work, and nothing on this page
+pretends to be it.
