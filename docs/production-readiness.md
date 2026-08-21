@@ -261,6 +261,7 @@ written down.
 | Restore never accidental | READY | Explicit confirmation; `--force` for scripts. |
 | Catalogue *and* delivery history recovered | READY | Asserted end to end. |
 | Backup freshness surfaced | READY | Doctor and Operations screen. |
+| Work that failed and was never looked at is reported | READY | OBS-003. The backlog check cannot see this and that is why there are two: a worker consuming briskly and failing every job leaves `jobs` empty, so the backlog reads READY while the catalogue quietly stops growing. Discarding failures on the `null` driver is itself reported, rather than counted as none. |
 | A queue nobody works is reported | READY | OBS-002. The driver check answers "is work queued rather than run inline"; it never answered "does anybody pick it up". Both deployment guides tell an operator to add a `queue:work` cron or systemd unit, and nothing checked that they had. The oldest unreserved job's age separates a busy queue from a dead one; a count cannot. |
 | A backup configuration that can never run is reported before it fails | READY | DEP-006. The doctor resolves the include paths and reports the refusal. Freshness answers when the last backup was; this answers whether there will be another. |
 | Included paths contained | READY | DEP-005. An include path that resolves outside the installation, that is the application root, or that touches the backup destination is refused before the directory is created. |
