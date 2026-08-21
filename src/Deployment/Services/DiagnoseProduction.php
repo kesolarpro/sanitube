@@ -94,7 +94,79 @@ final readonly class DiagnoseProduction
             ...$this->deduplication(),
             ...$this->assistedFeatures(),
             ...$this->server(),
+            ...$this->disk(),
         ];
+    }
+
+    /**
+     * Free space where the application and its backups live.
+     *
+     * Absolute thresholds, configured in megabytes (operations.disk): what
+     * the platform needs — room for a master upload, a backup, a log — is
+     * measured in megabytes, not in fractions of somebody's disk. Two
+     * volumes checked separately, because a backup destination on another
+     * filesystem full while the application volume is roomy is exactly the
+     * failure a single check averages away.
+     *
+     * @return list<ProductionCheck>
+     */
+    private function disk(): array
+    {
+        $warn = (int) config('operations.disk.warn_below_mb', 2048);
+        $blocker = (int) config('operations.disk.blocker_below_mb', 256);
+
+        $volumes = ['application_disk' => base_path()];
+
+        $backupDestination = (string) config('backup.destination');
+
+        if ($backupDestination !== '' && is_dir($backupDestination)) {
+            $volumes['backup_disk'] = $backupDestination;
+        }
+
+        $checks = [];
+
+        foreach ($volumes as $key => $path) {
+            $free = @disk_free_space($path);
+
+            if ($free === false) {
+                $checks[] = ProductionCheck::unknown(
+                    'Server',
+                    $key,
+                    sprintf('Free space could not be read for the %s volume.', str_replace('_disk', '', $key)),
+                    'open_basedir or a restricted filesystem can hide this; check df by hand.',
+                );
+
+                continue;
+            }
+
+            $freeMb = (int) floor($free / 1048576);
+
+            if ($blocker > 0 && $freeMb < $blocker) {
+                $checks[] = ProductionCheck::blocker(
+                    'Server',
+                    $key,
+                    sprintf('%d MB free. A deploy on a full disk fails halfway in the worst possible way.', $freeMb),
+                    'Free space before doing anything else: old backups, logs, stale artifacts.',
+                );
+
+                continue;
+            }
+
+            if ($warn > 0 && $freeMb < $warn) {
+                $checks[] = ProductionCheck::warning(
+                    'Server',
+                    $key,
+                    sprintf('%d MB free, below the %d MB warning threshold.', $freeMb, $warn),
+                    'Make room, or raise SANITUBE_DISK_WARN_MB if this volume is genuinely fine.',
+                );
+
+                continue;
+            }
+
+            $checks[] = ProductionCheck::ready('Server', $key, sprintf('%d MB free.', $freeMb));
+        }
+
+        return $checks;
     }
 
     /**
