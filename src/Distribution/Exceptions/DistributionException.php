@@ -6,9 +6,23 @@ namespace SaniTube\Distribution\Exceptions;
 
 use RuntimeException;
 use SaniTube\Distribution\Enums\DistributionDeliveryStatus;
+use SaniTube\Foundation\Contracts\CarriesRefusalCode;
 
-final class DistributionException extends RuntimeException
+final class DistributionException extends RuntimeException implements CarriesRefusalCode
 {
+    /**
+     * The reason, under the name every refusal in the platform answers to.
+     *
+     * `reason` stays because dozens of call sites read it. This is the same
+     * value, reachable without knowing which module refused — which is what
+     * lets one `catch` handle a packaging refusal and a distribution refusal
+     * alike, instead of a caller listing the modules it happens to know about.
+     */
+    public function refusalCode(): string
+    {
+        return $this->reason;
+    }
+
     private function __construct(string $message, public readonly string $reason)
     {
         parent::__construct($message);

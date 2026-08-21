@@ -59,12 +59,34 @@ enum ExportField: string
 
     case TrackArtist = 'track_artist';
 
+    /**
+     * Writers, producers, performers — name and role, as the credits state.
+     *
+     * One cell rather than a column per role, because which roles a form asks
+     * for is the part that differs most between distributors. An operator whose
+     * intake sheet wants a `Composer` column splits this one; an operator whose
+     * sheet wants free text pastes it.
+     */
+    case TrackContributors = 'track_contributors';
+
     /** Blank unless one has been assigned. Never invented. */
     case Isrc = 'isrc';
 
     case LanguageCode = 'language_code';
 
     case IsFocusTrack = 'is_focus_track';
+
+    /** Every store asks, and getting it wrong is what gets a release pulled. */
+    case IsExplicit = 'is_explicit';
+
+    case IsInstrumental = 'is_instrumental';
+
+    case GenrePrimary = 'genre_primary';
+
+    case GenreSecondary = 'genre_secondary';
+
+    /** The recording's own ℗ line, which may differ from the release's. */
+    case TrackPLine = 'track_p_line';
 
     // ------------------------------------------------------------- the file
 

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SaniTube\Releases\Exceptions;
 
 use RuntimeException;
+use SaniTube\Foundation\Contracts\CarriesRefusalCode;
 
 /**
  * A release this platform will not package for a distributor.
@@ -12,8 +13,21 @@ use RuntimeException;
  * Every case carries a machine-readable `reason`, per REL-002: a caller that
  * has to match on a sentence works around the check rather than fixing it.
  */
-final class ReleasePackagingException extends RuntimeException
+final class ReleasePackagingException extends RuntimeException implements CarriesRefusalCode
 {
+    /**
+     * The reason, under the name every refusal in the platform answers to.
+     *
+     * `reason` stays because dozens of call sites read it. This is the same
+     * value, reachable without knowing which module refused — which is what
+     * lets one `catch` handle a packaging refusal and a distribution refusal
+     * alike, instead of a caller listing the modules it happens to know about.
+     */
+    public function refusalCode(): string
+    {
+        return $this->reason;
+    }
+
     /**
      * @param  list<string>  $context
      */

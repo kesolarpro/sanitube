@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace SaniTube\Distribution\Console;
 
 use Illuminate\Console\Command;
-use SaniTube\Distribution\Exceptions\DistributionException;
 use SaniTube\Distribution\Export\BuildDeliveryPackage;
 use SaniTube\Distribution\Export\DeliveryPackage;
 use SaniTube\Distribution\Export\PackagedTrack;
+use SaniTube\Foundation\Contracts\CarriesRefusalCode;
 use SaniTube\Releases\Models\Release;
 use SaniTube\Storage\StorageManager;
 
@@ -51,11 +51,15 @@ final class ExportReleaseCommand extends Command
 
         try {
             $package = $builder->handle($release);
-        } catch (DistributionException $exception) {
-            // A code, not a sentence translated three times. The reason a
-            // release cannot be packaged is the same vocabulary the screens
-            // use.
-            $this->error(sprintf('Refused: %s', $exception->reason));
+        } catch (CarriesRefusalCode $exception) {
+            // The interface, not a module's exception class: packaging refuses
+            // in Releases' vocabulary and delivery in Distribution's, and a
+            // command that listed the modules it happened to know about would
+            // stop catching the day a third one refused.
+            //
+            // A code, not a sentence. The reason a release cannot be packaged
+            // is the same vocabulary the screens translate.
+            $this->error(sprintf('Refused: %s', $exception->refusalCode()));
 
             return self::FAILURE;
         }
