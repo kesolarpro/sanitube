@@ -421,9 +421,15 @@ final class DistributionTest extends TestCase
     {
         $release = $this->builder()->createDraft('Night Bus');
 
-        $track = Track::factory()->create([
+        // `ready()`, not a forced status. The factory's own comment says why:
+        // writing TrackStatus::Ready directly produces a track the domain
+        // considers impossible — READY with no master audio — and this fixture
+        // did exactly that. Nothing noticed until DIST-007 gave the adapter a
+        // ReleasePackage: packaging refuses TRACK_WITHOUT_MASTER, because there
+        // is nothing to deliver for such a track. The old submission path
+        // handed the aggregate over and never looked.
+        $track = Track::factory()->ready()->create([
             'title' => 'Night Bus',
-            'status' => TrackStatus::Ready,
             'language_code' => ContentLanguage::UNKNOWN,
             'is_instrumental' => false,
         ]);

@@ -21,7 +21,10 @@ use SaniTube\Distribution\Exceptions\SubmissionNotSent;
 use SaniTube\Distribution\Models\DistributionAttempt;
 use SaniTube\Distribution\Models\DistributionDelivery;
 use SaniTube\Releases\Enums\ReleaseStatus;
+use SaniTube\Releases\Exceptions\ReleasePackagingException;
 use SaniTube\Releases\Models\Release;
+use SaniTube\Releases\Packaging\PackageRelease;
+use SaniTube\Releases\Packaging\ReleasePackage;
 use SaniTube\Storage\CredentialRedactor;
 use Throwable;
 
@@ -54,6 +57,7 @@ final readonly class SubmitDelivery
     public function __construct(
         private DistributorManager $distributors,
         private ValidateDelivery $validator,
+        private PackageRelease $packager,
     ) {}
 
     /**
@@ -136,12 +140,25 @@ final readonly class SubmitDelivery
             throw DistributionException::alreadySubmitted($delivery->refresh()->status);
         }
 
-        return $this->send($delivery->refresh(), $release, $distributor);
+        // Assembled once, after the claim, and handed to both adapter calls.
+        //
+        // DIST-007: `prepareRelease` and `submitRelease` take the package, so
+        // building it twice would be two chances to build it differently — and
+        // "what did we actually send" has to have one answer. The claim is
+        // already held at this point, so a failure here releases it through
+        // fail() like any other.
+        try {
+            $package = $this->packager->handle($release);
+        } catch (ReleasePackagingException $exception) {
+            return $this->fail($delivery->refresh(), $exception->refusalCode(), hrtime(true));
+        }
+
+        return $this->send($delivery->refresh(), $package, $distributor);
     }
 
     private function send(
         DistributionDelivery $delivery,
-        Release $release,
+        ReleasePackage $package,
         Distributor $distributor,
     ): DistributionDelivery {
         $startedAt = hrtime(true);
@@ -155,14 +172,14 @@ final readonly class SubmitDelivery
             // DIST-001-H1's central claim: a failure while *preparing* means
             // nothing was submitted, so a retry is safe. A failure while
             // *submitting* means the request may have arrived.
-            $distributor->prepareRelease($release, $delivery->idempotency_key);
+            $distributor->prepareRelease($package, $delivery->idempotency_key);
         } catch (Throwable $exception) {
             // Nothing was handed over. FAILED, retryable, same key.
             return $this->fail($delivery, $exception->getMessage(), $startedAt);
         }
 
         try {
-            $submission = $distributor->submitRelease($release, $delivery->idempotency_key);
+            $submission = $distributor->submitRelease($package, $delivery->idempotency_key);
         } catch (SubmissionNotSent $exception) {
             // The adapter *knows* the request never left: DNS, refused
             // connection, a rejected handshake. The package demonstrably did

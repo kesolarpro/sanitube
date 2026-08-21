@@ -33,6 +33,7 @@ return [
         'DISTRIBUTOR_NOT_CONFIGURED' => ':distributor ist hier nicht konfiguriert, es kann also kein Urteil eingeholt werden. Nicht konfiguriert ist keine Zustimmung.',
         'DISTRIBUTOR_REFUSED' => ':distributor hat abgelehnt: :detail',
         'DISTRIBUTOR_WARNED' => ':distributor merkt an: :detail',
+        'RELEASE_NOT_PACKAGEABLE' => 'Diese Veröffentlichung liess sich nicht zu einem Lieferpaket zusammenstellen, daher wurde kein Vertrieb gefragt. Beheben Sie zuerst die Fehler oben.',
         'DISTRIBUTOR_UNREACHABLE' => ':distributor war nicht erreichbar, sein Urteil ist daher unbekannt. Das ist nicht dasselbe wie eine Ablehnung.',
         'DISTRIBUTOR_SANDBOX' => ':distributor läuft im Testmodus. Nichts, was darüber übermittelt wird, erreicht die Stores.',
     ],

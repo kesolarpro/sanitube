@@ -33,6 +33,7 @@ return [
         'DISTRIBUTOR_NOT_CONFIGURED' => ':distributor is not configured here, so no verdict can be asked for. Not configured is not approval.',
         'DISTRIBUTOR_REFUSED' => ':distributor refused: :detail',
         'DISTRIBUTOR_WARNED' => ':distributor noted: :detail',
+        'RELEASE_NOT_PACKAGEABLE' => 'This release could not be assembled into a delivery package, so no distributor was asked. Fix the errors above first.',
         'DISTRIBUTOR_UNREACHABLE' => ':distributor could not be reached, so its verdict is unknown. That is not the same as a refusal.',
         'DISTRIBUTOR_SANDBOX' => ':distributor is in sandbox mode. Nothing submitted through it reaches stores.',
     ],

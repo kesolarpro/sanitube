@@ -33,6 +33,7 @@ return [
         'DISTRIBUTOR_NOT_CONFIGURED' => ':distributor n’est pas configuré ici : aucun verdict ne peut être demandé. Non configuré ne vaut pas approbation.',
         'DISTRIBUTOR_REFUSED' => ':distributor a refusé : :detail',
         'DISTRIBUTOR_WARNED' => ':distributor a signalé : :detail',
+        'RELEASE_NOT_PACKAGEABLE' => 'Cette sortie n’a pas pu être assemblée en paquet de livraison : aucun distributeur n’a été interrogé. Corrigez d’abord les erreurs ci-dessus.',
         'DISTRIBUTOR_UNREACHABLE' => ':distributor n’a pas pu être joint : son verdict est inconnu. Ce n’est pas la même chose qu’un refus.',
         'DISTRIBUTOR_SANDBOX' => ':distributor est en mode bac à sable. Rien de ce qui y est soumis n’atteint les plateformes.',
     ],

@@ -11,7 +11,7 @@ use SaniTube\Distribution\DeliveryStatus;
 use SaniTube\Distribution\DistributorSubmission;
 use SaniTube\Distribution\DistributorValidation;
 use SaniTube\Distribution\Exceptions\SubmissionNotSent;
-use SaniTube\Releases\Models\Release;
+use SaniTube\Releases\Packaging\ReleasePackage;
 
 /**
  * A distributor that behaves however a test needs it to.
@@ -80,14 +80,14 @@ final class FakeDistributor implements Distributor, SupportsSubmissionLookup
         return $this->sandbox;
     }
 
-    public function validateRelease(Release $release): DistributorValidation
+    public function validateRelease(ReleasePackage $package): DistributorValidation
     {
         $this->refuseIfDown();
 
         return new DistributorValidation(errors: $this->rejectionReasons);
     }
 
-    public function prepareRelease(Release $release, string $idempotencyKey): DistributorSubmission
+    public function prepareRelease(ReleasePackage $package, string $idempotencyKey): DistributorSubmission
     {
         if ($this->breakPreparation) {
             throw new RuntimeException($this->preparationFailure ?? 'The upload was interrupted.');
@@ -102,7 +102,7 @@ final class FakeDistributor implements Distributor, SupportsSubmissionLookup
         );
     }
 
-    public function submitRelease(Release $release, string $idempotencyKey): DistributorSubmission
+    public function submitRelease(ReleasePackage $package, string $idempotencyKey): DistributorSubmission
     {
         if ($this->refuseConnection) {
             throw SubmissionNotSent::because('Connection refused.');

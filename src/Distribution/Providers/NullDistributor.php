@@ -8,7 +8,7 @@ use SaniTube\Distribution\Contracts\Distributor;
 use SaniTube\Distribution\DeliveryStatus;
 use SaniTube\Distribution\DistributorSubmission;
 use SaniTube\Distribution\DistributorValidation;
-use SaniTube\Releases\Models\Release;
+use SaniTube\Releases\Packaging\ReleasePackage;
 
 /**
  * The distributor a fresh install has: none.
@@ -41,19 +41,19 @@ final readonly class NullDistributor implements Distributor
         return DeliveryStatus::Draft;
     }
 
-    public function validateRelease(Release $release): DistributorValidation
+    public function validateRelease(ReleasePackage $package): DistributorValidation
     {
         // Not "the release is fine" — nothing looked at it. An empty error
         // list would read as approval from a distributor that does not exist.
         return new DistributorValidation(errors: [self::REASON]);
     }
 
-    public function prepareRelease(Release $release, string $idempotencyKey): DistributorSubmission
+    public function prepareRelease(ReleasePackage $package, string $idempotencyKey): DistributorSubmission
     {
         return DistributorSubmission::failed(self::REASON);
     }
 
-    public function submitRelease(Release $release, string $idempotencyKey): DistributorSubmission
+    public function submitRelease(ReleasePackage $package, string $idempotencyKey): DistributorSubmission
     {
         return DistributorSubmission::failed(self::REASON);
     }

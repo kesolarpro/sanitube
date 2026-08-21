@@ -33,6 +33,7 @@ return [
         'DISTRIBUTOR_NOT_CONFIGURED' => ':distributor no está configurado aquí, así que no se le puede pedir un veredicto. Sin configurar no es aprobación.',
         'DISTRIBUTOR_REFUSED' => ':distributor lo rechazó: :detail',
         'DISTRIBUTOR_WARNED' => ':distributor advirtió: :detail',
+        'RELEASE_NOT_PACKAGEABLE' => 'Esta publicación no se ha podido ensamblar en un paquete de entrega, así que no se ha consultado a ningún distribuidor. Corrija antes los errores anteriores.',
         'DISTRIBUTOR_UNREACHABLE' => 'No se pudo contactar con :distributor, así que su veredicto es desconocido. No es lo mismo que un rechazo.',
         'DISTRIBUTOR_SANDBOX' => ':distributor está en modo de pruebas. Nada de lo enviado por él llega a las tiendas.',
     ],
