@@ -25,6 +25,7 @@ use SaniTube\Ui\Http\Controllers\Deduplication\DuplicateIndexController;
 use SaniTube\Ui\Http\Controllers\DesignSystemController;
 use SaniTube\Ui\Http\Controllers\Distribution\DeliveryDetailController;
 use SaniTube\Ui\Http\Controllers\Distribution\DeliveryIndexController;
+use SaniTube\Ui\Http\Controllers\Distribution\DeliveryPackageController;
 use SaniTube\Ui\Http\Controllers\Distribution\DistributionActionController;
 use SaniTube\Ui\Http\Controllers\Distribution\ReleaseDistributionController;
 use SaniTube\Ui\Http\Controllers\Enrichment\EnrichmentRequestController;
@@ -522,6 +523,31 @@ Route::middleware(['web', HandleInertiaRequests::class, 'auth', 'active'])->grou
     Route::get('distribution/{delivery}', DeliveryDetailController::class)->name('distribution.show');
     Route::get('releases/{release}/distribution', ReleaseDistributionController::class)
         ->name('releases.distribution');
+
+    /*
+     * DIST-005. Delivering by hand, from a browser.
+     *
+     * Behind `can.role:distribute` like everything else here, even though
+     * nothing is submitted: choosing what a distributor is handed is the same
+     * decision whether an API or a person carries it.
+     *
+     * The masters are deliberately *not* served from these routes. Each is
+     * fetched through the ordinary asset-preview mint, one at a time, with the
+     * same policy, throttle and audit line every other screen gets.
+     */
+    Route::middleware('can.role:distribute')->group(function (): void {
+        Route::get('releases/{release}/distribution/package', [DeliveryPackageController::class, 'show'])
+            ->name('distribution.package');
+
+        // A POST: it writes two files. Repeatable and undoable, which is why
+        // it is not a submission and does not create a delivery.
+        Route::post('releases/{release}/distribution/package', [DeliveryPackageController::class, 'build'])
+            ->name('distribution.package.build');
+
+        // A GET: it reads a file the platform wrote. Streamed, never held.
+        Route::get('releases/{release}/distribution/package/metadata', [DeliveryPackageController::class, 'metadata'])
+            ->name('distribution.package.metadata');
+    });
 
     Route::middleware('can.role:distribute')->group(function (): void {
         // Read-only preflight, answered as JSON. A GET because it changes

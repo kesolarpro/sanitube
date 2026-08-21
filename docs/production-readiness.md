@@ -236,7 +236,8 @@ written down.
 | Reconciliation via lookup capability | READY | "Cannot look" is a type, not an exception. |
 | Manual resolution, actor recorded | READY | `decided_by` with a RESTRICT foreign key. |
 | Hand-typed references marked as such | READY | Provenance shown on the screen. |
-| Delivery without a distributor API | READY | DIST-004. `sanitube:distribution:export` builds a metadata sheet and a checked file list for a person to upload to a portal. The columns are configuration; no distributor is named in the code. Not a submission: no delivery row, nothing irreversible. CLI only — the browser cannot build one yet. |
+| Delivery without a distributor API | READY | DIST-004. `sanitube:distribution:export` builds a metadata sheet and a checked file list for a person to upload to a portal. The columns are configuration; no distributor is named in the code. Not a submission: no delivery row, nothing irreversible. CLI and browser alike. |
+| Delivery reachable without a shell | READY | DIST-005. The package screen builds it, downloads the sheet and mints one link per master through the ordinary asset-preview endpoint — same policy, throttle and audit line. A cPanel installation has no shell, so a CLI-only delivery path is one that installation does not have. |
 | One description of what crosses to a distributor | READY | DIST-006. The exporter renders `ReleasePackage` rather than walking the aggregate itself — the mistake that type exists to prevent, and one DIST-004 made. Asserted on the exporter's imports, not by comparing two outputs that agree today. |
 | Nothing is invented to fill a delivery cell | READY | DIST-004. An unassigned ISRC is an empty cell and a warning, never a generated code. A revoked identifier is never exported — the one place presenting a withdrawn code would put it back into circulation. |
 | Real distributor (Too Lost / TuneCore) | BLOCKED_EXTERNAL | DIST-002. Their API is not invented here. |

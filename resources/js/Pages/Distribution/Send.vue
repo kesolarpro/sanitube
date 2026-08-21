@@ -131,6 +131,23 @@ function submit(): void {
             {{ trans('ui.distribution.release_not_ready_note') }}
         </AppAlert>
 
+        <!-- DIST-005. The destination that always exists.
+             Above the list rather than below it, because on an installation
+             with no distributor configured the list is empty and this is the
+             only way a release leaves the platform. -->
+        <AppCard>
+            <template #header>{{ trans('ui.distribution.package_title') }}</template>
+
+            <p class="text-small text-muted">{{ trans('ui.distribution.package_description') }}</p>
+
+            <AppButton
+                class="mt-3"
+                :href="`/releases/${send.release.uuid}/distribution/package`"
+            >
+                {{ trans('ui.distribution.package_open') }}
+            </AppButton>
+        </AppCard>
+
         <AppCard :padded="false">
             <EmptyState
                 v-if="send.destinations.length === 0"
