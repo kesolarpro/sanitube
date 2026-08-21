@@ -2,7 +2,7 @@
  "$comment": "Machine-readable project state. Any new session reads this first, then verifies it against GitHub before trusting it. Written at the end of each ticket, so a stale entry means a session ended mid-ticket — check the branch and CI rather than the status field.",
  "updated_at": "2026-08-21",
  "current_phase": "Mission finalisation + deploiement automatise : d'INTERNAL_PHASE2_COMPLETE vers une installation de production reproductible. Installeur a point d'entree unique, profils, machine a etats reprenable, generation de services, artefact frontend, mise a jour/retour arriere, cadre de certification des fournisseurs.",
- "last_completed_ticket": "PERF-005",
+ "last_completed_ticket": "DEP-008",
  "default_branch": "main — confirmed by API this session. The EXTERNAL_ADMIN_ACTION_REQUIRED blocker is cleared.",
  "tickets": {
   "ARCH-001": {
@@ -926,18 +926,25 @@
    "recorded_from": "git log origin/main (96ebebe)"
   },
   "DEP-007": {
-   "status": "in_review",
-   "pr": null,
-   "ci": "pending",
-   "branch": "claude/sanitube-autonomous-v1-5pycx0",
-   "note": "sanitube:host — lire la machine, jamais la supposer. Inspection par lectures de fichiers et recherches PATH uniquement, aucun processus execute. Cinq profils d'installation ; le conseiller ne suggere que les trois detectables et nomme les deux qui sont des choix. La preuve cPanel l'emporte sur tout ce qu'un VPS aurait."
+   "status": "merged",
+   "pr": 137,
+   "ci": "green 10/10",
+   "note": "sanitube:host — lire la machine, jamais la supposer. Inspection par lectures de fichiers et recherches PATH uniquement, aucun processus execute. Cinq profils d'installation ; le conseiller ne suggere que les trois detectables et nomme les deux qui sont des choix. La preuve cPanel l'emporte sur tout ce qu'un VPS aurait.",
+   "recorded_from": "git log origin/main (8f7d0aa)"
   },
   "DEP-008": {
+   "status": "merged",
+   "pr": 138,
+   "ci": "green 10/10",
+   "note": "Le journal d'installation : chaque etape des deux installeurs (shell et web) est enregistree dans storage/installer/journal.json, 0600, details passes par la regle de censure partagee. --status le lit ; --profile enregistre la forme choisie et le message final parle sa langue. Le journal enregistre et n'autorise jamais ; un journal corrompu est preserve a cote, pas remplace.",
+   "recorded_from": "git log origin/main (03d6358)"
+  },
+  "DEP-009": {
    "status": "in_review",
    "pr": null,
    "ci": "pending",
    "branch": "claude/sanitube-autonomous-v1-5pycx0",
-   "note": "Le journal d'installation : chaque etape des deux installeurs (shell et web) est enregistree dans storage/installer/journal.json, 0600, details passes par la regle de censure partagee. --status le lit ; --profile enregistre la forme choisie et le message final parle sa langue. Le journal enregistre et n'autorise jamais ; un journal corrompu est preserve a cote, pas remplace."
+   "note": "Installation sans surveillance depuis un fichier de configuration protege. Dialecte .env, liste blanche egale a celle de l'installeur web (tenue par un test par reflexion) ; un fichier lisible au-dela de son proprietaire est refuse avant d'en lire un octet ; une cle inconnue arrete l'execution par son nom ; le mot de passe du proprietaire vient du fichier ou de SANITUBE_OWNER_PASSWORD, jamais d'argv."
   }
  },
  "architecture_amendments": [
@@ -1037,8 +1044,8 @@
    "history": "Not rewritten. PRs #111-#122 were merged by earlier sessions and #123-#129 by the 2026-08-21 session while this policy still read active:true. That happened and stays on the record; the policy is superseded from today rather than retroactively."
   }
  },
- "main_sha": "96ebebe",
- "current_ticket": "DEP-008",
+ "main_sha": "03d6358",
+ "current_ticket": "DEP-009",
  "tests": "1820 passed, 1 skipped, 23189 assertions",
  "phpstan": {
   "level": 6,
