@@ -1,8 +1,8 @@
 {
     "$comment": "Machine-readable project state. Any new session reads this first, then verifies it against GitHub before trusting it. Written at the end of each ticket, so a stale entry means a session ended mid-ticket — check the branch and CI rather than the status field.",
     "updated_at": "2026-08-21",
-    "current_phase": "Phase 2. WRK-001 generalise la frontiere du worker : deux routes — une poignee de main et un job — adressees par capacite, quelles que soient les capacites. La generation musicale en est la premiere ; FFmpeg, Chromaprint et la transcription la rejoindront sans second protocole. ACE-Step reste CONTRACT_VERIFIED / CONNECTIVITY_NOT_CERTIFIED / MODEL_RIGHTS_UNKNOWN.",
-    "last_completed_ticket": "WRK-001",
+    "current_phase": "Phase 2. WRK-002 rend selectionnable l'endroit ou tourne le travail media : local, remote_worker ou auto. Le local est inchange et reste juste pour un VPS equipe ; un compte cPanel sans FFmpeg peut desormais faire mesurer par un worker. La disponibilite n'est jamais deduite de la configuration : la poignee de main doit aboutir ET annoncer la capacite.",
+    "last_completed_ticket": "WRK-002",
     "default_branch": "main — confirmed by API this session. The EXTERNAL_ADMIN_ACTION_REQUIRED blocker is cleared.",
     "tickets": {
         "ARCH-001": {
@@ -709,13 +709,23 @@
             "note": "Worker de generation + adaptateur ACE-Step auto-heberge. 17 mutations, 17 tuees."
         },
         "WRK-001": {
+            "status": "merged",
+            "branch": "claude/sanitube-autonomous-v1-5pycx0",
+            "pr": 109,
+            "ci": "green (10/10)",
+            "report": "docs/reports/WRK-001.md",
+            "merge_commit": "89ed977",
+            "deployment": "docs/deployment/worker.md",
+            "note": "Frontiere worker generale, adressee par capacite. 12 mutations, 12 tuees."
+        },
+        "WRK-002": {
             "status": "open",
             "branch": "claude/sanitube-autonomous-v1-5pycx0",
             "pr": null,
             "ci": "pending",
-            "report": "docs/reports/WRK-001.md",
+            "report": "docs/reports/WRK-002.md",
             "deployment": "docs/deployment/worker.md",
-            "note": "Frontiere worker generale, adressee par capacite. 12 mutations, 12 tuees. 3 defauts trouves."
+            "note": "Strategie d'execution media local/remote_worker/auto + doctor honnete. 11 mutations, 11 tuees."
         }
     },
     "architecture_amendments": [

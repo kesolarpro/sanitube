@@ -67,6 +67,44 @@ return [
         'length_seconds' => (int) env('SANITUBE_FPCALC_LENGTH', 120),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Execution strategy
+    |--------------------------------------------------------------------------
+    |
+    | Where heavy media work runs: probing a file, taking a fingerprint.
+    |
+    |   local          run it on this machine, as every installation did before
+    |                  WRK-002 -- and still the right answer for a VPS with the
+    |                  tools installed: no network, no second host, no object
+    |                  round trip.
+    |
+    |   remote_worker  send it to a worker, and if the worker cannot serve it,
+    |                  report the capability unavailable. It does not quietly
+    |                  fall back: an operator who selected a worker has usually
+    |                  done so for a reason -- a shared host whose CPU limit
+    |                  ffprobe trips -- that a silent fallback would defeat
+    |                  without telling anybody.
+    |
+    |   auto           prefer a worker when one advertises the capability, use
+    |                  this machine otherwise, and report unavailable when
+    |                  neither can. The shipped default, because it is the only
+    |                  one that is right on a bare cPanel account, on a full
+    |                  VPS, and on an installation whose worker is temporarily
+    |                  down.
+    |
+    | An unrecognised value is `auto` rather than a boot failure: a typo in a
+    | .env on a shared host must not take an installation down.
+    |
+    | **Availability is never inferred from this setting.** A worker is used
+    | only when its handshake succeeds and advertises the capability; the local
+    | tool only when it is actually executable. See
+    | SaniTube\Media\Execution\MediaExecution.
+    |
+    */
+
+    'execution' => env('SANITUBE_MEDIA_EXECUTION', 'auto'),
+
     'ffprobe' => [
         'path' => env('SANITUBE_FFPROBE_PATH', 'ffprobe'),
         'timeout' => (int) env('SANITUBE_FFPROBE_TIMEOUT', 120),

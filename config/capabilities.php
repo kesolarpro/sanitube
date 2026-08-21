@@ -6,6 +6,7 @@ use SaniTube\Observability\Capabilities\Detectors\DatabaseDetector;
 use SaniTube\Observability\Capabilities\Detectors\FfmpegDetector;
 use SaniTube\Observability\Capabilities\Detectors\ImageProcessingDetector;
 use SaniTube\Observability\Capabilities\Detectors\MailDetector;
+use SaniTube\Observability\Capabilities\Detectors\MediaExecutionDetector;
 use SaniTube\Observability\Capabilities\Detectors\ObjectStorageDetector;
 use SaniTube\Observability\Capabilities\Detectors\PhpExtensionsDetector;
 use SaniTube\Observability\Capabilities\Detectors\PhpRuntimeDetector;
@@ -41,6 +42,10 @@ return [
         SchedulerDetector::class,
         ImageProcessingDetector::class,
         FfmpegDetector::class,
+        // Where media work would actually run, which is a different question
+        // from whether FFmpeg is installed here: a worker may be doing it, or
+        // may have been chosen and be unreachable.
+        MediaExecutionDetector::class,
         MailDetector::class,
         RedisDetector::class,
     ],
