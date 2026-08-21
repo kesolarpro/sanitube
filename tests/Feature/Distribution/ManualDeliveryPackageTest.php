@@ -13,8 +13,10 @@ use SaniTube\Assets\Models\Asset;
 use SaniTube\Assets\Storage\AssetObjectKeys;
 use SaniTube\Catalog\Enums\ExternalIdentifierSource;
 use SaniTube\Catalog\Enums\ExternalIdentifierType;
+use SaniTube\Catalog\Enums\TrackContributorRole;
 use SaniTube\Catalog\Enums\TrackStatus;
 use SaniTube\Catalog\Models\Track;
+use SaniTube\Contributors\Models\Contributor;
 use SaniTube\Distribution\Exceptions\DistributionException;
 use SaniTube\Distribution\Export\BuildDeliveryPackage;
 use SaniTube\Distribution\Export\DeliveryPackage;
@@ -25,6 +27,7 @@ use SaniTube\Ingestion\Exceptions\IngestionException;
 use SaniTube\Ingestion\Sources\SourceReaderFactory;
 use SaniTube\Localization\ContentLanguage;
 use SaniTube\Releases\Enums\ReleaseArtistRole;
+use SaniTube\Releases\Exceptions\ReleasePackagingException;
 use SaniTube\Releases\Models\Release;
 use SaniTube\Releases\Services\ReleaseBuilder;
 use SaniTube\Storage\StorageManager;
@@ -225,6 +228,143 @@ final class ManualDeliveryPackageTest extends TestCase
         $this->assertStringContainsString('ISRC', implode(' ', $package->warnings));
     }
 
+    // ------------------------------------------- one description of what crosses
+
+    /**
+     * DIST-006. The sheet renders the boundary description; it does not
+     * re-derive one.
+     *
+     * The first version of this exporter walked the Release aggregate itself —
+     * its own tracks query, its own identifier lookup, its own "has this a
+     * master" check — which is precisely what `ReleasePackage` exists to stop.
+     * Its docblock says so: *every adapter reaches differently, every adapter
+     * has its own chance to read a revoked identifier as current.*
+     *
+     * Asserted on the exporter's own source rather than by comparing outputs,
+     * because two implementations agreeing today is exactly the state that
+     * makes a later divergence invisible.
+     */
+    #[Test]
+    public function the_exporter_reaches_for_the_boundary_type_and_not_the_aggregate(): void
+    {
+        $source = $this->sourceOf(BuildDeliveryPackage::class);
+
+        $this->assertStringContainsString('PackageRelease', $source);
+
+        // Asserted on the *imports*, which is where reaching into the
+        // aggregate begins and the one place it cannot be spelled around. The
+        // same shape `WorkerBoundaryTest` uses for the names that boundary must
+        // not know.
+        foreach ([
+            'SaniTube\\Releases\\Models\\ReleaseTrack',
+            'SaniTube\\Catalog\\Models\\Track',
+            'SaniTube\\Catalog\\Models\\ExternalIdentifier',
+            'SaniTube\\Catalog\\Enums\\ExternalIdentifierType',
+        ] as $reach) {
+            $this->assertStringNotContainsString(
+                $reach,
+                $source,
+                sprintf('The exporter reaches for [%s] instead of asking the boundary description.', $reach),
+            );
+        }
+
+        // Asset stays, and deliberately: a digest, a byte count and a storage
+        // key are absent from the boundary type — "no secret and no location is
+        // in here" — and describing a file needs all three.
+        $this->assertStringContainsString('SaniTube\\Assets\\Models\\Asset', $source);
+    }
+
+    /**
+     * And it carries what the boundary description carries.
+     *
+     * The rework was not a refactor with the same output: contributors, the
+     * explicit flag and the genres were all in the type and absent from the
+     * sheet, because the exporter had only asked the catalogue for what it
+     * thought to ask for.
+     */
+    #[Test]
+    public function the_sheet_carries_the_credits_and_flags_the_boundary_description_holds(): void
+    {
+        $release = $this->readyRelease();
+
+        // A flag every store asks for, and getting it wrong is what gets a
+        // release pulled — so both answers are exercised rather than whichever
+        // one the fixture happened to default to.
+        $release->tracks()->firstOrFail()->forceFill([
+            'is_explicit' => true,
+            'genre_primary' => 'Electronic',
+            'genre_secondary' => 'Ambient',
+        ])->save();
+
+        $row = $this->build($release->refresh())->tracks[0]->columns;
+
+        $this->assertSame('yes', $row['Explicit']);
+        $this->assertSame('no', $row['Instrumental']);
+        $this->assertSame('Electronic', $row['Primary Genre']);
+        $this->assertSame('Ambient', $row['Secondary Genre']);
+    }
+
+    /**
+     * The credits, with the *legal* names.
+     *
+     * A distributor passes these to collecting societies, which match on the
+     * name a person is registered under rather than the one on the sleeve —
+     * which is why the boundary type carries `legal_name` and why the sheet
+     * must not quietly render something friendlier.
+     */
+    #[Test]
+    public function the_sheet_carries_the_contributor_credits(): void
+    {
+        $release = $this->completeDraft();
+
+        $release->tracks()->firstOrFail()->contributors()->attach(
+            Contributor::factory()->create([
+                'legal_name' => 'Marie-Claire Dubois',
+                'display_name' => 'MCD',
+            ]),
+            ['role' => TrackContributorRole::Producer->value, 'position' => 1],
+        );
+
+        $release->refresh()->markReady();
+
+        $row = $this->build($release->refresh())->tracks[0]->columns;
+
+        $this->assertSame('Marie-Claire Dubois (PRODUCER)', $row['Track Contributors']);
+        $this->assertStringNotContainsString('MCD', $row['Track Contributors']);
+    }
+
+    /**
+     * On a collaboration the order of the names is part of the credit.
+     *
+     * A sheet that sorted them alphabetically would deliver "Ana & Zoë" as
+     * "Zoë & Ana" wherever Z came first, and a store publishes what the sheet
+     * says.
+     */
+    #[Test]
+    public function artists_are_listed_in_the_order_the_credit_states(): void
+    {
+        $release = $this->completeDraft();
+
+        $track = $release->tracks()->firstOrFail();
+        $track->artists()->detach();
+
+        // Credited second but first alphabetically, so the two orders disagree.
+        $track->artists()->attach(
+            Artist::factory()->create(['name' => 'Aurore']),
+            ['role' => 'PRIMARY', 'position' => 2],
+        );
+        $track->artists()->attach(
+            Artist::factory()->create(['name' => 'Zéphyr']),
+            ['role' => 'PRIMARY', 'position' => 1],
+        );
+
+        $release->refresh()->markReady();
+
+        $row = $this->build($release->refresh())->tracks[0]->columns;
+
+        $this->assertSame('Zéphyr, Aurore', $row['Track Artist']);
+    }
+
     // ------------------------------------------------- filename is a label
 
     #[Test]
@@ -277,7 +417,7 @@ final class ManualDeliveryPackageTest extends TestCase
             $this->build($release);
             $this->fail('A draft was packaged.');
         } catch (DistributionException $exception) {
-            $this->assertSame('RELEASE_NOT_READY', $exception->reason);
+            $this->assertSame('RELEASE_NOT_READY', $exception->refusalCode());
         }
 
         $this->assertSame([], $this->store->files('exports'));
@@ -342,8 +482,11 @@ final class ManualDeliveryPackageTest extends TestCase
         try {
             $this->build($release->refresh());
             $this->fail('A release with no audio was packaged.');
-        } catch (DistributionException $exception) {
-            $this->assertSame('MISSING_IDENTIFIER', $exception->reason);
+        } catch (ReleasePackagingException $exception) {
+            // Named by the boundary type, which refuses this before the
+            // exporter ever sees it — and names the actual problem rather than
+            // an identifier that is not the thing missing.
+            $this->assertSame('TRACK_WITHOUT_MASTER', $exception->refusalCode());
         }
     }
 
@@ -437,6 +580,29 @@ final class ManualDeliveryPackageTest extends TestCase
             ->assertSuccessful();
     }
 
+    /**
+     * A packaging refusal reaches the operator too.
+     *
+     * The two refusals come from different modules — Releases refuses to
+     * package, Distribution refuses to hand over — and a command that caught
+     * only the one it was written beside would answer a real problem with an
+     * unhandled exception. Both answer to `CarriesRefusalCode`, so one `catch`
+     * covers them and the third module that refuses needs no edit here.
+     */
+    #[Test]
+    public function a_refusal_from_the_packager_is_reported_like_any_other(): void
+    {
+        $release = $this->readyRelease();
+
+        // READY, and then the cover goes. Validation passed when it was marked
+        // ready; packaging asks again, which is the point of asking again.
+        $release->forceFill(['cover_asset_id' => null])->save();
+
+        $this->artisan('sanitube:distribution:export', ['release' => $release->uuid])
+            ->expectsOutputToContain('Refused')
+            ->assertFailed();
+    }
+
     #[Test]
     public function an_unknown_release_is_a_refusal_rather_than_a_crash(): void
     {
@@ -444,6 +610,30 @@ final class ManualDeliveryPackageTest extends TestCase
     }
 
     // ------------------------------------------------------------ fixtures
+
+    private function sourceOf(string $class): string
+    {
+        $path = (new \ReflectionClass($class))->getFileName();
+
+        if ($path === false) {
+            $this->fail(sprintf('[%s] has no source file.', $class));
+        }
+
+        // Comments stripped: a docblock that *names* what the class must not
+        // reach for is the house way of explaining a rule, and a scan that
+        // read it would forbid the explanation along with the behaviour.
+        $stripped = '';
+
+        foreach (token_get_all((string) file_get_contents($path)) as $token) {
+            if (is_array($token) && in_array($token[0], [T_COMMENT, T_DOC_COMMENT], true)) {
+                continue;
+            }
+
+            $stripped .= is_array($token) ? $token[1] : $token;
+        }
+
+        return $stripped;
+    }
 
     private function build(Release $release): DeliveryPackage
     {
@@ -507,6 +697,10 @@ final class ManualDeliveryPackageTest extends TestCase
             'language_code' => ContentLanguage::UNKNOWN,
             'is_instrumental' => false,
             'master_asset_id' => $master->id,
+            // On the *track*, because that is what the boundary description
+            // carries and what a distributor is told. The asset's measured
+            // duration answers a different question — how long the file is.
+            'duration_ms' => 214_000,
         ]);
 
         if ($withIsrc) {
