@@ -1001,6 +1001,14 @@
    "ci": "pending",
    "branch": "claude/sanitube-autonomous-v1-5pycx0",
    "note": "La sauvegarde nocturne est planifiee (SANITUBE_BACKUP_AT, vide desactive), la fraicheur jugee a part. Les seuils disque atteignent le docteur — volumes application et sauvegarde juges separement, en megaoctets absolus, le bloqueur arrete un deploiement. sanitube:self-test : un chef d'orchestre, aucune duplication. Le plan de certification reel A-K est ecrit et executable sans edition de code."
+  },
+  "DEP-018": {
+   "status": "in_review",
+   "pr": null,
+   "ci": "pending",
+   "branch": "claude/sanitube-autonomous-v1-5pycx0",
+   "note": "sanitube:assets:relocate — le catalogue demenage sous preuve. ADR-0022 : l'emplacement peut bouger sous preuve, l'identite jamais. Copie en flux, verification de la cible contre ce que l'actif a toujours affirme, puis sauvegarde sanctionnee que l'observateur consomme. Un changement de disque nu jette toujours ; une sauvegarde mixte refusee depense aussi la sanction (son test a attrape la premiere version). Aucune source jamais supprimee — le service n'a pas d'appel delete a faire contre une source, par conception.",
+   "adr": "docs/adr/ADR-0022-location-may-move-under-proof-identity-never.md"
   }
  },
  "architecture_amendments": [

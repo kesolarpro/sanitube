@@ -47,9 +47,26 @@ final class AssetObserver
 
         $changed = array_values(array_intersect(Asset::IMMUTABLE_ONCE_STORED, array_keys($asset->getDirty())));
 
-        if ($changed !== []) {
-            throw AssetIntegrityException::immutable($status->value, $changed);
+        if ($changed === []) {
+            return;
         }
+
+        // ADR-0022: a sanctioned relocation may change `disk` — and only
+        // `disk`, and only on the one save the sanction blesses. Consumed
+        // *before* the shape is judged, unconditionally: a refused mixed
+        // save must spend the sanction too, or the refusal would leave it
+        // lingering on the instance to bless the next write — which the test
+        // for this line caught the first version doing. And a save that
+        // touches disk *and* anything else frozen is refused even
+        // sanctioned, because that is not a relocation, it is a rewrite
+        // wearing one.
+        $sanctioned = $asset->consumeRelocationSanction();
+
+        if ($sanctioned && $changed === ['disk']) {
+            return;
+        }
+
+        throw AssetIntegrityException::immutable($status->value, $changed);
     }
 
     public function created(Asset $asset): void

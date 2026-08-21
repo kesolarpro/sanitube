@@ -48,3 +48,4 @@ true at the time remains readable.
 | [0019](ADR-0019-a-provider-may-be-synchronous.md) | A generation provider may be synchronous | Accepted |
 | [0020](ADR-0020-the-delivery-boundary-is-the-package.md) | A distributor receives the package, never the aggregate | Accepted |
 | [0021](ADR-0021-the-work-crosses-with-the-recording.md) | The work crosses with the recording | Accepted |
+| [0022](ADR-0022-location-may-move-under-proof-identity-never.md) | Location may move under proof; identity never | Accepted |

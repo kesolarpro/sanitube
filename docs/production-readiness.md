@@ -307,6 +307,7 @@ written down.
 | Disk thresholds reach the doctor | READY | DEP-017. Application and backup volumes judged separately, in absolute megabytes (what the platform needs is measured in MB, not fractions of somebody's disk); warn and blocker levels configurable, blocker stops a deploy because migrating on a full disk fails halfway in the worst way. |
 | `sanitube:self-test` — one sitting, no duplication | READY | DEP-017. A conductor only: health, doctor, providers, and smoke when APP_URL is usable. Fails if the doctor or the smoke failed. |
 | The real-world certification plan | READY | DEP-017. docs/deployment/certification-plan.md — A through K, runnable with shipped code, no development edits. Until executed on a real host the automation is CODE_READY and says so. |
+| `sanitube:assets:relocate` — the catalogue moves under proof | READY | DEP-018 / ADR-0022. Stream-copy to the target provider, verify the *target* against what the asset has always claimed (never a fresh source hash, which would bless corrupt bytes with matching wrong checksums), then a sanctioned save the observer consumes — identity fields stay frozen forever, a bare disk change still throws, a refused mixed save spends the sanction too (its test caught the first version not doing so). Batched, resumable (done is detected, not remembered), one failing file strands nothing, and no source is ever deleted — the service has no delete call to make against one, by design. |
 
 ## Security
 
