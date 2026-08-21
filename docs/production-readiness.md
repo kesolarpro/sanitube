@@ -14,6 +14,10 @@ document: a fake-provider integration that is fully wired, tested and safe is
 finished code awaiting a certificate, not unfinished code. Saying otherwise
 would misdescribe the work in both directions.
 
+A narrative summary of this table, with the outstanding work named and grouped,
+is in [`docs/final-report.md`](final-report.md). This table is the one under
+test; that one is the summary.
+
 `php artisan sanitube:doctor` checks the machine-checkable subset of this list
 on a live installation, read-only, and exits non-zero when something internal
 blocks going live.
