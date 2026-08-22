@@ -1,8 +1,8 @@
 {
  "$comment": "Machine-readable project state. Any new session reads this first, then verifies it against GitHub before trusting it. Written at the end of each ticket, so a stale entry means a session ended mid-ticket — check the branch and CI rather than the status field.",
  "updated_at": "2026-08-22",
- "current_phase": "Mission centre de configuration terminee cote interne : CFG-001 a CFG-005, TRASH-001, DUP-001, OPS-002, UPL-004, DOC-006 fusionnes. SANITUBE_PRODUCTION_READY = oui pour le code, non comme deploiement en fonctionnement. R2_CODE_READY=YES, R2_CONFIGURED=NO, R2_CONNECTIVITY_VERIFIED=NO — aucun identifiant dans cet environnement. Quatre decisions attendent l'operateur : purge de la corbeille, chiffrement des sauvegardes au repos, actions groupees sur les doublons, planification du balayage des doublons. Le detail est docs/final-report.md section 13.",
- "last_completed_ticket": "DOC-006",
+ "current_phase": "UPL-005 en revue : l'upload relaye etait casse en production depuis que app.blade.php ne publiait plus la meta csrf-token, et les trois ecrans qui signent leurs propres requetes (import, upload unitaire, test de connexion des reglages) mouraient en 419 avant tout controleur, en rapportant un message generique. Le jeton est publie, la lecture d'un refus tient compte du statut, et le contrat mise en page vers JavaScript est desormais teste avec VerifyCsrfToken ACTIF. Ce ticket touche a la securite CSRF : REVIEW_REQUIRED, ne pas fusionner avant verdict. NOTE : DOC-007 (PR 159) etait fusionne sur main alors que ce fichier disait encore DOC-006 — verifie contre l'API cette session. Mission centre de configuration terminee cote interne : CFG-001 a CFG-005, TRASH-001, DUP-001, OPS-002, UPL-004, DOC-006, DOC-007 fusionnes. SANITUBE_PRODUCTION_READY = oui pour le code, non comme deploiement en fonctionnement — et UPL-005 est la preuve que les deux ne sont pas la meme chose. R2_CODE_READY=YES, R2_CONFIGURED=NO, R2_CONNECTIVITY_VERIFIED=NO. Quatre decisions attendent l'operateur : purge de la corbeille, chiffrement des sauvegardes au repos, actions groupees sur les doublons, planification du balayage des doublons. Le detail est docs/final-report.md section 13.",
+ "last_completed_ticket": "DOC-007 — le dernier fusionne. UPL-005 est ouvert et en revue, pas termine.",
  "default_branch": "main — confirmed by API this session. The EXTERNAL_ADMIN_ACTION_REQUIRED blocker is cleared.",
  "tickets": {
   "ARCH-001": {
@@ -1087,6 +1087,23 @@
    "ci": "green 13/13",
    "note": "Le rapport final portait les chiffres d'il y a une mission ; chacun verifie plutot que reecrit. Section nouvelle pour le vocabulaire de cette mission. Trois champs disent non et disent pourquoi ; quatre lignes nomment la decision qui appartient a l'operateur.",
    "recorded_from": "git log origin/main (b22e224)"
+  },
+  "DOC-007": {
+   "status": "merged",
+   "pr": 159,
+   "pr_url": "https://github.com/kesolarpro/sanitube/pull/159",
+   "ci": "green",
+   "note": "Le registre lisible par machine, referme en fin de phase. Absent de ce fichier jusqu'a UPL-005, qui l'a trouve en verifiant contre l'API : le dernier ticket d'une session ne peut pas s'inscrire lui-meme s'il est le commit qui ecrit ce fichier.",
+   "recorded_from": "git log origin/main (22b1b29)"
+  },
+  "UPL-005": {
+   "status": "in review — REVIEW_REQUIRED (securite CSRF)",
+   "branch": "claude/upl-005-upload-relay-s9utpm",
+   "pr": null,
+   "ci": "pending",
+   "report": "docs/reports/UPL-005.md",
+   "note": "app.blade.php ne publiait aucune meta csrf-token. Import.vue, Upload.vue et Settings/Index.vue batissent leurs requetes a la main (progression, annulation) et la lisaient : en-tete vide, 419 avant tout controleur, aucun octet arrive, rien dans laravel.log parce qu'une 419 est rendue et non rapportee. readCode ne lisait que la cle code, absente d'une 419, donc tout devenait DEPOSIT_FAILED. Correctif en deux parties : la balise, et un utilitaire partage resources/js/Support/request.ts qui lit un refus en tenant compte du statut (419 SESSION_EXPIRED, 413 HOST_UPLOAD_LIMIT, 401 NOT_SIGNED_IN, 403 NOT_PERMITTED, 5xx SERVER_ERROR ; un code nomme par le serveur gagne toujours). Six langues. Aucun assouplissement de CSRF : le test cle rejoue le depot avec le middleware ACTIF.",
+   "gap_closed": "Le contrat entre le gabarit Blade et le JavaScript qui le lit n'etait couvert par rien : les tests de fonctionnalite passent par le client de test ou VerifyCsrfToken ne s'applique pas, et Vitest simule le reseau."
   }
  },
  "architecture_amendments": [

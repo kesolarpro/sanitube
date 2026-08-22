@@ -10,6 +10,7 @@ import SelectInput from '@/Components/Ui/SelectInput.vue';
 import StatusBadge from '@/Components/Ui/StatusBadge.vue';
 import { bytes } from '@/Support/format';
 import { trans } from '@/Support/i18n';
+import { csrfToken, refusalCode, refusalFrom } from '@/Support/request';
 import type { UploadCapability, UploadItem } from '@/Types/upload';
 
 /**
@@ -168,25 +169,13 @@ class UploadRefused extends Error {
     }
 }
 
-async function readCode(response: Response): Promise<never> {
-    let code = 'UPLOAD_NOT_ACCEPTABLE';
-
-    try {
-        const body = (await response.json()) as { code?: unknown };
-
-        if (typeof body.code === 'string') {
-            code = body.code;
-        }
-    } catch {
-        // A response that is not JSON tells us nothing more than its status
-        // already did.
-    }
-
-    throw new UploadRefused(code);
-}
-
-function csrf(): string {
-    return document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content ?? '';
+/**
+ * UPL-005. The refusal, read through the shared rule so that a 419, a 413 from
+ * the web server or a 500 arrives as itself rather than as
+ * `UPLOAD_NOT_ACCEPTABLE` — which is what every one of them used to become.
+ */
+async function refuse(response: Response): Promise<never> {
+    throw new UploadRefused(await refusalFrom(response, 'UPLOAD_NOT_ACCEPTABLE'));
 }
 
 /**
@@ -203,7 +192,7 @@ function sendRelayed(item: UploadItem, file: File): Promise<UploadOutcome> {
         const request = new XMLHttpRequest();
 
         request.open('POST', '/assets/uploads/relay');
-        request.setRequestHeader('X-CSRF-TOKEN', csrf());
+        request.setRequestHeader('X-CSRF-TOKEN', csrfToken());
         request.setRequestHeader('Accept', 'application/json');
 
         request.upload.addEventListener('progress', (event) => {
@@ -223,19 +212,7 @@ function sendRelayed(item: UploadItem, file: File): Promise<UploadOutcome> {
                 return;
             }
 
-            let code = 'UPLOAD_NOT_ACCEPTABLE';
-
-            try {
-                const parsed = JSON.parse(request.responseText) as { code?: unknown };
-
-                if (typeof parsed.code === 'string') {
-                    code = parsed.code;
-                }
-            } catch {
-                // Not JSON. The status is all there is.
-            }
-
-            reject(new UploadRefused(code));
+            reject(new UploadRefused(refusalCode(request.status, request.responseText, 'UPLOAD_NOT_ACCEPTABLE')));
         });
 
         request.addEventListener('error', () => reject(new UploadRefused('NETWORK')));
@@ -258,13 +235,13 @@ async function sendDirect(item: UploadItem, file: File): Promise<UploadOutcome> 
         headers: {
             'Content-Type': 'application/json',
             Accept: 'application/json',
-            'X-CSRF-TOKEN': csrf(),
+            'X-CSRF-TOKEN': csrfToken(),
         },
         body: JSON.stringify({ kind: kind.value, filename: file.name }),
     });
 
     if (!begin.ok) {
-        await readCode(begin);
+        await refuse(begin);
     }
 
     const started = (await begin.json()) as {
@@ -289,11 +266,11 @@ async function sendDirect(item: UploadItem, file: File): Promise<UploadOutcome> 
 
     const finished = await fetch(`/assets/uploads/${started.asset}/complete`, {
         method: 'POST',
-        headers: { Accept: 'application/json', 'X-CSRF-TOKEN': csrf() },
+        headers: { Accept: 'application/json', 'X-CSRF-TOKEN': csrfToken() },
     });
 
     if (!finished.ok) {
-        await readCode(finished);
+        await refuse(finished);
     }
 
     return (await finished.json()) as UploadOutcome;

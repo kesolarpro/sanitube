@@ -3,6 +3,25 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    {{--
+        UPL-005. The token the interface signs its own requests with.
+
+        Inertia's own visits carry it for free: axios reads the `XSRF-TOKEN`
+        cookie and sets `X-XSRF-TOKEN`. The screens that upload do not use
+        Inertia — a `router.post` cannot report progress and cannot be
+        aborted — so they build an `XMLHttpRequest` or a `fetch` by hand and
+        read the token from here.
+
+        Without this line those requests sent an empty `X-CSRF-TOKEN`, the
+        middleware refused them with 419, and not one byte ever reached a
+        controller. Nothing was logged, because a rendered 419 is not a
+        reported exception. This is the whole of the contract between the
+        layout and the JavaScript that reads it, and `CsrfTokenIsAvailableTest`
+        is what keeps it.
+    --}}
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+
     <title inertia>{{ config('app.name') }}</title>
 
     {{--

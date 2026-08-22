@@ -32,9 +32,25 @@ export function usePage(): { props: typeof sharedProps } {
 /** Every `router.patch` a spec provoked, in order. */
 export const patches: { url: string; data: Record<string, unknown> }[] = [];
 
+/** Every `router.reload` a spec provoked, in order. */
+export const reloads: { only?: string[] }[] = [];
+
 export const router = {
     patch(url: string, data: Record<string, unknown>): void {
         patches.push({ url, data });
+    },
+
+    /**
+     * Recorded rather than performed. The import screen re-reads the inbox from
+     * the server after every round of deposits, so a mock without this cannot
+     * mount it at all.
+     */
+    reload(options: { only?: string[] } = {}): void {
+        reloads.push(options);
+    },
+
+    post(url: string, data: Record<string, unknown>): void {
+        submissions.push({ url, data });
     },
 
     on(_event: string, handler: NavigationListener): () => void {

@@ -753,6 +753,13 @@ return [
             'DEGRADED' => 'Funziona, con limiti',
             'FAILED' => 'Non funziona',
             'NOT_CONFIGURED' => 'Non c\'è ancora nulla da provare',
+            // UPL-005. Rifiuti della richiesta stessa, nominati dal browser.
+            // Nessuno dice qualcosa del fornitore, che non è mai stato
+            // raggiunto: nessuno di questi è «non funziona».
+            'SESSION_EXPIRED' => 'La sessione è scaduta prima che la prova venisse eseguita. Ricarica la pagina e riprova: non è stato modificato nulla.',
+            'NOT_SIGNED_IN' => 'Non sei più connesso, quindi la prova non è stata eseguita. Ricarica la pagina e accedi di nuovo.',
+            'NOT_PERMITTED' => 'Questo account non può eseguire quella prova.',
+            'SERVER_ERROR' => 'Il server non ha potuto completare la prova. Non è stato modificato nulla.',
         ],
         'failure' => [
             'SETTINGS_NOT_WRITTEN' => 'Il file .env non è stato scritto. È stato prima salvato e lasciato esattamente com’era.',
@@ -978,6 +985,13 @@ return [
             'STORAGE_UNAVAILABLE' => 'Lo storage non ha risposto. Non si è perso nulla; riprova.',
             'DEPOSIT_FAILED' => 'Non è stato possibile depositare il file.',
             'HOST_UPLOAD_LIMIT' => 'Il server ha rifiutato questo file per la sua dimensione prima che SaniTube lo vedesse. Il limite di caricamento dell\'hosting è inferiore a quanto questa installazione accetta — un amministratore alza upload_max_filesize e post_max_size (e il limite del corpo del server web) per risolverlo.',
+            // UPL-005. Rifiuti che il server non scrive mai: quelli del framework,
+            // del server web, di PHP. Prima finivano tutti nel codice generico di
+            // questa schermata, che non nominava nulla.
+            'SESSION_EXPIRED' => 'La sessione è scaduta, quindi il server ha rifiutato questa richiesta prima ancora di leggere il file. Non è stato caricato nulla. Ricarica la pagina e riprova: il file è ancora sul tuo computer.',
+            'NOT_SIGNED_IN' => 'Non sei più connesso, quindi non è stato caricato nulla. Ricarica la pagina e accedi di nuovo.',
+            'NOT_PERMITTED' => 'Questo account non può caricare qui.',
+            'SERVER_ERROR' => 'Il server non ha potuto completare questo. Non è stato conservato nulla; riprova.',
             'NETWORK' => 'La connessione non ha retto.',
             'CANCELLED' => 'Fermato prima di finire.',
             'FILE_HANDLE_LOST' => 'Questa scheda non ha più quel file: è stato scelto prima del ricaricamento. Sceglilo di nuovo.',
@@ -1534,6 +1548,14 @@ return [
             'MEDIA_TYPE_NOT_ACCEPTED' => 'Quel tipo di file non è accettato per questo genere. Il tipo è letto dal file stesso, non dal suo nome.',
             'FILE_TOO_LARGE' => 'Il file supera quanto questa installazione accetta.',
             'UPLOAD_NOT_ACCEPTABLE' => 'Il caricamento non è stato accettato.',
+            'HOST_UPLOAD_LIMIT' => 'Il server ha rifiutato questo file per la sua dimensione prima che SaniTube lo vedesse. Il limite di caricamento dell\'hosting è inferiore a quanto questa installazione accetta — un amministratore alza upload_max_filesize e post_max_size (e il limite del corpo del server web) per risolverlo.',
+            // UPL-005. Rifiuti che il server non scrive mai: quelli del framework,
+            // del server web, di PHP. Prima finivano tutti nel codice generico di
+            // questa schermata, che non nominava nulla.
+            'SESSION_EXPIRED' => 'La sessione è scaduta, quindi il server ha rifiutato questa richiesta prima ancora di leggere il file. Non è stato caricato nulla. Ricarica la pagina e riprova: il file è ancora sul tuo computer.',
+            'NOT_SIGNED_IN' => 'Non sei più connesso, quindi non è stato caricato nulla. Ricarica la pagina e accedi di nuovo.',
+            'NOT_PERMITTED' => 'Questo account non può caricare qui.',
+            'SERVER_ERROR' => 'Il server non ha potuto completare questo. Non è stato conservato nulla; riprova.',
             'STORAGE_UNAVAILABLE' => 'Lo storage non è raggiungibile in questo momento. Non è stato conservato nulla.',
             'DIRECT_UPLOAD_UNSUPPORTED' => 'Lo storage configurato non può ricevere un caricamento diretto.',
             'NETWORK' => 'Il caricamento non è stato completato. Non è stato conservato nulla.',
