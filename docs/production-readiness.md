@@ -178,6 +178,7 @@ written down.
 
 | Control | Verdict | Notes |
 |---|---|---|
+| A relayed upload is refused for its real reason | READY | UPL-004, found in production: a genuine 4.7 MB MP3 answered "le fichier n'a pas pu être déposé". The import screen promised the configured ceiling (2 GB) while a relayed deposit dies at `post_max_size`; the rule that reconciles the two existed on the single-file screen only. It now lives in `UploadAdmission` and both screens read it, the screen refuses oversize files before sending and names whose limit it is, a body PHP discarded answers HOST_UPLOAD_LIMIT (413) with the number instead of "the file field is required", and the doctor reports the disagreement before a person meets it. |
 | Bulk import from cloud storage | READY | 900-file scale is a queueing property, asserted where it belongs. |
 | A catalogue larger than one batch | READY | BULK-003. `sanitube:import --continue` takes the next batch; what is done is read from the items table. CLI only — the browser still refuses an over-cap selection. |
 | CSV manifest import | READY | |

@@ -87,6 +87,29 @@ final readonly class InboxDeposit
     }
 
     /**
+     * The ceiling that will actually refuse a file, given how it travels.
+     *
+     * UPL-004. This screen promised the configured maximum — two gigabytes by
+     * default — while a relayed deposit dies at whatever `post_max_size` is,
+     * which on shared hosting is single-digit megabytes. A real 4.7 MB MP3
+     * was refused in production with a message about neither number.
+     */
+    public function effectiveMaximumBytes(bool $direct): int
+    {
+        return $this->admission->effectiveMaximumBytes(AssetKind::AudioMaster, $direct);
+    }
+
+    public function limitedByPhp(bool $direct): bool
+    {
+        return $this->admission->limitedByPhp(AssetKind::AudioMaster, $direct);
+    }
+
+    public function phpPostLimitBytes(): int
+    {
+        return $this->admission->phpPostLimitBytes();
+    }
+
+    /**
      * The most files one deposit request may declare.
      *
      * Not the size of an import — that is `ingestion.max_batch`, and it bounds

@@ -230,6 +230,15 @@ export interface ImportCapability {
     /** Empty means any type. */
     accepted_types: string[];
     maximum_bytes: number;
+    /**
+     * What will actually refuse a file. On a relayed deposit the bytes go
+     * through PHP, so `post_max_size` binds and is usually far below the
+     * configured maximum — UPL-004.
+     */
+    effective_maximum_bytes: number;
+    /** True when the binding ceiling is PHP's rather than this application's. */
+    limited_by_php: boolean;
+    php_post_limit_bytes: number;
     /** How many files one deposit request may declare. */
     per_request: number;
     /** How many files the browser uploads at once. */

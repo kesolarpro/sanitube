@@ -86,6 +86,50 @@ final readonly class UploadAdmission
     }
 
     /**
+     * The ceiling that actually binds, given how the bytes will travel.
+     *
+     * On the **direct** path the bytes never enter PHP, so PHP's limits are
+     * not the binding ones and the configured maximum is the truth. On the
+     * **relayed** path PHP's limit usually *is* the truth, and on shared
+     * hosting it is far below anything an operator set here.
+     *
+     * This is the rule both upload screens need, which is why it lives here
+     * rather than inline in one of them: UPL-004 found the catalogue import
+     * screen promising two gigabytes on a host that drops a five-megabyte
+     * file, because the rule existed on the single-file screen only. A rule
+     * kept in one place cannot be present on one screen and absent on
+     * another.
+     */
+    public function effectiveMaximumBytes(AssetKind $kind, bool $direct): int
+    {
+        $configured = $this->maximumBytes($kind);
+        $php = $this->phpPostLimitBytes();
+
+        if ($direct || $php <= 0) {
+            return $configured;
+        }
+
+        return $configured > 0 ? min($configured, $php) : $php;
+    }
+
+    /**
+     * Whether PHP, not this application's configuration, is what will refuse
+     * a large file — the fact a person needs to be told when the number on
+     * screen is smaller than the one an operator set.
+     */
+    public function limitedByPhp(AssetKind $kind, bool $direct): bool
+    {
+        if ($direct) {
+            return false;
+        }
+
+        $php = $this->phpPostLimitBytes();
+        $configured = $this->maximumBytes($kind);
+
+        return $php > 0 && ($configured <= 0 || $php < $configured);
+    }
+
+    /**
      * What PHP itself will accept, which on shared hosting is usually lower
      * than anything configured above.
      *

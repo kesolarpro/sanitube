@@ -10,6 +10,8 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 use PHPUnit\Framework\Attributes\Test;
+use SaniTube\Assets\Enums\AssetKind;
+use SaniTube\Assets\Services\UploadAdmission;
 use SaniTube\Identity\Enums\UserRole;
 use SaniTube\Ingestion\Enums\IngestionSource;
 use SaniTube\Ingestion\Jobs\ProcessIngestionItemJob;
@@ -229,7 +231,13 @@ final class CatalogueImportFromTheBrowserTest extends TestCase
     #[Test]
     public function a_file_larger_than_this_installation_accepts_is_refused(): void
     {
-        config(['assets.max_upload_bytes' => 128]);
+        // Per kind, which is the shape of this setting. UPL-004 found this
+        // line replacing the whole array with a scalar, so the configured
+        // maximum resolved to nought — and the import path read nought as
+        // "refuse everything above zero bytes" while the single-file upload
+        // path read the same nought as "no application ceiling". The test
+        // passed on the disagreement. Both paths now mean the second thing.
+        config(['assets.max_upload_bytes.'.AssetKind::AudioMaster->value => 128]);
 
         $this->actingAs($this->user())
             ->post('/ingestion/import/relay', ['file' => $this->wav('big.wav', 8)])
@@ -374,6 +382,223 @@ final class CatalogueImportFromTheBrowserTest extends TestCase
     }
 
     // ----------------------------------------------------------- fixtures
+
+    // ------------------------------------------------ UPL-004: the real MP3
+
+    #[Test]
+    public function a_real_mp3_of_the_size_production_refused_deposits(): void
+    {
+        // The exact file shape that failed on sanitube.livegine.com: a genuine
+        // MP3 — ID3v2 tag then MPEG-1 Layer III frames, so finfo reads
+        // audio/mpeg from the bytes — at 4.7 MB, with an accented filename.
+        $this->useLocalDisk();
+
+        // This host's own limit decides which of two honest answers is right,
+        // and both are asserted. CI runs with upload_max_filesize=2M — the
+        // same shape as the shared host that refused the real file — so the
+        // ceiling is raised here to prove the deposit itself, and the refusal
+        // below is proved on the host's real limit.
+        config(['assets.max_upload_bytes.'.AssetKind::AudioMaster->value => 64 * 1024 * 1024]);
+
+        $mp3 = $this->mp3('Armure de Lumière.mp3');
+
+        $this->assertSame('audio/mpeg', $mp3->getMimeType(), 'finfo must read audio from the bytes.');
+        $this->assertGreaterThan(4_000_000, (int) $mp3->getSize());
+
+        $php = $this->app->make(UploadAdmission::class)->phpPostLimitBytes();
+
+        if ($php > 0 && $php < (int) $mp3->getSize()) {
+            // The production condition: the host itself is smaller than the
+            // file. The refusal must name the size, not a generic failure.
+            $this->actingAs($this->user())
+                ->post('/ingestion/import/relay', ['file' => $mp3])
+                ->assertStatus(422)
+                ->assertJson(['code' => 'FILE_TOO_LARGE']);
+
+            return;
+        }
+
+        $response = $this->actingAs($this->user())
+            ->post('/ingestion/import/relay', ['file' => $mp3]);
+
+        $response->assertOk();
+
+        $reference = $response->json('reference');
+
+        $this->assertIsString($reference);
+        // The server chose the key: an inbox prefix, a uuid segment, then the
+        // sanitised name. The filename is a label, never the identity.
+        $this->assertStringStartsWith('inbox/', $reference);
+        $this->assertStringEndsWith('Armure de Lumière.mp3', $reference);
+    }
+
+    #[Test]
+    public function a_real_mp3_within_the_hosts_ceiling_deposits_and_keeps_its_name(): void
+    {
+        // The same genuine MP3 bytes, sized to fit any host: this proves the
+        // deposit path end to end regardless of the runner's php.ini, so the
+        // test above can be about the limit and this one about the file.
+        // The default in-memory store from setUp, so the bytes can be looked
+        // for where they were put.
+        $response = $this->actingAs($this->user())
+            ->post('/ingestion/import/relay', ['file' => $this->mp3('Armure de Lumière.mp3', frames: 200)]);
+
+        $response->assertOk();
+
+        $reference = $response->json('reference');
+
+        $this->assertIsString($reference);
+        $this->assertStringStartsWith('inbox/', $reference);
+        $this->assertStringEndsWith('Armure de Lumière.mp3', $reference);
+        $this->assertContains($reference, $this->store->files('inbox/'));
+    }
+
+    #[Test]
+    public function the_screen_states_the_ceiling_that_will_actually_refuse(): void
+    {
+        // The defect: the screen promised `maximum_bytes` — two gigabytes by
+        // default — while a relayed deposit dies at whatever post_max_size is.
+        $this->useLocalDisk();
+
+        $payload = $this->screen();
+
+        $this->assertArrayHasKey('effective_maximum_bytes', $payload);
+        $this->assertArrayHasKey('limited_by_php', $payload);
+
+        $php = (int) $payload['php_post_limit_bytes'];
+        $configured = (int) $payload['maximum_bytes'];
+
+        if ($php > 0 && $php < $configured) {
+            $this->assertSame($php, (int) $payload['effective_maximum_bytes'], 'The binding ceiling is PHP\'s.');
+            $this->assertTrue($payload['limited_by_php']);
+        } else {
+            $this->assertSame($configured, (int) $payload['effective_maximum_bytes']);
+        }
+    }
+
+    #[Test]
+    public function a_body_php_threw_away_is_named_as_the_hosts_limit(): void
+    {
+        // post_max_size exceeded: PHP empties $_POST and $_FILES, so the
+        // request looks exactly like one that carried nothing — and stock
+        // validation answers "the file field is required", which the screen
+        // could only render as the generic "could not be deposited". That is
+        // the message a real 4.7 MB MP3 got.
+        $this->useLocalDisk();
+
+        $limit = $this->app->make(UploadAdmission::class)->phpPostLimitBytes();
+
+        if ($limit <= 0) {
+            $this->markTestSkipped('This PHP reports no upload limit to exceed.');
+        }
+
+        $response = $this->actingAs($this->user())->call(
+            'POST',
+            '/ingestion/import/relay',
+            [],
+            [],
+            [],
+            ['HTTP_ACCEPT' => 'application/json', 'CONTENT_LENGTH' => (string) ($limit + 1)],
+        );
+
+        $response->assertStatus(413);
+        $this->assertSame('HOST_UPLOAD_LIMIT', $response->json('code'));
+        $this->assertSame($limit, $response->json('limit_bytes'));
+    }
+
+    #[Test]
+    public function a_request_that_genuinely_sent_nothing_still_says_so(): void
+    {
+        // The guard must never turn an ordinary empty request into a story
+        // about host limits — that would send an operator hunting a setting
+        // that is not the problem.
+        $this->useLocalDisk();
+
+        $response = $this->actingAs($this->user())
+            ->postJson('/ingestion/import/relay', []);
+
+        $response->assertStatus(422);
+        $this->assertNotSame('HOST_UPLOAD_LIMIT', $response->json('code'));
+    }
+
+    #[Test]
+    public function a_small_empty_request_is_never_blamed_on_the_host(): void
+    {
+        // A body of a few bytes cannot have exceeded a megabyte limit. Below
+        // the plausibility floor the guard must stay silent, or every stray
+        // empty POST would send an operator hunting a limit that is fine.
+        $limit = $this->app->make(UploadAdmission::class)->phpPostLimitBytes();
+
+        if ($limit <= 0) {
+            $this->markTestSkipped('This PHP reports no upload limit.');
+        }
+
+        $response = $this->actingAs($this->user())->call(
+            'POST',
+            '/ingestion/import/relay',
+            [],
+            [],
+            [],
+            ['HTTP_ACCEPT' => 'application/json', 'CONTENT_LENGTH' => '12'],
+        );
+
+        $response->assertStatus(422);
+        $this->assertNotSame('HOST_UPLOAD_LIMIT', $response->json('code'));
+    }
+
+    #[Test]
+    public function a_large_body_that_fits_the_limit_is_not_blamed_on_the_host(): void
+    {
+        // Big enough to be plausible, still inside what PHP accepts: the
+        // request failed for some other reason, and saying "too large" would
+        // be a confident wrong answer.
+        $limit = $this->app->make(UploadAdmission::class)->phpPostLimitBytes();
+
+        if ($limit <= 2048) {
+            $this->markTestSkipped('This PHP limit leaves no room below it.');
+        }
+
+        $response = $this->actingAs($this->user())->call(
+            'POST',
+            '/ingestion/import/relay',
+            [],
+            [],
+            [],
+            ['HTTP_ACCEPT' => 'application/json', 'CONTENT_LENGTH' => (string) ($limit - 1)],
+        );
+
+        $response->assertStatus(422);
+        $this->assertNotSame('HOST_UPLOAD_LIMIT', $response->json('code'));
+    }
+
+    #[Test]
+    public function the_single_file_upload_screen_shares_the_same_rule(): void
+    {
+        // One rule in UploadAdmission, consulted by both screens. Before
+        // UPL-004 the single-file screen had it inline and the import screen
+        // had nothing.
+        $this->useLocalDisk();
+
+        $admission = $this->app->make(UploadAdmission::class);
+
+        $this->assertSame(
+            $admission->effectiveMaximumBytes(AssetKind::AudioMaster, direct: false),
+            $this->screen()['effective_maximum_bytes'],
+        );
+    }
+
+    /**
+     * A genuine MP3 the size of the one production refused.
+     */
+    private function mp3(string $name, int $frames = 4500): UploadedFile
+    {
+        // ID3v2.3 header, then MPEG-1 Layer III frames at 44.1 kHz. finfo
+        // reads audio/mpeg from this; a name alone would prove nothing.
+        $id3 = 'ID3'.chr(3).chr(0).chr(0).str_repeat(chr(0), 4);
+        $frame = chr(0xFF).chr(0xFB).chr(0xB0).chr(0x00).str_repeat(chr(0), 1040);
+
+        return $this->realUpload($name, $id3.str_repeat($frame, $frames));
+    }
 
     /**
      * @return array<string, mixed>

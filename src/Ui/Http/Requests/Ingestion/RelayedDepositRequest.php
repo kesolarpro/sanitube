@@ -6,6 +6,7 @@ namespace SaniTube\Ui\Http\Requests\Ingestion;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\UploadedFile;
+use SaniTube\Ui\Http\Requests\Concerns\RefusesDiscardedUploads;
 
 /**
  * One file relayed through the application into the inbox.
@@ -21,6 +22,8 @@ use Illuminate\Http\UploadedFile;
  */
 final class RelayedDepositRequest extends FormRequest
 {
+    use RefusesDiscardedUploads;
+
     /**
      * @return array<string, mixed>
      */

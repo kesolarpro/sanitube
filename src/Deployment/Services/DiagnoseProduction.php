@@ -7,8 +7,10 @@ namespace SaniTube\Deployment\Services;
 use Illuminate\Contracts\Config\Repository as Config;
 use Illuminate\Database\Connection;
 use Illuminate\Database\Migrations\Migrator;
+use SaniTube\Assets\Enums\AssetKind;
 use SaniTube\Assets\Enums\AssetStatus;
 use SaniTube\Assets\Models\Asset;
+use SaniTube\Assets\Services\UploadAdmission;
 use SaniTube\Deployment\BackupContents;
 use SaniTube\Deployment\BackupManifest;
 use SaniTube\Deployment\Exceptions\BackupException;
@@ -18,6 +20,8 @@ use SaniTube\Observability\Capabilities\CapabilityRegistry;
 use SaniTube\Observability\Capabilities\CapabilityStatus;
 use SaniTube\Observability\SchedulerHeartbeat;
 use SaniTube\Production\Enums\AutonomyMode;
+use SaniTube\Storage\Contracts\SupportsDirectUpload;
+use SaniTube\Storage\StorageManager;
 use Throwable;
 
 /**
@@ -78,6 +82,8 @@ final readonly class DiagnoseProduction
         private SchedulerHeartbeat $heartbeat,
         private BackupRepository $backups,
         private BackupContents $contents,
+        private UploadAdmission $admission,
+        private StorageManager $storage,
     ) {}
 
     /**
@@ -95,7 +101,74 @@ final readonly class DiagnoseProduction
             ...$this->assistedFeatures(),
             ...$this->server(),
             ...$this->disk(),
+            ...$this->uploadCeiling(),
         ];
+    }
+
+    /**
+     * Does this host accept the size this installation promises?
+     *
+     * UPL-004, found in production: the catalogue import screen offered a two
+     * gigabyte ceiling on a host whose `post_max_size` was far smaller, so a
+     * real 4.7 MB MP3 was refused with a message about neither number. The
+     * screens now state the binding limit — and the operator learns about the
+     * disagreement here, before somebody's upload does.
+     *
+     * A warning, never a blocker. The installation works; it just accepts less
+     * than it was configured to, and on shared hosting that may be the only
+     * arrangement available.
+     *
+     * @return list<ProductionCheck>
+     */
+    private function uploadCeiling(): array
+    {
+        $kind = AssetKind::AudioMaster;
+
+        $configured = $this->admission->maximumBytes($kind);
+        $php = $this->admission->phpPostLimitBytes();
+
+        if ($php <= 0) {
+            return [ProductionCheck::unknown(
+                'Server',
+                'upload_ceiling',
+                'PHP reports no upload limit, so what this host will accept could not be read.',
+                'Check upload_max_filesize and post_max_size by hand.',
+            )];
+        }
+
+        $direct = $this->storage->default() instanceof SupportsDirectUpload;
+
+        if ($direct) {
+            return [ProductionCheck::ready(
+                'Server',
+                'upload_ceiling',
+                sprintf(
+                    'Uploads go straight to storage, so PHP\'s %d MB request limit does not bind them.',
+                    (int) floor($php / 1048576),
+                ),
+            )];
+        }
+
+        if ($configured > 0 && $php < $configured) {
+            return [ProductionCheck::warning(
+                'Server',
+                'upload_ceiling',
+                sprintf(
+                    'Uploads pass through PHP, which accepts %d MB per request while this installation is '
+                        .'configured for %d MB. The smaller number is what people will hit.',
+                    (int) floor($php / 1048576),
+                    (int) floor($configured / 1048576),
+                ),
+                'Raise upload_max_filesize and post_max_size (and the web server\'s body limit) to match, '
+                    .'or configure object storage so uploads bypass PHP entirely.',
+            )];
+        }
+
+        return [ProductionCheck::ready(
+            'Server',
+            'upload_ceiling',
+            sprintf('PHP accepts %d MB per request, at or above what this installation offers.', (int) floor($php / 1048576)),
+        )];
     }
 
     /**
