@@ -7,9 +7,10 @@ namespace Tests\Feature\System;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Env;
-use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
 use PHPUnit\Framework\Attributes\Test;
 use SaniTube\Deployment\Frontend\FrontendBuildInstaller;
+use SaniTube\Deployment\Services\DiagnoseProduction;
 use SaniTube\Identity\Enums\UserRole;
 use SaniTube\Ui\Queries\SystemAboutQuery;
 use Tests\TestCase;
@@ -224,11 +225,7 @@ final class SystemAboutTest extends TestCase
     #[Test]
     public function an_unreadable_schema_says_so_rather_than_reporting_zero(): void
     {
-        Schema::disableForeignKeyConstraints();
-        Schema::drop('migrations');
-        Schema::enableForeignKeyConstraints();
-
-        $migrations = $this->about()['migrations'];
+        $migrations = $this->onABlankDatabase()['migrations'];
 
         $this->assertFalse($migrations['measured']);
         $this->assertNull($migrations['applied']);
@@ -273,16 +270,13 @@ final class SystemAboutTest extends TestCase
     #[Test]
     public function a_check_that_could_not_be_made_is_reported_as_unknown(): void
     {
-        // Dropping the migrations table makes the schema check unanswerable,
-        // which is the honest shape of an UNKNOWN: not a failure, not a pass,
-        // a question with no answer. The doctor is explicit that this must not
-        // become a blocker about migrations — that would be inventing a
-        // finding from a question that never completed.
-        Schema::disableForeignKeyConstraints();
-        Schema::drop('migrations');
-        Schema::enableForeignKeyConstraints();
-
-        $diagnosis = $this->about()['diagnosis'];
+        // A database with no schema at all makes the migration check
+        // unanswerable, which is the honest shape of an UNKNOWN: not a
+        // failure, not a pass, a question with no answer. The doctor is
+        // explicit that this must not become a blocker about migrations —
+        // that would be inventing a finding from a question that never
+        // completed.
+        $diagnosis = $this->onABlankDatabase()['diagnosis'];
 
         $unknown = array_values(array_filter(
             $diagnosis['checks'],
@@ -369,6 +363,48 @@ final class SystemAboutTest extends TestCase
     private function about(): array
     {
         return $this->app->make(SystemAboutQuery::class)->overview();
+    }
+
+    /**
+     * The same reading, taken against a database that holds nothing.
+     *
+     * **Deliberately not `Schema::drop`.** DDL does not roll back on MySQL or
+     * MariaDB, so dropping a table inside a test is a change the transaction
+     * cannot undo — and dropping `migrations` in particular makes the next
+     * class believe the database was never migrated, which fails on `users`
+     * already existing. It passed on SQLite, where DDL *is* transactional,
+     * and took four database jobs down.
+     *
+     * Pointing the default connection at an empty in-memory database asks the
+     * same question and destroys nothing.
+     *
+     * @return array<string, mixed>
+     */
+    private function onABlankDatabase(): array
+    {
+        config(['database.connections.blank' => [
+            'driver' => 'sqlite',
+            'database' => ':memory:',
+            'prefix' => '',
+            'foreign_key_constraints' => false,
+        ]]);
+
+        $was = (string) config('database.default');
+        config(['database.default' => 'blank']);
+
+        // Resolved after the switch, so it is handed the blank connection
+        // rather than the one it would have been given at boot.
+        $this->app->forgetInstance(SystemAboutQuery::class);
+        $this->app->forgetInstance(DiagnoseProduction::class);
+        DB::purge('blank');
+
+        try {
+            return $this->app->make(SystemAboutQuery::class)->overview();
+        } finally {
+            config(['database.default' => $was]);
+            $this->app->forgetInstance(SystemAboutQuery::class);
+            $this->app->forgetInstance(DiagnoseProduction::class);
+        }
     }
 
     /**
