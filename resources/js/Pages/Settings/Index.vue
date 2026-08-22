@@ -9,6 +9,7 @@ import AppCard from '@/Components/Ui/AppCard.vue';
 import CodeValue from '@/Components/Ui/CodeValue.vue';
 import TextInput from '@/Components/Ui/TextInput.vue';
 import { trans } from '@/Support/i18n';
+import { csrfToken, refusalFrom } from '@/Support/request';
 import type { SharedProps } from '@/Types/inertia';
 import type { ProbeResult, ProviderStanding, SettingsOverview } from '@/Types/settings';
 
@@ -114,10 +115,6 @@ function probeOf(key: string): ProbeResult | null {
     return probed[key] ?? null;
 }
 
-function csrf(): string {
-    return document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content ?? '';
-}
-
 async function test(section: { key: string; probe: string | null }): Promise<void> {
     const target = section.probe;
 
@@ -134,13 +131,20 @@ async function test(section: { key: string; probe: string | null }): Promise<voi
             headers: {
                 'Content-Type': 'application/json',
                 Accept: 'application/json',
-                'X-CSRF-TOKEN': csrf(),
+                'X-CSRF-TOKEN': csrfToken(),
             },
             body: JSON.stringify({ target }),
         });
 
         if (!response.ok) {
-            throw new Error('refused');
+            // UPL-005. A refusal is not an unreachable server, and saying so
+            // sent somebody looking at their storage credentials when their
+            // session had simply expired. The code is read from the response
+            // through the shared rule; UNREACHABLE stays the last resort, for
+            // a refusal that named nothing this screen understands.
+            probed[section.key] = { status: await refusalFrom(response, 'UNREACHABLE'), checks: [] };
+
+            return;
         }
 
         probed[section.key] = (await response.json()) as ProbeResult;

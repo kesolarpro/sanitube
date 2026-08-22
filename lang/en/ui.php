@@ -796,6 +796,13 @@ return [
             'DEGRADED' => 'Working, with limits',
             'FAILED' => 'Not working',
             'NOT_CONFIGURED' => 'Nothing to test yet',
+            // UPL-005. Refusals of the request itself, named by the browser.
+            // None of them says anything about the provider, which was never
+            // reached — so none of them is "not working".
+            'SESSION_EXPIRED' => 'Your session expired before the test ran. Reload the page and try again — nothing was changed.',
+            'NOT_SIGNED_IN' => 'You are no longer signed in, so the test was not run. Reload the page and sign in again.',
+            'NOT_PERMITTED' => 'This account may not run that test.',
+            'SERVER_ERROR' => 'The server could not finish the test. Nothing was changed.',
         ],
         'failure' => [
             'SETTINGS_SECRETS_ARE_OWNERS_BUSINESS' => 'Only an owner may change a credential.',
@@ -1022,6 +1029,13 @@ return [
             'STORAGE_UNAVAILABLE' => 'Storage did not answer. Nothing was lost; try again.',
             'DEPOSIT_FAILED' => 'The file could not be deposited.',
             'HOST_UPLOAD_LIMIT' => 'The server refused this file for its size before SaniTube saw it. The host\'s own upload limit is lower than what this installation is set to accept — an administrator raises upload_max_filesize and post_max_size (and the web server\'s body limit) to fix it.',
+            // UPL-005. Refusals the server never writes itself: the framework's,
+            // the web server's, PHP's. Every one of them used to collapse into
+            // this screen's generic last resort, which named nothing.
+            'SESSION_EXPIRED' => 'Your session expired, so the server refused this request before reading the file. Nothing was uploaded. Reload the page and try again — the file is still on your computer.',
+            'NOT_SIGNED_IN' => 'You are no longer signed in, so nothing was uploaded. Reload the page and sign in again.',
+            'NOT_PERMITTED' => 'This account may not upload here.',
+            'SERVER_ERROR' => 'The server could not finish this one. Nothing was kept; try it again.',
             'NETWORK' => 'The connection did not hold.',
             'CANCELLED' => 'Stopped before it finished.',
             'FILE_HANDLE_LOST' => 'This tab no longer holds that file — it was picked before the page reloaded. Choose it again.',
@@ -1578,6 +1592,14 @@ return [
             'MEDIA_TYPE_NOT_ACCEPTED' => 'That is not a file type accepted for this kind. The type is read from the file itself, not from its name.',
             'FILE_TOO_LARGE' => 'The file is larger than this installation accepts.',
             'UPLOAD_NOT_ACCEPTABLE' => 'The upload could not be accepted.',
+            'HOST_UPLOAD_LIMIT' => 'The server refused this file for its size before SaniTube saw it. The host\'s own upload limit is lower than what this installation is set to accept — an administrator raises upload_max_filesize and post_max_size (and the web server\'s body limit) to fix it.',
+            // UPL-005. Refusals the server never writes itself: the framework's,
+            // the web server's, PHP's. Every one of them used to collapse into
+            // this screen's generic last resort, which named nothing.
+            'SESSION_EXPIRED' => 'Your session expired, so the server refused this request before reading the file. Nothing was uploaded. Reload the page and try again — the file is still on your computer.',
+            'NOT_SIGNED_IN' => 'You are no longer signed in, so nothing was uploaded. Reload the page and sign in again.',
+            'NOT_PERMITTED' => 'This account may not upload here.',
+            'SERVER_ERROR' => 'The server could not finish this one. Nothing was kept; try it again.',
             'STORAGE_UNAVAILABLE' => 'Storage is not reachable right now. Nothing was kept.',
             'DIRECT_UPLOAD_UNSUPPORTED' => 'The configured storage cannot take a direct upload.',
             'NETWORK' => 'The upload did not finish. Nothing was kept.',

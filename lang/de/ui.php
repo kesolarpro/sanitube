@@ -796,6 +796,13 @@ return [
             'DEGRADED' => 'Funktioniert, mit Einschränkungen',
             'FAILED' => 'Funktioniert nicht',
             'NOT_CONFIGURED' => 'Noch nichts zu testen',
+            // UPL-005. Ablehnungen der Anfrage selbst, vom Browser benannt.
+            // Keine sagt etwas über den Anbieter aus, der nie erreicht wurde —
+            // also ist keine davon „funktioniert nicht“.
+            'SESSION_EXPIRED' => 'Ihre Sitzung ist abgelaufen, bevor der Test lief. Laden Sie die Seite neu und versuchen Sie es erneut — es wurde nichts geändert.',
+            'NOT_SIGNED_IN' => 'Sie sind nicht mehr angemeldet, deshalb lief der Test nicht. Laden Sie die Seite neu und melden Sie sich erneut an.',
+            'NOT_PERMITTED' => 'Dieses Konto darf diesen Test nicht ausführen.',
+            'SERVER_ERROR' => 'Der Server konnte den Test nicht abschließen. Es wurde nichts geändert.',
         ],
         'failure' => [
             'SETTINGS_SECRETS_ARE_OWNERS_BUSINESS' => 'Nur eine Eigentümerin darf Zugangsdaten ändern.',
@@ -1022,6 +1029,13 @@ return [
             'STORAGE_UNAVAILABLE' => 'Der Speicher hat nicht geantwortet. Nichts ging verloren; versuchen Sie es erneut.',
             'DEPOSIT_FAILED' => 'Die Datei konnte nicht abgelegt werden.',
             'HOST_UPLOAD_LIMIT' => 'Der Server hat diese Datei wegen ihrer Größe abgelehnt, bevor SaniTube sie gesehen hat. Das Upload-Limit des Hosts liegt unter dem, was diese Installation akzeptiert — eine Administratorin erhöht upload_max_filesize und post_max_size (und das Body-Limit des Webservers), um das zu beheben.',
+            // UPL-005. Ablehnungen, die der Server nie selbst schreibt: die des
+            // Frameworks, des Webservers, von PHP. Sie alle fielen zuvor auf den
+            // allgemeinen Code dieses Bildschirms zurück, der nichts benannte.
+            'SESSION_EXPIRED' => 'Ihre Sitzung ist abgelaufen, deshalb hat der Server diese Anfrage abgelehnt, bevor er die Datei gelesen hat. Es wurde nichts hochgeladen. Laden Sie die Seite neu und versuchen Sie es erneut — die Datei liegt weiterhin auf Ihrem Rechner.',
+            'NOT_SIGNED_IN' => 'Sie sind nicht mehr angemeldet, deshalb wurde nichts hochgeladen. Laden Sie die Seite neu und melden Sie sich erneut an.',
+            'NOT_PERMITTED' => 'Dieses Konto darf hier nichts hochladen.',
+            'SERVER_ERROR' => 'Der Server konnte diese eine nicht abschließen. Es wurde nichts behalten; versuchen Sie es erneut.',
             'NETWORK' => 'Die Verbindung hielt nicht.',
             'CANCELLED' => 'Vor dem Ende gestoppt.',
             'FILE_HANDLE_LOST' => 'Dieser Tab hält die Datei nicht mehr — sie wurde vor dem Neuladen ausgewählt. Wählen Sie sie erneut.',
@@ -1578,6 +1592,14 @@ return [
             'MEDIA_TYPE_NOT_ACCEPTED' => 'Dieser Dateityp wird für diese Art nicht akzeptiert. Der Typ wird aus der Datei selbst gelesen, nicht aus ihrem Namen.',
             'FILE_TOO_LARGE' => 'Die Datei ist größer, als diese Installation akzeptiert.',
             'UPLOAD_NOT_ACCEPTABLE' => 'Der Upload konnte nicht angenommen werden.',
+            'HOST_UPLOAD_LIMIT' => 'Der Server hat diese Datei wegen ihrer Größe abgelehnt, bevor SaniTube sie gesehen hat. Das Upload-Limit des Hosts liegt unter dem, was diese Installation akzeptiert — eine Administratorin erhöht upload_max_filesize und post_max_size (und das Body-Limit des Webservers), um das zu beheben.',
+            // UPL-005. Ablehnungen, die der Server nie selbst schreibt: die des
+            // Frameworks, des Webservers, von PHP. Sie alle fielen zuvor auf den
+            // allgemeinen Code dieses Bildschirms zurück, der nichts benannte.
+            'SESSION_EXPIRED' => 'Ihre Sitzung ist abgelaufen, deshalb hat der Server diese Anfrage abgelehnt, bevor er die Datei gelesen hat. Es wurde nichts hochgeladen. Laden Sie die Seite neu und versuchen Sie es erneut — die Datei liegt weiterhin auf Ihrem Rechner.',
+            'NOT_SIGNED_IN' => 'Sie sind nicht mehr angemeldet, deshalb wurde nichts hochgeladen. Laden Sie die Seite neu und melden Sie sich erneut an.',
+            'NOT_PERMITTED' => 'Dieses Konto darf hier nichts hochladen.',
+            'SERVER_ERROR' => 'Der Server konnte diese eine nicht abschließen. Es wurde nichts behalten; versuchen Sie es erneut.',
             'STORAGE_UNAVAILABLE' => 'Der Speicher ist derzeit nicht erreichbar. Es wurde nichts behalten.',
             'DIRECT_UPLOAD_UNSUPPORTED' => 'Der konfigurierte Speicher kann keinen Direkt-Upload annehmen.',
             'NETWORK' => 'Der Upload wurde nicht abgeschlossen. Es wurde nichts behalten.',

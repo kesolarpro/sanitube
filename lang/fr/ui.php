@@ -796,6 +796,13 @@ return [
             'DEGRADED' => 'Fonctionne, avec des limites',
             'FAILED' => 'Ne fonctionne pas',
             'NOT_CONFIGURED' => 'Rien à tester pour l\'instant',
+            // UPL-005. Des refus de la requête elle-même, nommés par le
+            // navigateur. Aucun ne dit quoi que ce soit du fournisseur, qui
+            // n'a jamais été joint — donc aucun n'est « ne fonctionne pas ».
+            'SESSION_EXPIRED' => 'Votre session a expiré avant que le test ne s\'exécute. Rechargez la page et réessayez — rien n\'a été modifié.',
+            'NOT_SIGNED_IN' => 'Vous n\'êtes plus connecté, le test n\'a donc pas été exécuté. Rechargez la page et reconnectez-vous.',
+            'NOT_PERMITTED' => 'Ce compte n\'a pas le droit de lancer ce test.',
+            'SERVER_ERROR' => 'Le serveur n\'a pas pu terminer le test. Rien n\'a été modifié.',
         ],
         'failure' => [
             'SETTINGS_SECRETS_ARE_OWNERS_BUSINESS' => 'Seul un propriétaire peut changer un identifiant.',
@@ -1022,6 +1029,13 @@ return [
             'STORAGE_UNAVAILABLE' => 'Le stockage n\'a pas répondu. Rien n\'est perdu ; réessayez.',
             'DEPOSIT_FAILED' => 'Le fichier n\'a pas pu être déposé.',
             'HOST_UPLOAD_LIMIT' => 'Le serveur a refusé ce fichier pour sa taille avant que SaniTube ne le voie. La limite d\'envoi de l\'hébergement est inférieure à ce que cette installation accepte — un administrateur relève upload_max_filesize et post_max_size (et la limite de corps du serveur web) pour y remédier.',
+            // UPL-005. Des refus que le serveur n'écrit jamais lui-même : ceux du
+            // framework, du serveur web, de PHP. Tous se rabattaient auparavant
+            // sur le code générique de cet écran, qui ne nommait rien.
+            'SESSION_EXPIRED' => 'Votre session a expiré, le serveur a donc refusé cette requête avant même de lire le fichier. Rien n\'a été envoyé. Rechargez la page et réessayez — le fichier est toujours sur votre ordinateur.',
+            'NOT_SIGNED_IN' => 'Vous n\'êtes plus connecté, rien n\'a donc été envoyé. Rechargez la page et reconnectez-vous.',
+            'NOT_PERMITTED' => 'Ce compte n\'a pas le droit de déposer ici.',
+            'SERVER_ERROR' => 'Le serveur n\'a pas pu terminer celui-ci. Rien n\'a été conservé ; réessayez.',
             'NETWORK' => 'La connexion n\'a pas tenu.',
             'CANCELLED' => 'Arrêté avant la fin.',
             'FILE_HANDLE_LOST' => 'Cet onglet ne détient plus ce fichier : il a été choisi avant le rechargement. Choisissez-le à nouveau.',
@@ -1578,6 +1592,14 @@ return [
             'MEDIA_TYPE_NOT_ACCEPTED' => 'Ce type de fichier n’est pas accepté pour ce genre. Le type est lu dans le fichier lui-même, pas dans son nom.',
             'FILE_TOO_LARGE' => 'Le fichier dépasse ce que cette installation accepte.',
             'UPLOAD_NOT_ACCEPTABLE' => 'Le dépôt n’a pas pu être accepté.',
+            'HOST_UPLOAD_LIMIT' => 'Le serveur a refusé ce fichier pour sa taille avant que SaniTube ne le voie. La limite d\'envoi de l\'hébergement est inférieure à ce que cette installation accepte — un administrateur relève upload_max_filesize et post_max_size (et la limite de corps du serveur web) pour y remédier.',
+            // UPL-005. Des refus que le serveur n'écrit jamais lui-même : ceux du
+            // framework, du serveur web, de PHP. Tous se rabattaient auparavant
+            // sur le code générique de cet écran, qui ne nommait rien.
+            'SESSION_EXPIRED' => 'Votre session a expiré, le serveur a donc refusé cette requête avant même de lire le fichier. Rien n\'a été envoyé. Rechargez la page et réessayez — le fichier est toujours sur votre ordinateur.',
+            'NOT_SIGNED_IN' => 'Vous n\'êtes plus connecté, rien n\'a donc été envoyé. Rechargez la page et reconnectez-vous.',
+            'NOT_PERMITTED' => 'Ce compte n\'a pas le droit de déposer ici.',
+            'SERVER_ERROR' => 'Le serveur n\'a pas pu terminer celui-ci. Rien n\'a été conservé ; réessayez.',
             'STORAGE_UNAVAILABLE' => 'Le stockage est injoignable pour le moment. Rien n’a été conservé.',
             'DIRECT_UPLOAD_UNSUPPORTED' => 'Le stockage configuré ne peut pas recevoir un dépôt direct.',
             'NETWORK' => 'Le dépôt ne s’est pas terminé. Rien n’a été conservé.',

@@ -20,18 +20,27 @@ import type { ProbeResult } from '@/Types/settings';
  */
 const props = defineProps<{ result: ProbeResult | null }>();
 
+/**
+ * Four of these words are the server's — what the probe found. The rest are
+ * the browser's, and describe the request rather than the provider: a refused
+ * request never reached the provider at all, so calling it *not working* would
+ * blame a store that was never asked. UPL-005 added them, after an expired
+ * session was reported here as an unreachable server.
+ */
+const BROKEN = ['FAILED', 'UNREACHABLE', 'SERVER_ERROR'];
+
 function tone(status: string): 'success' | 'warning' | 'danger' {
     if (status === 'CONNECTED') {
         return 'success';
     }
 
-    return status === 'FAILED' || status === 'UNREACHABLE' ? 'danger' : 'warning';
+    return BROKEN.includes(status) ? 'danger' : 'warning';
 }
 
 function title(status: string): string {
-    // UNREACHABLE is this component's own word, not the server's: it means the
-    // request never came back at all, which is a different thing from a store
-    // that answered and said no.
+    // UNREACHABLE is this component's own word for "the request never came
+    // back at all", which is a different thing from a store that answered and
+    // said no. It keeps its own key for that reason.
     return status === 'UNREACHABLE'
         ? trans('ui.settings.probe_unreachable')
         : trans(`ui.settings.probe.${status}`);
