@@ -17,6 +17,28 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Version
+    |--------------------------------------------------------------------------
+    |
+    | SYS-001. Which release this installation is running, as the operator's
+    | own deployment recorded it.
+    |
+    | **No default, and null rather than a guess.** A version this platform
+    | invented would be worse than none: the question a person asks the system
+    | screen is "am I on the release that fixed the thing", and a hardcoded
+    | string that never changes answers yes for ever. An installation that
+    | records nothing is honestly unversioned, and the screen says so.
+    |
+    | Set by whatever put the code on the server — a release tarball's
+    | packaging step, a deploy script, `sanitube:update`. On a git checkout the
+    | commit is read from `.git` and answers the same question more precisely.
+    |
+    */
+
+    'version' => env('SANITUBE_VERSION'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Environment
     |--------------------------------------------------------------------------
     |

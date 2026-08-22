@@ -252,3 +252,68 @@ export interface StorageUsage {
     by_kind: Record<string, StorageByKind>;
     by_disk: StorageByDisk[];
 }
+
+/**
+ * SYS-001. What this installation is, and whether it is well.
+ *
+ * **Nothing here is invented.** A version the platform made up would be worse
+ * than none, because the question somebody asks this screen is "am I on the
+ * release that fixed the thing", and a hardcoded string answers yes for ever.
+ * Every field is null when it was not recorded, and the screen says which.
+ */
+export interface SystemInstallation {
+    /** Null when the deployment recorded nothing. Honest, not broken. */
+    version: string | null;
+    /** Null when this is not a git checkout — a tarball, a cPanel upload. */
+    commit: string | null;
+    environment: string;
+    debug: boolean;
+    locale: string;
+    /** Which frontend is actually being served, as the installer recorded it. */
+    frontend: { sha: string | null; installed_at: string | null } | null;
+}
+
+export interface SystemRuntime {
+    php: string;
+    database_driver: string;
+    /** The server version, never a connection string and never a credential. */
+    database_version: string | null;
+    config_cached: boolean;
+}
+
+/**
+ * Whether the schema is the one this code expects.
+ *
+ * The count is not the answer; the difference is. Files updated without
+ * migrations run means code against a schema missing columns, and it fails at
+ * the first write rather than at boot.
+ */
+export interface SystemMigrations {
+    measured: boolean;
+    applied: number | null;
+    /** Named rather than counted: the names say what changed. */
+    pending: string[] | null;
+    latest: string | null;
+}
+
+export interface SystemCheck {
+    section: string;
+    key: string;
+    /** READY, WARNING, BLOCKER or UNKNOWN. UNKNOWN is never a pass. */
+    verdict: string;
+    summary: string;
+    remediation: string | null;
+}
+
+export interface SystemDiagnosis {
+    measured: boolean;
+    counts: Record<string, number>;
+    checks: SystemCheck[];
+}
+
+export interface SystemAbout {
+    installation: SystemInstallation;
+    runtime: SystemRuntime;
+    migrations: SystemMigrations;
+    diagnosis: SystemDiagnosis;
+}

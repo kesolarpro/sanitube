@@ -63,6 +63,7 @@ use SaniTube\Ui\Http\Controllers\Studio\OverviewController;
 use SaniTube\Ui\Http\Controllers\Studio\ProjectDetailController;
 use SaniTube\Ui\Http\Controllers\Studio\ProjectIndexController;
 use SaniTube\Ui\Http\Controllers\Studio\StudioActionController;
+use SaniTube\Ui\Http\Controllers\System\AboutController;
 use SaniTube\Ui\Http\Controllers\System\AuditController;
 use SaniTube\Ui\Http\Controllers\System\BackgroundWorkController;
 use SaniTube\Ui\Http\Controllers\System\FailedJobController;
@@ -444,6 +445,18 @@ Route::middleware(['web', HandleInertiaRequests::class, 'auth', 'active'])->grou
         // AUDIT-001. Reading the log is not itself an event: a log that
         // records its own readers grows by being looked at.
         Route::get('system/audit', AuditController::class)->name('system.audit');
+
+        /*
+         * SYS-001. What this installation is, and whether it is well.
+         *
+         * `sanitube:doctor` reported all of this to a terminal, which the
+         * operator most likely to need it -- the one on shared hosting who
+         * chose this platform because they did not want a shell -- could not
+         * read. A read and only a read: a diagnosis page with buttons is one
+         * that eventually reconfigures a server from a summary somebody
+         * skimmed.
+         */
+        Route::get('system/about', AboutController::class)->name('system.about');
 
         /*
          * USR-001. Who may use this installation.
