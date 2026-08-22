@@ -61,6 +61,7 @@ return [
         'distribution' => 'Distribuição',
         'rights' => 'Direitos',
         'analytics' => 'Análises',
+        'users' => 'Utilizadores',
         'jobs' => 'Tarefas',
         'operations' => 'Operações',
         'audit' => 'Registo de auditoria',
@@ -255,6 +256,45 @@ return [
             'distribution' => 'Distribuição',
         ],
     ],
+    // USR-001. Who may use this installation. The one screen that
+    // publishes an address, because the address *is* the account.
+    'users' => [
+        'title' => 'Utilizadores e acessos',
+        'description' => 'Quem pode usar esta instalação, e como. Um proprietário possui a plataforma; um administrador opera-a.',
+        'add' => 'Adicionar alguém',
+        'name' => 'Nome',
+        'email' => 'E-mail',
+        'role' => 'Papel',
+        'status' => 'Estado',
+        'last_login' => 'Último acesso',
+        'never' => 'Nunca',
+        'active' => 'Ativo',
+        'inactive' => 'Desativado',
+        'deactivate' => 'Desativar',
+        'reactivate' => 'Reativar',
+        'password' => 'Palavra-passe',
+        'password_hint' => 'Doze caracteres ou mais. O comprimento vale mais do que a pontuação: uma frase que se recorda é mais forte do que uma que se anota.',
+        'self' => 'É você',
+        'last_owner' => 'O último proprietário',
+        'no_delete' => 'As contas nunca são apagadas — o registo de auditoria guarda quem fez o quê, e uma conta apagada levaria esse registo consigo. Desativar impede o acesso e mantém o histórico legível.',
+        'role_name' => [
+            'OWNER' => 'Proprietário',
+            'ADMIN' => 'Administrador',
+            'MEMBER' => 'Membro',
+        ],
+        'role_note' => [
+            'OWNER' => 'Possui a plataforma: gere proprietários, credenciais e definições de segurança.',
+            'ADMIN' => 'Opera a plataforma: filas, cópias, fornecedores, lançamentos. Não pode alterar proprietários nem credenciais.',
+            'MEMBER' => 'Trabalha o catálogo: importa, revê, constrói lançamentos. Não pode distribuir nem administrar.',
+        ],
+        'failure' => [
+            'LAST_OWNER' => 'É o último proprietário. Removê-lo, desativá-lo ou despromovê-lo deixaria a instalação sem ninguém que a possa administrar.',
+            'OWNER_ONLY' => 'Só um proprietário pode alterar quem mais é proprietário.',
+            'NOT_YOURSELF' => 'Não pode alterar o seu próprio papel nem desativar a sua própria conta.',
+            'EMAIL_TAKEN' => 'Já existe uma conta com esse endereço.',
+        ],
+    ],
+
     'system' => [
         // OPS-002. The global stop, and the fact that it is on. An
         // installation somebody paused yesterday looked identical to a
@@ -377,6 +417,9 @@ return [
                 'identity.user.sign_in_failed' => 'Início de sessão recusado',
                 'identity.user.signed_out' => 'Sessão terminada',
                 'identity.user.created' => 'Conta criada',
+                'identity.user.role_changed' => 'Função alterada',
+                'identity.user.deactivated' => 'Conta desativada',
+                'identity.user.reactivated' => 'Conta reativada',
                 'identity.password.reset_requested' => 'Reposição solicitada',
                 'identity.password.reset_completed' => 'Palavra-passe reposta',
                 'catalogue.candidate.promoted' => 'Proposta promovida',
@@ -755,6 +798,7 @@ return [
             'NOT_CONFIGURED' => 'Ainda não há nada para testar',
         ],
         'failure' => [
+            'SETTINGS_SECRETS_ARE_OWNERS_BUSINESS' => 'Só um proprietário pode alterar uma credencial.',
             'SETTINGS_NOT_WRITTEN' => 'O ficheiro .env não pôde ser escrito. Foi primeiro copiado e deixado exatamente como estava.',
             'SETTINGS_CACHE_NOT_REBUILT' => 'A cache de configuração não pôde ser reconstruída, por isso o .env anterior foi restaurado. Uma cache que já não corresponde ao ficheiro seria pior do que nenhuma alteração.',
             'PATH_IS_PUBLIC' => 'Esse caminho está dentro da raiz web. Uma cópia aí é toda a base de dados, transferível por quem adivinhe o nome do ficheiro.',

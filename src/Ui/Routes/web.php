@@ -31,6 +31,8 @@ use SaniTube\Ui\Http\Controllers\Distribution\ReleaseDistributionController;
 use SaniTube\Ui\Http\Controllers\Enrichment\EnrichmentRequestController;
 use SaniTube\Ui\Http\Controllers\Enrichment\SuggestionActionController;
 use SaniTube\Ui\Http\Controllers\Enrichment\SuggestionIndexController;
+use SaniTube\Ui\Http\Controllers\Identity\UserActionController;
+use SaniTube\Ui\Http\Controllers\Identity\UserIndexController;
 use SaniTube\Ui\Http\Controllers\Ingestion\BatchDetailController;
 use SaniTube\Ui\Http\Controllers\Ingestion\BatchIndexController;
 use SaniTube\Ui\Http\Controllers\Ingestion\BulkReviewController;
@@ -410,6 +412,25 @@ Route::middleware(['web', HandleInertiaRequests::class, 'auth', 'active'])->grou
         // AUDIT-001. Reading the log is not itself an event: a log that
         // records its own readers grows by being looked at.
         Route::get('system/audit', AuditController::class)->name('system.audit');
+
+        /*
+         * USR-001. Who may use this installation.
+         *
+         * Reading and ordinary administration are `can.role:administer`; the
+         * *ownership* rules live in ManageUsers rather than in a second route
+         * gate, because they depend on the role being touched rather than on
+         * the route being called. Promoting somebody to owner and demoting an
+         * owner are the same act seen from two sides, and both belong to an
+         * owner — a rule a middleware string cannot express.
+         *
+         * There is no delete. `audit_events.actor_id` is restrictOnDelete, so
+         * the database refuses to remove anybody who has ever done anything;
+         * deactivation achieves the operational goal and keeps the history
+         * readable.
+         */
+        Route::get('users', UserIndexController::class)->name('users');
+        Route::post('users', [UserActionController::class, 'store'])->name('users.store');
+        Route::patch('users/{user}', [UserActionController::class, 'update'])->name('users.update');
 
         /*
          * SET-002. The only path from a browser to a .env file.

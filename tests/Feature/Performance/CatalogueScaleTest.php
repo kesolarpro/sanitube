@@ -201,6 +201,7 @@ final class CatalogueScaleTest extends TestCase
         '/studio' => 'Aggregates, not rows. Counted, never listed.',
         '/system/jobs' => 'The queue. It grows with what is running, which is not what this test varies.',
         '/system/operations' => 'One row per registered background operation. A fixed list, not a table.',
+        '/users' => 'One row per person with an account. It grows with the staff, not the catalogue.',
     ];
 
     /**

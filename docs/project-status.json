@@ -2,7 +2,7 @@
  "$comment": "Machine-readable project state. Any new session reads this first, then verifies it against GitHub before trusting it. Written at the end of each ticket, so a stale entry means a session ended mid-ticket — check the branch and CI rather than the status field.",
  "updated_at": "2026-08-22",
  "current_phase": "Mission centre de configuration terminee cote interne : CFG-001 a CFG-005, TRASH-001, DUP-001, OPS-002, UPL-004, DOC-006 fusionnes. SANITUBE_PRODUCTION_READY = oui pour le code, non comme deploiement en fonctionnement. R2_CODE_READY=YES, R2_CONFIGURED=NO, R2_CONNECTIVITY_VERIFIED=NO — aucun identifiant dans cet environnement. Quatre decisions attendent l'operateur : purge de la corbeille, chiffrement des sauvegardes au repos, actions groupees sur les doublons, planification du balayage des doublons. Le detail est docs/final-report.md section 13.",
- "last_completed_ticket": "DOC-006",
+ "last_completed_ticket": "AUDIT-001",
  "default_branch": "main — confirmed by API this session. The EXTERNAL_ADMIN_ACTION_REQUIRED blocker is cleared.",
  "tickets": {
   "ARCH-001": {
@@ -398,11 +398,9 @@
    "note": "Password reset over Laravel's broker. The request never says whether an address is known — same status, same Location, same empty error bag — and a deactivated account cannot reset its way back in, including one deactivated after the link was sent. Reset rotates remember_token and logs out other devices."
   },
   "AUDIT-001": {
-   "status": "merged",
-   "branch": "claude/audit-001-operational-log",
-   "pr": 51,
-   "ci": "green — run 31979... (PR 51)",
-   "note": "Operational audit log: 24 named actions, append-only and enforced, structural redaction, retention prune. Explicit call sites rather than model hooks -- bulk writes and refusals fire no model event. ADR-0014."
+   "status": "in_review",
+   "ci": "pending",
+   "note": "L'ecart entre ce que le backend sait faire et ce qu'un operateur peut demander depuis l'interface. 74 capacites, 46 avec une UI, 28 sans. 88 des 139 variables SANITUBE_* n'ont aucun ecran, 19 des 35 commandes artisan exigent un shell. Cinq lacunes P0. docs/dashboard-parity-audit.md."
   },
   "A11Y-001": {
    "status": "merged",
@@ -1087,6 +1085,13 @@
    "ci": "green 13/13",
    "note": "Le rapport final portait les chiffres d'il y a une mission ; chacun verifie plutot que reecrit. Section nouvelle pour le vocabulaire de cette mission. Trois champs disent non et disent pourquoi ; quatre lignes nomment la decision qui appartient a l'operateur.",
    "recorded_from": "git log origin/main (b22e224)"
+  },
+  "USR-001": {
+   "status": "in_review",
+   "ci": "pending",
+   "note": "Les comptes s'administrent depuis le produit. sanitube:user:create etait le seul moyen de creer un compte, et role/is_active n'avaient aucun chemin d'ecriture : une installation se montait en SSH et ne se dotait jamais d'une equipe depuis l'interieur. /users cree, promeut, retrograde, desactive et reactive, chaque changement audite avec la personne qui a demande. La suppression n'est pas offerte : audit_events.actor_id est restrictOnDelete, un bouton supprimer ne marcherait que pour les comptes sans histoire et echouerait exactement pour les gens qu'on veut voir partir.",
+   "ownership_note": "OWNER est la racine. La regle du dernier OWNER etait ecrite dans un docblock et appliquee nulle part. Deux gardes la rendent inatteignable en une seule requete ; le compte derriere elles est pris sous lockForUpdate pour le cas qu'elles ne couvrent pas, deux OWNER qui se retirent mutuellement en meme temps. Un OWNER desactive n'est pas compte. Les secrets et identifiants fournisseur sont refuses a l'ADMIN a l'ecriture, jamais a la lecture de l'etat configure/non configure.",
+   "mutation_note": "18 mutants cibles, 18 tues. Six avaient d'abord survecu : les tests de la racine de propriete atteignaient une garde anterieure (OWNER_ONLY, NOT_YOURSELF) et n'exercaient jamais le compte. Reecrits sur le chemin que la regle protege reellement, deux requetes concurrentes avec l'acteur charge tel que sa propre requete l'a lu."
   }
  },
  "architecture_amendments": [
@@ -1189,8 +1194,8 @@
   }
  },
  "main_sha": "b22e224",
- "current_ticket": null,
- "tests": "2357 passed, 1 skipped, 29792 assertions (PHP) + 40 (Vitest)",
+ "current_ticket": "USR-001",
+ "tests": "2381 passed, 1 skipped, 30177 assertions (PHP) + 40 (Vitest)",
  "phpstan": {
   "level": 6,
   "baseline": false,

@@ -61,6 +61,7 @@ return [
         'distribution' => 'Vertrieb',
         'rights' => 'Rechte',
         'analytics' => 'Auswertungen',
+        'users' => 'Benutzer',
         'jobs' => 'Aufgaben',
         'operations' => 'Betrieb',
         'audit' => 'Prüfprotokoll',
@@ -255,6 +256,45 @@ return [
             'distribution' => 'Distribution',
         ],
     ],
+    // USR-001. Who may use this installation. The one screen that
+    // publishes an address, because the address *is* the account.
+    'users' => [
+        'title' => 'Benutzer und Zugang',
+        'description' => 'Wer diese Installation nutzen darf, und als was. Eine Eigentümerin besitzt die Plattform; ein Administrator betreibt sie.',
+        'add' => 'Jemanden hinzufügen',
+        'name' => 'Name',
+        'email' => 'E-Mail',
+        'role' => 'Rolle',
+        'status' => 'Status',
+        'last_login' => 'Zuletzt angemeldet',
+        'never' => 'Nie',
+        'active' => 'Aktiv',
+        'inactive' => 'Deaktiviert',
+        'deactivate' => 'Deaktivieren',
+        'reactivate' => 'Reaktivieren',
+        'password' => 'Passwort',
+        'password_hint' => 'Zwölf Zeichen oder mehr. Länge schlägt Sonderzeichen: eine Passphrase, die man sich merkt, ist stärker als eine, die man aufschreibt.',
+        'self' => 'Das sind Sie',
+        'last_owner' => 'Die letzte Eigentümerin',
+        'no_delete' => 'Konten werden nie gelöscht — das Audit-Protokoll hält fest, wer was getan hat, und ein gelöschtes Konto nähme diesen Eintrag mit. Deaktivieren verhindert die Anmeldung und lässt die Historie lesbar.',
+        'role_name' => [
+            'OWNER' => 'Eigentümer',
+            'ADMIN' => 'Administrator',
+            'MEMBER' => 'Mitglied',
+        ],
+        'role_note' => [
+            'OWNER' => 'Besitzt die Plattform: verwaltet Eigentümer, Zugangsdaten und Sicherheitseinstellungen.',
+            'ADMIN' => 'Betreibt die Plattform: Warteschlangen, Sicherungen, Anbieter, Veröffentlichungen. Kann weder Eigentümer noch Zugangsdaten ändern.',
+            'MEMBER' => 'Arbeitet am Katalog: Import, Prüfung, Veröffentlichungen bauen. Kann weder vertreiben noch verwalten.',
+        ],
+        'failure' => [
+            'LAST_OWNER' => 'Das ist die letzte Eigentümerin. Entfernen, Deaktivieren oder Herabstufen ließe die Installation ohne jemanden zurück, der sie verwalten kann.',
+            'OWNER_ONLY' => 'Nur eine Eigentümerin darf ändern, wer sonst Eigentümer ist.',
+            'NOT_YOURSELF' => 'Sie können weder Ihre eigene Rolle ändern noch Ihr eigenes Konto deaktivieren.',
+            'EMAIL_TAKEN' => 'Ein Konto nutzt diese Adresse bereits.',
+        ],
+    ],
+
     'system' => [
         // OPS-002. The global stop, and the fact that it is on. An
         // installation somebody paused yesterday looked identical to a
@@ -377,6 +417,9 @@ return [
                 'identity.user.sign_in_failed' => 'Anmeldung abgelehnt',
                 'identity.user.signed_out' => 'Abgemeldet',
                 'identity.user.created' => 'Konto angelegt',
+                'identity.user.role_changed' => 'Rolle geändert',
+                'identity.user.deactivated' => 'Konto deaktiviert',
+                'identity.user.reactivated' => 'Konto reaktiviert',
                 'identity.password.reset_requested' => 'Zurücksetzen angefordert',
                 'identity.password.reset_completed' => 'Passwort zurückgesetzt',
                 'catalogue.candidate.promoted' => 'Vorschlag übernommen',
@@ -755,6 +798,7 @@ return [
             'NOT_CONFIGURED' => 'Noch nichts zu testen',
         ],
         'failure' => [
+            'SETTINGS_SECRETS_ARE_OWNERS_BUSINESS' => 'Nur eine Eigentümerin darf Zugangsdaten ändern.',
             'SETTINGS_NOT_WRITTEN' => 'Die .env-Datei konnte nicht geschrieben werden. Sie wurde zuvor gesichert und exakt so belassen, wie sie war.',
             'SETTINGS_CACHE_NOT_REBUILT' => 'Der Konfigurations-Cache konnte nicht neu erstellt werden, deshalb wurde die vorherige .env wiederhergestellt. Ein Cache, der nicht mehr zur Datei passt, wäre schlimmer als gar keine Änderung.',
             'PATH_IS_PUBLIC' => 'Dieser Pfad liegt im Web-Root. Eine Sicherung dort ist die gesamte Datenbank, herunterladbar von jedem, der den Dateinamen errät.',

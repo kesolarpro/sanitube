@@ -75,6 +75,11 @@ final readonly class NavigationTree
             // Administration only. `available` is presentation — the route
             // middleware is the authorisation — but showing an operator a link
             // they cannot open is not honesty, it is noise.
+            // USR-001. First of the administration entries: an installation
+            // whose roles cannot be assigned is one where every other
+            // administrative control belongs to whoever happens to have a
+            // shell.
+            $this->item('users', '/users', 'settings', available: $user->role->canAdminister()),
             $this->item('jobs', '/system/jobs', 'jobs', available: $user->role->canAdminister()),
             $this->item('operations', '/system/operations', 'system', available: $user->role->canAdminister()),
             $this->item('audit', '/system/audit', 'system', available: $user->role->canAdminister()),

@@ -39,6 +39,14 @@ enum AuditAction: string
     // nothing can record would put three entries in the filter list that no
     // history will ever contain. Whoever builds user administration adds them
     // here, which is the direction this enum is meant to work in.
+    // USR-001. The ownership root changing hands, and an account losing or
+    // regaining its way in. Separate cases rather than one `user.updated`:
+    // "who became an owner" is the question somebody asks a year later, and a
+    // single action name would bury it in a context field.
+    case UserRoleChanged = 'identity.user.role_changed';
+    case UserDeactivated = 'identity.user.deactivated';
+    case UserReactivated = 'identity.user.reactivated';
+
     case PasswordResetRequested = 'identity.password.reset_requested';
     case PasswordResetCompleted = 'identity.password.reset_completed';
 
@@ -198,6 +206,9 @@ enum AuditAction: string
             self::UserSignInFailed,
             self::UserSignedOut,
             self::UserCreated,
+            self::UserRoleChanged,
+            self::UserDeactivated,
+            self::UserReactivated,
             self::PasswordResetRequested,
             self::PasswordResetCompleted => AuditSubject::User,
 
@@ -279,6 +290,14 @@ enum AuditAction: string
         return match ($this) {
             self::UserSignInFailed,
             self::UserCreated,
+
+            // USR-001. Who may administer the installation, and who may still
+            // sign in at all. An incident that begins with a role change is
+            // the one where this line is read first.
+            self::UserRoleChanged,
+            self::UserDeactivated,
+            self::UserReactivated,
+
             self::PasswordResetRequested,
             self::PasswordResetCompleted,
             self::AssetPreviewMinted,
