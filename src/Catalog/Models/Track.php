@@ -14,8 +14,10 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 use SaniTube\Artists\Models\Artist;
+use SaniTube\Assets\Exceptions\AssetTrashException;
 use SaniTube\Assets\Models\Asset;
 use SaniTube\Assets\Models\AssetLink;
+use SaniTube\Assets\Services\TrashAsset;
 use SaniTube\Catalog\Enums\TrackArtistRole;
 use SaniTube\Catalog\Enums\TrackSource;
 use SaniTube\Catalog\Enums\TrackStatus;
@@ -88,6 +90,48 @@ final class Track extends Model
     protected static function newFactory(): TrackFactory
     {
         return TrackFactory::new();
+    }
+
+    /**
+     * A master a reviewer set aside is not a master.
+     *
+     * TRASH-001. {@see TrashAsset} has always
+     * guarded one direction — an asset a track already uses cannot be trashed,
+     * because that leaves the catalogue pointing at nothing. The reverse was
+     * never guarded, and it is the direction that reaches a customer: nothing
+     * stopped a track being *given* a trashed asset, and nothing looked at
+     * `trashed_at` while a delivery package was built. The bytes somebody
+     * rejected as a wrong file, a bad transfer or a confirmed duplicate were
+     * what left for the distributor, and every screen on the way looked
+     * correct, because they all hide trashed assets already.
+     *
+     * On the model rather than in the two services that assign a master, so
+     * that a third one written later inherits the refusal instead of having to
+     * remember it. The check runs only when the column is actually being
+     * written, so saving a title costs no query.
+     */
+    protected static function booted(): void
+    {
+        self::saving(static function (self $track): void {
+            if (! $track->isDirty('master_asset_id')) {
+                return;
+            }
+
+            $master = $track->master_asset_id;
+
+            if ($master === null) {
+                return;
+            }
+
+            $trashed = Asset::query()
+                ->whereKey($master)
+                ->whereNotNull('trashed_at')
+                ->exists();
+
+            if ($trashed) {
+                throw AssetTrashException::trashed();
+            }
+        });
     }
 
     /**

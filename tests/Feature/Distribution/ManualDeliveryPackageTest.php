@@ -611,6 +611,30 @@ final class ManualDeliveryPackageTest extends TestCase
 
     // ------------------------------------------------------------ fixtures
 
+    #[Test]
+    public function a_release_whose_master_was_trashed_refuses_to_be_packaged(): void
+    {
+        // TRASH-001. The track model refuses to *take* a trashed master, so
+        // this is the remaining case: the asset was set aside after the track
+        // was already pointed at it. Shipping bytes a reviewer rejected — a
+        // wrong file, a bad transfer, a confirmed duplicate — is the kind of
+        // failure nobody notices until a distributor has published it.
+        $release = $this->readyRelease();
+
+        /** @var Track $track */
+        $track = Track::query()->firstOrFail();
+
+        Asset::query()->whereKey($track->master_asset_id)->update(['trashed_at' => now()]);
+
+        try {
+            $this->build($release);
+
+            $this->fail('A package was built from a trashed master.');
+        } catch (ReleasePackagingException $exception) {
+            $this->assertSame('TRACK_WITH_TRASHED_MASTER', $exception->refusalCode());
+        }
+    }
+
     private function sourceOf(string $class): string
     {
         $path = (new \ReflectionClass($class))->getFileName();

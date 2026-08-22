@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SaniTube\Releases\Exceptions;
 
 use RuntimeException;
+use SaniTube\Catalog\Models\Track;
 use SaniTube\Foundation\Contracts\CarriesRefusalCode;
 
 /**
@@ -64,6 +65,29 @@ final class ReleasePackagingException extends RuntimeException implements Carrie
     public static function noTracks(): self
     {
         return new self('The release has no tracks.', 'NO_TRACKS');
+    }
+
+    /**
+     * A master somebody set aside is what this release would hand over.
+     *
+     * TRASH-001. Defence in depth rather than the fix: {@see Track}
+     * refuses to *take* a trashed master, so reaching here means an asset was
+     * trashed after the track was already pointed at it — through a path that
+     * bypassed the guard, or from a hand-written row. Either way, delivering
+     * bytes a reviewer rejected is worse than failing to deliver, and it is the
+     * kind of failure nobody notices until a distributor publishes it.
+     *
+     * @param  list<string>  $uuids
+     */
+    public static function trackWithTrashedMaster(array $uuids): self
+    {
+        return new self(
+            'A track on this release has a master that was moved to the trash. Delivering bytes '
+                .'somebody set aside is worse than delivering nothing, so this refuses rather than '
+                .'quietly shipping them.',
+            'TRACK_WITH_TRASHED_MASTER',
+            $uuids,
+        );
     }
 
     /**

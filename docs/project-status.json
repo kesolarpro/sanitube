@@ -2,7 +2,7 @@
  "$comment": "Machine-readable project state. Any new session reads this first, then verifies it against GitHub before trusting it. Written at the end of each ticket, so a stale entry means a session ended mid-ticket — check the branch and CI rather than the status field.",
  "updated_at": "2026-08-22",
  "current_phase": "Mission deploiement automatise terminee cote interne : DEP-007 a DEP-018 fusionnes. INTERNAL_DEPLOYMENT_AUTOMATION_COMPLETE = YES, READY_FOR_REAL_VPS_CERTIFICATION = YES. Le reste demande un vrai hote, un vrai identifiant, ou une decision humaine — le plan A-K est docs/deployment/certification-plan.md.",
- "last_completed_ticket": "CFG-003",
+ "last_completed_ticket": "CFG-004",
  "default_branch": "main — confirmed by API this session. The EXTERNAL_ADMIN_ACTION_REQUIRED blocker is cleared.",
  "tickets": {
   "ARCH-001": {
@@ -1054,11 +1054,19 @@
    "recorded_from": "git log origin/main (4559a17)"
   },
   "CFG-004": {
+   "status": "merged",
+   "pr": 153,
+   "ci": "green 13/13",
+   "note": "Cinq sections manquantes : audio/media, file, sauvegarde, automatisation, systeme/sante. Les chemins d'executables et la connexion de file sont publies et jamais inscriptibles, chacun nomme avec sa raison. La destination de sauvegarde est refusee a l'endroit ou l'erreur est commise. Les refus de validation s'affichent sur le champ concerne.",
+   "recorded_from": "git log origin/main (393109a)"
+  },
+  "TRASH-001": {
    "status": "in_review",
    "pr": null,
    "ci": "pending",
    "branch": "claude/sanitube-autonomous-v1-5pycx0",
-   "note": "Cinq sections manquantes : audio/media, file, sauvegarde, automatisation de production, systeme/sante. Les chemins d'executables sont publies et jamais inscriptibles — la plateforme execute ce qu'ils designent, donc un champ de formulaire y serait une execution de code a distance depuis une session volee. La connexion de file n'est pas inscriptible non plus : la repointer n'y deplace pas les travaux deja en attente. La destination de sauvegarde est refusee a l'endroit ou l'erreur est commise, pas seulement a deux heures du matin. Les refus de validation s'affichent enfin sur le champ concerne."
+   "note": "Un actif mis a la corbeille pouvait devenir le master d'un titre et partir dans un package de distribution. TrashAsset gardait un sens — on ne jette pas un actif qu'un titre utilise — et jamais l'autre. La garde vit sur le modele Track, pour qu'un troisieme service qui assigne un master en herite. BuildDeliveryPackage refuse aussi, en defense en profondeur : ce cas la est celui ou l'actif a ete jete apres que le titre pointait deja dessus.",
+   "found_by": "audit interne de la revue des doublons et de la corbeille"
   }
  },
  "architecture_amendments": [
@@ -1160,9 +1168,9 @@
    "history": "Not rewritten. PRs #111-#122 were merged by earlier sessions and #123-#129 by the 2026-08-21 session while this policy still read active:true. That happened and stays on the record; the policy is superseded from today rather than retroactively."
   }
  },
- "main_sha": "4559a17",
- "current_ticket": "CFG-004",
- "tests": "2333 passed, 1 skipped, 29445 assertions (PHP) + 40 (Vitest)",
+ "main_sha": "393109a",
+ "current_ticket": "TRASH-001",
+ "tests": "2337 passed, 1 skipped, 29455 assertions (PHP) + 40 (Vitest)",
  "phpstan": {
   "level": 6,
   "baseline": false,

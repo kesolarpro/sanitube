@@ -31,6 +31,20 @@ final class AssetTrashException extends RuntimeException
         return new self(sprintf('The asset is still referenced by %s.', $by), 'ASSET_IN_USE');
     }
 
+    /**
+     * The asset was set aside, and something is trying to make the catalogue
+     * depend on it.
+     *
+     * TRASH-001. The mirror of {@see self::inUse()}: that one keeps a trashed
+     * asset from breaking a track, this one keeps a trashed asset from
+     * *becoming* one — which is the direction that ships rejected bytes to a
+     * distributor.
+     */
+    public static function trashed(): self
+    {
+        return new self('The asset is in the trash and cannot be used by the catalogue.', 'ASSET_TRASHED');
+    }
+
     public static function alreadyTrashed(): self
     {
         return new self('The asset is already in the trash.', 'ASSET_ALREADY_TRASHED');

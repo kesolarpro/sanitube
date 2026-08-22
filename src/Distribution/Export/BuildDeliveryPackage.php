@@ -103,6 +103,16 @@ final readonly class BuildDeliveryPackage
                 throw ReleasePackagingException::trackWithoutMaster([$track->uuid]);
             }
 
+            if ($master->trashed_at !== null) {
+                // TRASH-001. The track model refuses to take a trashed master,
+                // so this is the case where the asset was set aside *after* the
+                // track was pointed at it. Shipping bytes a reviewer rejected —
+                // a wrong file, a bad transfer, a confirmed duplicate — is the
+                // kind of failure nobody notices until a distributor has
+                // published it.
+                throw ReleasePackagingException::trackWithTrashedMaster([$track->uuid]);
+            }
+
             if ($track->isrc === null) {
                 // A warning, not a refusal: some distributors assign ISRCs on
                 // intake, and refusing to export until every code exists would
