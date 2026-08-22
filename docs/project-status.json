@@ -2,7 +2,7 @@
  "$comment": "Machine-readable project state. Any new session reads this first, then verifies it against GitHub before trusting it. Written at the end of each ticket, so a stale entry means a session ended mid-ticket — check the branch and CI rather than the status field.",
  "updated_at": "2026-08-22",
  "current_phase": "WAVE 1 en cours sur claude/sanitube-autonomous-v1-5pycx0 : AUDIT-001 puis USR-001, CFG-006, PROD-002, STO-005, SYS-001 dans cet ordre. OWNER est la racine, decidee par l'operateur : le dernier OWNER ne peut jamais etre retire, et seul un OWNER gere les OWNER, les secrets et les identifiants fournisseur. UPL-005 en revue : l'upload relaye etait casse en production depuis que app.blade.php ne publiait plus la meta csrf-token, et les trois ecrans qui signent leurs propres requetes (import, upload unitaire, test de connexion des reglages) mouraient en 419 avant tout controleur, en rapportant un message generique. Le jeton est publie, la lecture d'un refus tient compte du statut, et le contrat mise en page vers JavaScript est desormais teste avec VerifyCsrfToken ACTIF. Ce ticket touche a la securite CSRF : REVIEW_REQUIRED, ne pas fusionner avant verdict. NOTE : DOC-007 (PR 159) etait fusionne sur main alors que ce fichier disait encore DOC-006 — verifie contre l'API cette session. Mission centre de configuration terminee cote interne : CFG-001 a CFG-005, TRASH-001, DUP-001, OPS-002, UPL-004, DOC-006, DOC-007 fusionnes. SANITUBE_PRODUCTION_READY = oui pour le code, non comme deploiement en fonctionnement — et UPL-005 est la preuve que les deux ne sont pas la meme chose. R2_CODE_READY=YES, R2_CONFIGURED=NO, R2_CONNECTIVITY_VERIFIED=NO. Quatre decisions attendent l'operateur : purge de la corbeille, chiffrement des sauvegardes au repos, actions groupees sur les doublons, planification du balayage des doublons. Le detail est docs/final-report.md section 13.",
- "last_completed_ticket": "CFG-006",
+ "last_completed_ticket": "PROD-002",
  "default_branch": "main — confirmed by API this session. The EXTERNAL_ADMIN_ACTION_REQUIRED blocker is cleared.",
  "tickets": {
   "ARCH-001": {
@@ -556,11 +556,12 @@
    "notes": "EditorialProfile: an imprint is a row, not code. No caller yet."
   },
   "PROD-002": {
-   "status": "in_review",
-   "ci": "pending",
+   "status": "merged",
+   "ci": "green 13/13",
    "note": "Les plans de production se font depuis le produit. WriteProductionPlan::create existait depuis PROD-001 et n'avait aucun appelant : ni controleur, ni commande console, ni seeder. WriteEditorialProfile non plus, et un plan en exige un. Une installation qui marche avait donc un ecran de production qui ne pouvait qu'etre vide, et la seule partie de SaniTube qui agit sans personne ne pouvait etre demarree que depuis un client de base de donnees.",
    "scope_note": "Les labels editoriaux etaient dans le perimetre par necessite : un plan ne peut pas exister sans, et rien ne pouvait en creer. Ecran /editorial derriere can.role:catalogue, creation et correction, retrait plutot que suppression — chaque plan pointe vers un label sous une cle etrangere qui refuse l'effacement.",
-   "mutation_note": "21 mutants cibles, 21 tues. Deux premiers essais se sont reveles equivalents : ajouter status aux regles de la requete et a la liste qu'elle transmet ne change rien d'observable, parce que la liste fermee du service l'ignore. Ce sont donc les deux listes fermees qui ont ete mutees, et un test au niveau du service — pas de l'ecran — les tue, puisque chacune est le filet de l'autre."
+   "mutation_note": "21 mutants cibles, 21 tues. Deux premiers essais se sont reveles equivalents : ajouter status aux regles de la requete et a la liste qu'elle transmet ne change rien d'observable, parce que la liste fermee du service l'ignore. Ce sont donc les deux listes fermees qui ont ete mutees, et un test au niveau du service — pas de l'ecran — les tue, puisque chacune est le filet de l'autre.",
+   "pr": 164
   },
   "PROD-003": {
    "status": "merged",
@@ -856,11 +857,11 @@
    "recorded_from": "git log origin/main (5df604d)"
   },
   "STO-005": {
-   "status": "merged",
-   "pr": 112,
-   "ci": "green 10/10",
-   "note": "plus aucune URL permanente, et une visibilité déclarée (+ audit R2)",
-   "recorded_from": "git log origin/main (c979d29)"
+   "status": "in_review",
+   "ci": "pending",
+   "note": "Combien cette installation conserve, dit en octets. byte_size est sur chaque fichier depuis le premier depot et la question n'etait posee nulle part : impossible de savoir combien on stockait sans un client de base de donnees, alors que sur un stockage objet facture c'est le nombre qui devient une facture. Le tableau de bord affichait un compte de fichiers, ce qui n'en dit rien — mille apercus et mille masters font le meme nombre a trois ordres de grandeur d'ecart.",
+   "honesty_note": "Ce que le catalogue dit avoir stocke, jamais ce qu'un fournisseur facture, et le panneau le dit en premier. Aucune capacite et aucun pourcentage : il n'existe aucun denominateur que cette plateforme puisse obtenir honnetement. Les octets a la corbeille sont comptes et montres a part parce qu'ils coutent toujours. Non mesure n'est jamais rapporte comme zero.",
+   "mutation_note": "16 mutants cibles, 16 tues. Trois avaient survecu : un type de fichier que ce build ne connait pas et les deux branches du cas non mesure. Le premier se teste par une ecriture brute, les seconds en supprimant la table."
   },
   "STO-004": {
    "status": "merged",
@@ -1218,9 +1219,9 @@
    "history": "Not rewritten. PRs #111-#122 were merged by earlier sessions and #123-#129 by the 2026-08-21 session while this policy still read active:true. That happened and stays on the record; the policy is superseded from today rather than retroactively."
   }
  },
- "main_sha": "d5d4a50",
- "current_ticket": "PROD-002",
- "tests": "2430 passed, 1 skipped, 31151 assertions (PHP) + 57 (Vitest)",
+ "main_sha": "f80651b",
+ "current_ticket": "STO-005",
+ "tests": "2444 passed, 1 skipped, 31299 assertions (PHP) + 57 (Vitest)",
  "phpstan": {
   "level": 6,
   "baseline": false,

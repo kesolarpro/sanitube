@@ -852,6 +852,21 @@ return [
         ],
     ],
 
+    'storage_usage' => [
+        'title' => 'Lo que esta instalación conserva',
+        'what_this_is' => 'Lo que el catálogo dice haber guardado — no lo que un proveedor factura. Ambos difieren por razones reales: una subida abandonada deja partes que nada registró, un bucket puede contener objetos anteriores a esta instalación, y el versionado guarda lo que un borrado quitó. Aquí no hay capacidad ni porcentaje, porque no existe denominador que esta plataforma pueda obtener honestamente.',
+        'not_measured' => 'No se pudo consultar la tabla de ficheros, así que nada de esto es una medición. No es lo mismo que no guardar nada.',
+        'held' => 'Guardado',
+        'assets' => ':count fichero(s)',
+        'trashed' => 'En la papelera',
+        'trashed_note' => 'Sigue costando. Conservado a propósito, a la espera de una decisión.',
+        'unsure' => 'Sin constancia',
+        'unsure_note' => 'Subidas que nunca terminaron, y objetos que la plataforma ya no encuentra.',
+        'by_kind' => 'Por tipo',
+        'by_disk' => 'Por disco',
+        'of_which_trashed' => '(:bytes en la papelera)',
+    ],
+
     'production' => [
         'autonomy_mode' => [
             'MANUAL' => 'Una persona pide todo',

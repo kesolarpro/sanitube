@@ -7,6 +7,7 @@ import AppAlert from '@/Components/Ui/AppAlert.vue';
 import AppButton from '@/Components/Ui/AppButton.vue';
 import AppCard from '@/Components/Ui/AppCard.vue';
 import CodeValue from '@/Components/Ui/CodeValue.vue';
+import StorageUsageCard from '@/Components/Storage/StorageUsageCard.vue';
 import TextInput from '@/Components/Ui/TextInput.vue';
 import { trans } from '@/Support/i18n';
 import { csrfToken, refusalFrom } from '@/Support/request';
@@ -213,6 +214,12 @@ async function test(section: { key: string; probe: string | null }): Promise<voi
                 {{ trans('ui.settings.config_cached_note') }}
             </p>
         </AppCard>
+
+        <!-- STO-005. Not a section: a section is variable/value pairs an
+             operator edits, and this is a measurement nobody sets. It sits
+             here because "which provider am I on" and "how much am I keeping
+             there" get asked in the same minute. -->
+        <StorageUsageCard :usage="settings.storage_usage" :locale="page.props.app.locale" />
 
         <AppCard v-for="section in settings.sections" :key="section.key">
             <template #header>{{ trans(`ui.settings.section.${section.key}`) }}</template>

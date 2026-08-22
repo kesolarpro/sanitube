@@ -852,6 +852,21 @@ return [
         ],
     ],
 
+    'storage_usage' => [
+        'title' => 'Was diese Installation aufbewahrt',
+        'what_this_is' => 'Was der Katalog als gespeichert verzeichnet — nicht, was ein Anbieter berechnet. Die beiden weichen aus echten Gründen voneinander ab: ein abgebrochener Upload hinterlässt Teile, die nichts erfasst hat, ein Bucket kann Objekte von vor dieser Installation enthalten, und Versionierung behält, was ein Löschen entfernt hat. Hier gibt es keine Kapazität und keinen Prozentsatz, weil es keinen Nenner gibt, den diese Plattform ehrlich ermitteln kann.',
+        'not_measured' => 'Die Dateitabelle konnte nicht befragt werden, hier ist also nichts eine Messung. Das ist nicht dasselbe wie nichts zu speichern.',
+        'held' => 'Gespeichert',
+        'assets' => ':count Datei(en)',
+        'trashed' => 'Im Papierkorb',
+        'trashed_note' => 'Kostet weiterhin. Absichtlich behalten, wartet auf eine Entscheidung.',
+        'unsure' => 'Nicht belegt',
+        'unsure_note' => 'Uploads, die nie fertig wurden, und Objekte, die die Plattform nicht mehr findet.',
+        'by_kind' => 'Nach Art',
+        'by_disk' => 'Nach Datenträger',
+        'of_which_trashed' => '(:bytes im Papierkorb)',
+    ],
+
     'production' => [
         'autonomy_mode' => [
             'MANUAL' => 'Eine Person fragt alles an',

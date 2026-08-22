@@ -852,6 +852,21 @@ return [
         ],
     ],
 
+    'storage_usage' => [
+        'title' => 'O que esta instalação guarda',
+        'what_this_is' => 'O que o catálogo diz ter armazenado — não o que um fornecedor factura. Os dois divergem por razões reais: um envio abandonado deixa partes que nada registou, um bucket pode conter objectos anteriores a esta instalação, e o versionamento guarda o que uma eliminação retirou. Aqui não há capacidade nem percentagem, porque não existe denominador que esta plataforma possa obter honestamente.',
+        'not_measured' => 'A tabela de ficheiros não pôde ser consultada, portanto nada aqui é uma medição. Não é o mesmo que não guardar nada.',
+        'held' => 'Armazenado',
+        'assets' => ':count ficheiro(s)',
+        'trashed' => 'No lixo',
+        'trashed_note' => 'Continua a custar. Guardado de propósito, à espera de uma decisão.',
+        'unsure' => 'Sem registo',
+        'unsure_note' => 'Envios que nunca terminaram, e objectos que a plataforma já não encontra.',
+        'by_kind' => 'Por tipo',
+        'by_disk' => 'Por disco',
+        'of_which_trashed' => '(:bytes no lixo)',
+    ],
+
     'production' => [
         'autonomy_mode' => [
             'MANUAL' => 'Uma pessoa pede tudo',

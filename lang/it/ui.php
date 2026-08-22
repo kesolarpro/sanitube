@@ -852,6 +852,21 @@ return [
         ],
     ],
 
+    'storage_usage' => [
+        'title' => 'Ciò che questa installazione conserva',
+        'what_this_is' => 'Ciò che il catalogo dice di aver salvato — non ciò che un fornitore fattura. I due divergono per ragioni reali: un caricamento abbandonato lascia pezzi che nulla ha registrato, un bucket può contenere oggetti precedenti a questa installazione, e il versionamento conserva ciò che una cancellazione ha tolto. Qui non c\'è capacità né percentuale, perché non esiste un denominatore che questa piattaforma possa ottenere onestamente.',
+        'not_measured' => 'La tabella dei file non ha potuto essere interrogata, quindi qui nulla è una misura. Non è la stessa cosa che non conservare nulla.',
+        'held' => 'Salvato',
+        'assets' => ':count file',
+        'trashed' => 'Nel cestino',
+        'trashed_note' => 'Costa ancora. Conservato di proposito, in attesa di una decisione.',
+        'unsure' => 'Non attestato',
+        'unsure_note' => 'Caricamenti mai finiti, e oggetti che la piattaforma non trova più.',
+        'by_kind' => 'Per tipo',
+        'by_disk' => 'Per disco',
+        'of_which_trashed' => '(:bytes nel cestino)',
+    ],
+
     'production' => [
         'autonomy_mode' => [
             'MANUAL' => 'Una persona chiede tutto',

@@ -1,3 +1,5 @@
+import type { StorageUsage } from '@/Types/system';
+
 /**
  * What the settings read model produces.
  *
@@ -53,6 +55,11 @@ export interface ApplicationSettings {
 
 export interface SettingsOverview {
     application: ApplicationSettings;
+    /**
+     * STO-005. Not a section: a section is variable/value pairs an operator
+     * edits, and this is a measurement nobody sets.
+     */
+    storage_usage: StorageUsage;
     sections: SettingsSection[];
 }
 
