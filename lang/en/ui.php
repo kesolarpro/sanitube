@@ -256,6 +256,23 @@ return [
         ],
     ],
     'system' => [
+        // OPS-002. The global stop, and the fact that it is on. An
+        // installation somebody paused yesterday looked identical to a
+        // healthy one while nothing was processed.
+        'work_paused' => 'Background work is paused',
+        'work_paused_note' => 'This installation is taking on no new background work. Jobs already running finish; nothing new is started. Imports, analysis, generation and delivery all wait.',
+        'work_running' => 'Background work',
+        'pause_note' => 'The global stop. It prevents new work being taken on — a job already running finishes, because stopping one halfway is how a half-written file happens.',
+        'pause_work' => 'Pause everything',
+        'resume_work' => 'Resume',
+        'pause_reason_label' => 'Why',
+        'pause_confirm' => 'Pause all background work on this installation? Imports, analysis, generation and delivery will all stop taking on new work.',
+        'pause_reason' => [
+            'OPERATOR_REQUEST' => 'An operator asked',
+            'PROVIDER_TROUBLE' => 'A supplier is misbehaving',
+            'HOST_PRESSURE' => 'This host is under pressure',
+            'MAINTENANCE' => 'Maintenance',
+        ],
         'job_actions' => 'Actions',
         'retry_job' => 'Run again',
         'not_retryable' => 'Not safe to run again',

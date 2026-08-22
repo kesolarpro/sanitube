@@ -256,6 +256,23 @@ return [
         ],
     ],
     'system' => [
+        // OPS-002. The global stop, and the fact that it is on. An
+        // installation somebody paused yesterday looked identical to a
+        // healthy one while nothing was processed.
+        'work_paused' => 'O trabalho em segundo plano está em pausa',
+        'work_paused_note' => 'Esta instalação não aceita qualquer novo trabalho em segundo plano. Os trabalhos já em curso terminam; nada de novo é iniciado. Importação, análise, geração e entrega esperam todos.',
+        'work_running' => 'Trabalho em segundo plano',
+        'pause_note' => 'A paragem global. Impede que novo trabalho seja aceite — um trabalho já em curso termina, porque parar um a meio é como aparece um ficheiro escrito a meio.',
+        'pause_work' => 'Pausar tudo',
+        'resume_work' => 'Retomar',
+        'pause_reason_label' => 'Porquê',
+        'pause_confirm' => 'Pausar todo o trabalho em segundo plano desta instalação? Importação, análise, geração e entrega deixarão de aceitar novo trabalho.',
+        'pause_reason' => [
+            'OPERATOR_REQUEST' => 'Um operador pediu',
+            'PROVIDER_TROUBLE' => 'Um fornecedor está a portar-se mal',
+            'HOST_PRESSURE' => 'Este servidor está sob pressão',
+            'MAINTENANCE' => 'Manutenção',
+        ],
         'job_actions' => 'Ações',
         'retry_job' => 'Executar de novo',
         'not_retryable' => 'Não é seguro repetir',

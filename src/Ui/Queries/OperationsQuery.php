@@ -8,6 +8,7 @@ use DateTimeImmutable;
 use SaniTube\Deployment\Services\BackupRepository;
 use SaniTube\Observability\Health\OperationalHealthStore;
 use SaniTube\Observability\SchedulerHeartbeat;
+use SaniTube\Operations\Services\BackgroundWork;
 use Throwable;
 
 /**
@@ -35,6 +36,7 @@ final readonly class OperationsQuery
         private OperationalHealthStore $health,
         private SchedulerHeartbeat $heartbeat,
         private QueueQuery $queue,
+        private BackgroundWork $work,
         private BackupRepository $backups,
     ) {}
 
@@ -45,10 +47,43 @@ final readonly class OperationsQuery
     {
         return [
             'health' => $this->operational(),
+            // OPS-002 first, because it changes how everything below reads. A
+            // queue that is not draining means one thing on a running
+            // installation and another on a stopped one.
+            'work' => $this->backgroundWork(),
             'scheduler' => $this->scheduler(),
             'queue' => $this->queue->summary(),
             'backups' => $this->backups(),
             'runtime' => $this->runtime(),
+        ];
+    }
+
+    /**
+     * Whether this installation is taking on background work at all.
+     *
+     * OPS-002. The global stop existed, worked, and was reported on no screen.
+     * An installation somebody paused yesterday looked **identical to a healthy
+     * one** — same queue page, same job list, same green scheduler — while
+     * nothing was processed. That is the worse half of the gap: an operator can
+     * live without a button, and cannot diagnose a silent halt they have no way
+     * to see.
+     *
+     * The person is named, never their address: an operations screen is a
+     * screen people share.
+     *
+     * @return array<string, mixed>
+     */
+    private function backgroundWork(): array
+    {
+        $state = $this->work->state();
+
+        return [
+            'paused' => $state->is_paused,
+            // A machine code, rendered by the interface. A sentence composed
+            // here could not be read in the reader's language.
+            'reason' => $state->reason,
+            'paused_at' => $state->paused_at?->toAtomString(),
+            'paused_by' => $state->pausedBy?->name,
         ];
     }
 

@@ -4,6 +4,8 @@ import { useForm, usePage } from '@inertiajs/vue3';
 import AppAlert from '@/Components/Ui/AppAlert.vue';
 import AppButton from '@/Components/Ui/AppButton.vue';
 import AppCard from '@/Components/Ui/AppCard.vue';
+import FormField from '@/Components/Ui/FormField.vue';
+import SelectInput from '@/Components/Ui/SelectInput.vue';
 import MetricCard from '@/Components/Ui/MetricCard.vue';
 import { dateTime } from '@/Support/format';
 import { trans } from '@/Support/i18n';
@@ -58,6 +60,34 @@ const neverBackedUp = computed(
     () => props.operations.backups.readable && props.operations.backups.taken_at === null,
 );
 
+/**
+ * The global stop.
+ *
+ * OPS-002. A confirmation is required before pausing and not before resuming,
+ * deliberately: stopping an installation is the act with the consequence
+ * nobody meant, and starting one again is what you do after reading the banner
+ * that says it is stopped.
+ */
+const workForm = useForm({ reason: 'OPERATOR_REQUEST' });
+
+const REASONS = ['OPERATOR_REQUEST', 'PROVIDER_TROUBLE', 'HOST_PRESSURE', 'MAINTENANCE'] as const;
+
+const reasonOptions = computed(() =>
+    REASONS.map((value) => ({ value, label: trans(`ui.system.pause_reason.${value}`) })),
+);
+
+function pause(): void {
+    if (!window.confirm(trans('ui.system.pause_confirm'))) {
+        return;
+    }
+
+    workForm.post('/system/operations/pause', { preserveScroll: true });
+}
+
+function resume(): void {
+    workForm.post('/system/operations/resume', { preserveScroll: true });
+}
+
 function refresh(): void {
     refreshing.value = true;
     refreshForm.post('/system/operations/refresh', {
@@ -80,6 +110,44 @@ function refresh(): void {
                 {{ trans('ui.system.refresh') }}
             </AppButton>
         </div>
+
+        <!-- OPS-002. First on the page, because it changes how everything
+             below reads: a queue that is not draining means one thing on a
+             running installation and another on a stopped one. -->
+        <AppAlert
+            v-if="operations.work.paused"
+            tone="warning"
+            :title="trans('ui.system.work_paused')"
+        >
+            <p>{{ trans('ui.system.work_paused_note') }}</p>
+            <p class="mt-1 text-caption">
+                {{ trans(`ui.system.pause_reason.${operations.work.reason ?? 'OPERATOR_REQUEST'}`) }}
+                <template v-if="operations.work.paused_at">
+                    — {{ dateTime(operations.work.paused_at, locale) }}
+                </template>
+                <template v-if="operations.work.paused_by">
+                    — {{ operations.work.paused_by }}
+                </template>
+            </p>
+            <AppButton class="mt-2" :loading="workForm.processing" @click="resume">
+                {{ trans('ui.system.resume_work') }}
+            </AppButton>
+        </AppAlert>
+
+        <AppCard v-else>
+            <template #header>{{ trans('ui.system.work_running') }}</template>
+
+            <p class="text-small text-muted">{{ trans('ui.system.pause_note') }}</p>
+
+            <div class="mt-3 flex flex-wrap items-end gap-3">
+                <FormField :label="trans('ui.system.pause_reason_label')" class="w-full sm:w-64">
+                    <SelectInput v-model="workForm.reason" :options="reasonOptions" />
+                </FormField>
+                <AppButton variant="danger" :loading="workForm.processing" @click="pause">
+                    {{ trans('ui.system.pause_work') }}
+                </AppButton>
+            </div>
+        </AppCard>
 
         <AppAlert v-if="refreshError !== null" tone="danger" :title="trans('ui.states.error_title')">
             {{ trans(`ui.system.refresh_failure.${refreshError}`) }}

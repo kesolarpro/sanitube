@@ -256,6 +256,23 @@ return [
         ],
     ],
     'system' => [
+        // OPS-002. The global stop, and the fact that it is on. An
+        // installation somebody paused yesterday looked identical to a
+        // healthy one while nothing was processed.
+        'work_paused' => 'Il lavoro in background è in pausa',
+        'work_paused_note' => 'Questa installazione non accetta più alcun nuovo lavoro in background. I lavori già in corso terminano; nulla di nuovo viene avviato. Importazione, analisi, generazione e consegna attendono tutti.',
+        'work_running' => 'Lavoro in background',
+        'pause_note' => 'L\'arresto globale. Impedisce di accettare nuovo lavoro: un lavoro già in corso termina, perché fermarne uno a metà è il modo in cui nasce un file scritto a metà.',
+        'pause_work' => 'Metti tutto in pausa',
+        'resume_work' => 'Riprendi',
+        'pause_reason_label' => 'Perché',
+        'pause_confirm' => 'Mettere in pausa tutto il lavoro in background di questa installazione? Importazione, analisi, generazione e consegna smetteranno di accettare nuovo lavoro.',
+        'pause_reason' => [
+            'OPERATOR_REQUEST' => 'Lo ha chiesto un operatore',
+            'PROVIDER_TROUBLE' => 'Un fornitore si comporta male',
+            'HOST_PRESSURE' => 'Questo host è sotto pressione',
+            'MAINTENANCE' => 'Manutenzione',
+        ],
         'job_actions' => 'Azioni',
         'retry_job' => 'Riesegui',
         'not_retryable' => 'Non è sicuro rieseguire',

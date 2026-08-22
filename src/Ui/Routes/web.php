@@ -60,6 +60,7 @@ use SaniTube\Ui\Http\Controllers\Studio\ProjectDetailController;
 use SaniTube\Ui\Http\Controllers\Studio\ProjectIndexController;
 use SaniTube\Ui\Http\Controllers\Studio\StudioActionController;
 use SaniTube\Ui\Http\Controllers\System\AuditController;
+use SaniTube\Ui\Http\Controllers\System\BackgroundWorkController;
 use SaniTube\Ui\Http\Controllers\System\FailedJobController;
 use SaniTube\Ui\Http\Controllers\System\JobsController;
 use SaniTube\Ui\Http\Controllers\System\OperationsController;
@@ -434,6 +435,21 @@ Route::middleware(['web', HandleInertiaRequests::class, 'auth', 'active'])->grou
         // pressed by a person who asked for it.
         Route::post('system/operations/refresh', RefreshHealthController::class)
             ->name('system.operations.refresh');
+
+        /*
+         * OPS-002. The global stop.
+         *
+         * `sanitube:work:pause` was the only way to press it, so the control an
+         * operator reaches for while watching something go wrong needed SSH —
+         * at the moment they are least able to go and find a terminal.
+         *
+         * Behind the same role as the rest of this group. Pausing an
+         * installation is not a smaller act than reading its queue.
+         */
+        Route::post('system/operations/pause', [BackgroundWorkController::class, 'pause'])
+            ->name('system.operations.pause');
+        Route::post('system/operations/resume', [BackgroundWorkController::class, 'resume'])
+            ->name('system.operations.resume');
 
         /*
          * SYS-001b. Acting on a job that failed.
