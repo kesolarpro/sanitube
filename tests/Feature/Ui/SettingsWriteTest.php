@@ -223,11 +223,16 @@ final class SettingsWriteTest extends TestCase
         // The other direction is the one that has no other test at all: a
         // variable the screen publishes and nobody can write is a field that
         // looks editable and refuses. Its exemptions are named above.
+        //
+        // CFG-006 added two more provider-gated families, so both selections
+        // are varied here too. Their credentials are gated exactly like the AI
+        // ones, which means the drift CFG-002 found is available to them and
+        // would go unnoticed under a fixed `none`.
         $configurations = [
-            ['storage.default' => 's3', 'ai.default' => 'openai', 'generation.default' => 'none', 'distribution.default' => 'none'],
-            ['storage.default' => 'r2', 'ai.default' => 'claude', 'generation.default' => 'fake', 'distribution.default' => 'fake'],
-            ['storage.default' => 'b2', 'ai.default' => 'none', 'generation.default' => 'acestep', 'distribution.default' => 'none'],
-            ['storage.default' => 'local', 'ai.default' => 'openai', 'generation.default' => 'fake', 'distribution.default' => 'none'],
+            ['storage.default' => 's3', 'ai.default' => 'openai', 'generation.default' => 'none', 'distribution.default' => 'none', 'artwork.default_provider' => 'openai', 'transcription.provider' => 'openai'],
+            ['storage.default' => 'r2', 'ai.default' => 'claude', 'generation.default' => 'fake', 'distribution.default' => 'fake', 'artwork.default_provider' => 'none', 'transcription.provider' => 'none'],
+            ['storage.default' => 'b2', 'ai.default' => 'none', 'generation.default' => 'acestep', 'distribution.default' => 'none', 'artwork.default_provider' => 'openai', 'transcription.provider' => 'none'],
+            ['storage.default' => 'local', 'ai.default' => 'openai', 'generation.default' => 'fake', 'distribution.default' => 'none', 'artwork.default_provider' => 'none', 'transcription.provider' => 'openai'],
         ];
 
         foreach ($configurations as $configuration) {

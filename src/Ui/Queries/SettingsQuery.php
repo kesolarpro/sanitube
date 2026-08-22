@@ -74,6 +74,8 @@ final readonly class SettingsQuery
                 $this->storage(),
                 $this->ai(),
                 $this->generation(),
+                $this->artwork(),
+                $this->transcription(),
                 $this->distribution(),
                 $this->worker(),
                 $this->media(),
@@ -243,6 +245,142 @@ final readonly class SettingsQuery
                 $this->plain('SANITUBE_GENERATION_POLL_INTERVAL', (string) $this->config->get('generation.poll.interval_seconds')),
             ],
             secrets: [],
+        );
+    }
+
+    /**
+     * Covers: what one has to be, who makes it, and what it may cost.
+     *
+     * CFG-006. Eighteen variables and a credential, every one of them
+     * previously reachable only by editing `.env` over SSH. The section is one
+     * rather than three because an operator changing a requirement usually
+     * wants the size the provider is asked for in the same glance — the two
+     * numbers **disagree out of the box**, deliberately, and resolving that
+     * disagreement is the first thing anybody configuring artwork does.
+     *
+     * `sizes`, `accepted_mime_types` and `output_mime_types` are absent, and
+     * that absence is deliberate rather than an omission: they are lists with
+     * no environment variable behind them, declared per provider in
+     * `config/artwork.php` because what an account may request is declared and
+     * never inferred. Publishing them as a comma-joined field here would
+     * invite an edit that lands nowhere.
+     *
+     * @return array<string, mixed>
+     */
+    private function artwork(): array
+    {
+        $selected = (string) $this->config->get('artwork.default_provider', 'none');
+
+        return $this->section(
+            key: 'artwork',
+            selected: $selected,
+            known: $this->providers->isKnown('artwork', $selected),
+            options: $this->providers->names('artwork'),
+            settings: [
+                $this->plain('SANITUBE_ARTWORK_PROVIDER', $selected),
+
+                // The off switch, separate from OPS-002's global pause. Both
+                // stop generation and they answer different questions: the
+                // global pause means "this installation is doing nothing right
+                // now", this one means "this installation does not generate
+                // covers", which an operator may want permanently true while
+                // everything else keeps running.
+                $this->plain('SANITUBE_ARTWORK_GENERATION_ENABLED', $this->flag('artwork.generation_enabled')),
+
+                ...match ($selected) {
+                    'openai' => [
+                        $this->plain('SANITUBE_ARTWORK_OPENAI_BASE_URL', (string) $this->config->get('artwork.providers.openai.base_url')),
+                        // Never a closed list, for the same reason as every
+                        // other model field on this screen: vendors publish
+                        // new models faster than this platform ships.
+                        $this->plain('SANITUBE_ARTWORK_OPENAI_MODEL', (string) $this->config->get('artwork.providers.openai.model')),
+                        $this->plain('SANITUBE_ARTWORK_OPENAI_FORMAT', (string) $this->config->get('artwork.providers.openai.output_format')),
+                        $this->plain('SANITUBE_ARTWORK_TIMEOUT', (string) $this->config->get('artwork.providers.openai.timeout')),
+                    ],
+                    default => [],
+                },
+
+                // What a cover has to be. Settings rather than facts: every
+                // store publishes its own specification and they disagree at
+                // the edges, so no distributor is named here or in the code
+                // that reads these. Zero means no requirement, everywhere.
+                $this->plain('SANITUBE_ARTWORK_MINIMUM_PIXELS', (string) $this->config->get('artwork.requirements.minimum_pixels')),
+                $this->plain('SANITUBE_ARTWORK_MAXIMUM_PIXELS', (string) $this->config->get('artwork.requirements.maximum_pixels')),
+                $this->plain('SANITUBE_ARTWORK_MAXIMUM_BYTES', (string) $this->config->get('artwork.requirements.maximum_bytes')),
+                $this->plain('SANITUBE_ARTWORK_REQUIRE_SQUARE', $this->flag('artwork.requirements.must_be_square')),
+                $this->plain('SANITUBE_ARTWORK_REFUSE_CMYK', $this->flag('artwork.requirements.refuse_cmyk')),
+
+                // CFG-005's ceilings, for the third supplier that costs money
+                // per call. Requests, never a price: this platform observes
+                // what it asks for and has no opinion about an invoice.
+                $this->plain('SANITUBE_ARTWORK_DAILY_LIMIT', (string) $this->config->get('artwork.limits.daily')),
+                $this->plain('SANITUBE_ARTWORK_WEEKLY_LIMIT', (string) $this->config->get('artwork.limits.weekly')),
+                $this->plain('SANITUBE_ARTWORK_MONTHLY_LIMIT', (string) $this->config->get('artwork.limits.monthly')),
+
+                $this->plain('SANITUBE_ARTWORK_CIRCUIT_FAILURES', (string) $this->config->get('artwork.circuit.consecutive_failures')),
+                $this->plain('SANITUBE_ARTWORK_CIRCUIT_COOLDOWN', (string) $this->config->get('artwork.circuit.cooldown_minutes')),
+
+                $this->plain('SANITUBE_ARTWORK_CLAIM_SECONDS', (string) $this->config->get('artwork.submission_claim_seconds')),
+            ],
+            secrets: match ($selected) {
+                'openai' => [$this->secret('SANITUBE_ARTWORK_OPENAI_KEY', 'artwork.providers.openai.key')],
+                default => [],
+            },
+        );
+    }
+
+    /**
+     * Transcripts: whether they happen at all, and who is paid to make them.
+     *
+     * CFG-006. `automatic` is the field this section exists for. It is off by
+     * default and that default is a design decision rather than caution —
+     * turning it on over a library of four thousand masters spends four
+     * thousand paid calls before anybody has read the first transcript, and no
+     * ceiling elsewhere stops it, because OPS-002 guards the queue's depth and
+     * not an external bill. A decision that consequential should not require a
+     * shell to make **or to reverse**.
+     *
+     * The credential is its own field rather than the shared OpenAI one, and
+     * the section says so by naming the transcription variable: the
+     * configuration falls back to the shared key when this is unset, so an
+     * installation wanting a separate project or a separate budget sets this
+     * one and the fallback stops applying.
+     *
+     * @return array<string, mixed>
+     */
+    private function transcription(): array
+    {
+        $selected = (string) $this->config->get('transcription.provider', 'none');
+
+        return $this->section(
+            key: 'transcription',
+            selected: $selected,
+            known: $this->providers->isKnown('transcription', $selected),
+            options: $this->providers->names('transcription'),
+            settings: [
+                $this->plain('SANITUBE_TRANSCRIPTION_PROVIDER', $selected),
+                $this->plain('SANITUBE_TRANSCRIPTION_AUTOMATIC', $this->flag('transcription.automatic')),
+
+                ...match ($selected) {
+                    'openai' => [
+                        $this->plain('SANITUBE_TRANSCRIPTION_OPENAI_BASE_URL', (string) $this->config->get('transcription.providers.openai.base_url')),
+                        $this->plain('SANITUBE_TRANSCRIPTION_OPENAI_MODEL', (string) $this->config->get('transcription.providers.openai.model')),
+                        // Longer than the AI timeout on purpose: this call is
+                        // bounded by how long the audio is, not by how fast a
+                        // model writes a paragraph.
+                        $this->plain('SANITUBE_TRANSCRIPTION_TIMEOUT', (string) $this->config->get('transcription.providers.openai.timeout')),
+                        // Local policy, not a documented API limit. Zero
+                        // removes the ceiling and leaves the supplier's own
+                        // refusal as the authority.
+                        $this->plain('SANITUBE_TRANSCRIPTION_MAX_BYTES', (string) $this->config->get('transcription.providers.openai.max_bytes')),
+                    ],
+                    default => [],
+                },
+            ],
+            secrets: match ($selected) {
+                'openai' => [$this->secret('SANITUBE_TRANSCRIPTION_OPENAI_KEY', 'transcription.providers.openai.key')],
+                default => [],
+            },
         );
     }
 

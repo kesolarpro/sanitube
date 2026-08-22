@@ -37,6 +37,13 @@ final readonly class SelectableProviders
         'ai' => 'ai.providers',
         'generation' => 'generation.providers',
         'distribution' => 'distribution.distributors',
+        // CFG-006. Both were selectable only by editing `.env`, and both
+        // declare `none` alongside their real providers for the same reason
+        // the other three do: an installation that transcribes nothing and
+        // generates no covers is a configuration, not a gap, and it has to be
+        // choosable on the screen that offers the alternatives.
+        'artwork' => 'artwork.providers',
+        'transcription' => 'transcription.providers',
     ];
 
     public function __construct(private Repository $config) {}

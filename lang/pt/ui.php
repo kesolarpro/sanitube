@@ -253,6 +253,8 @@ return [
         'subsystem' => [
             'ai' => 'IA',
             'generation' => 'Geração musical',
+            'artwork' => 'Capas',
+            'transcription' => 'Transcrição',
             'distribution' => 'Distribuição',
         ],
     ],

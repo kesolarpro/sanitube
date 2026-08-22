@@ -79,6 +79,15 @@ final readonly class WritableSettings
             new WritableSetting('SANITUBE_GENERATION_MAX_POLLS', 'generation.poll.max_polls', false, ['integer', 'min:1', 'max:500']),
             new WritableSetting('SANITUBE_GENERATION_POLL_INTERVAL', 'generation.poll.interval_seconds', false, ['integer', 'min:5', 'max:3600']),
 
+            // --- artwork. CFG-006: the provider, its credential, what a
+            // cover has to be, and what generating one may cost.
+            ...$this->artwork(),
+
+            // --- transcription. CFG-006: the provider, its own credential,
+            // and the switch that decides whether every stored master is
+            // transcribed on arrival.
+            ...$this->transcription(),
+
             // --- distribution. A distributor with no credentials of its own
             // yet, so the choice is the whole surface.
             new WritableSetting('SANITUBE_DISTRIBUTOR', 'distribution.default', false, ['string', $this->providers->rule('distribution')]),
@@ -223,6 +232,110 @@ final readonly class WritableSettings
         ];
 
         return [...$settings, ...$variables, ...$limits];
+    }
+
+    /**
+     * Covers, and what one is allowed to be.
+     *
+     * CFG-006. The requirement thresholds are writable because they are
+     * settings rather than facts — every store publishes its own specification
+     * and they disagree at the edges, so an operator delivering somewhere with
+     * different rules changes a number here instead of patching a validator.
+     *
+     * **Zero has to stay sayable** in every one of them. It means "no
+     * requirement" for the thresholds and "no ceiling" for the limits, it is
+     * the shipped default for four of them, and a `min:1` anywhere here would
+     * make the configuration this platform ships unrepresentable on the form
+     * that edits it. `minimum_pixels` is the exception and is bounded below by
+     * 0 rather than by a real minimum, because a cover requirement of zero is
+     * a legitimate decision for an installation that validates artwork
+     * elsewhere.
+     *
+     * @return list<WritableSetting>
+     */
+    private function artwork(): array
+    {
+        $settings = [
+            new WritableSetting('SANITUBE_ARTWORK_PROVIDER', 'artwork.default_provider', false, ['string', $this->providers->rule('artwork')]),
+            new WritableSetting('SANITUBE_ARTWORK_GENERATION_ENABLED', 'artwork.generation_enabled', false, ['string', 'in:true,false']),
+        ];
+
+        $variables = match ((string) $this->config->get('artwork.default_provider', 'none')) {
+            'openai' => [
+                new WritableSetting('SANITUBE_ARTWORK_OPENAI_KEY', 'artwork.providers.openai.key', true, ['string', 'max:255']),
+                new WritableSetting('SANITUBE_ARTWORK_OPENAI_BASE_URL', 'artwork.providers.openai.base_url', false, ['url', 'max:255']),
+                new WritableSetting('SANITUBE_ARTWORK_OPENAI_MODEL', 'artwork.providers.openai.model', false, ['string', 'max:128']),
+                // A closed list here, unlike the model, and the difference is
+                // real: the three formats are what the platform's own
+                // validator accepts, not what a vendor may add to next week.
+                new WritableSetting('SANITUBE_ARTWORK_OPENAI_FORMAT', 'artwork.providers.openai.output_format', false, ['string', 'in:png,jpeg,webp']),
+                new WritableSetting('SANITUBE_ARTWORK_TIMEOUT', 'artwork.providers.openai.timeout', false, ['integer', 'min:1', 'max:600']),
+            ],
+            default => [],
+        };
+
+        $requirements = [
+            new WritableSetting('SANITUBE_ARTWORK_MINIMUM_PIXELS', 'artwork.requirements.minimum_pixels', false, ['integer', 'min:0', 'max:20000']),
+            new WritableSetting('SANITUBE_ARTWORK_MAXIMUM_PIXELS', 'artwork.requirements.maximum_pixels', false, ['integer', 'min:0', 'max:20000']),
+            new WritableSetting('SANITUBE_ARTWORK_MAXIMUM_BYTES', 'artwork.requirements.maximum_bytes', false, ['integer', 'min:0']),
+            new WritableSetting('SANITUBE_ARTWORK_REQUIRE_SQUARE', 'artwork.requirements.must_be_square', false, ['string', 'in:true,false']),
+            new WritableSetting('SANITUBE_ARTWORK_REFUSE_CMYK', 'artwork.requirements.refuse_cmyk', false, ['string', 'in:true,false']),
+        ];
+
+        $ceilings = [
+            new WritableSetting('SANITUBE_ARTWORK_DAILY_LIMIT', 'artwork.limits.daily', false, ['integer', 'min:0', 'max:100000']),
+            new WritableSetting('SANITUBE_ARTWORK_WEEKLY_LIMIT', 'artwork.limits.weekly', false, ['integer', 'min:0', 'max:100000']),
+            new WritableSetting('SANITUBE_ARTWORK_MONTHLY_LIMIT', 'artwork.limits.monthly', false, ['integer', 'min:0', 'max:100000']),
+            // Zero disables the breaker entirely, which config/artwork.php
+            // documents as a legitimate setting for an operator who would
+            // rather see every failure than have the platform stop asking.
+            new WritableSetting('SANITUBE_ARTWORK_CIRCUIT_FAILURES', 'artwork.circuit.consecutive_failures', false, ['integer', 'min:0', 'max:1000']),
+            new WritableSetting('SANITUBE_ARTWORK_CIRCUIT_COOLDOWN', 'artwork.circuit.cooldown_minutes', false, ['integer', 'min:1', 'max:1440']),
+            // Bounded below by a minute. A claim shorter than one provider
+            // call is a request two workers take at once.
+            new WritableSetting('SANITUBE_ARTWORK_CLAIM_SECONDS', 'artwork.submission_claim_seconds', false, ['integer', 'min:60', 'max:86400']),
+        ];
+
+        return [...$settings, ...$variables, ...$requirements, ...$ceilings];
+    }
+
+    /**
+     * Transcripts, and the switch that decides how many get paid for.
+     *
+     * CFG-006. `SANITUBE_TRANSCRIPTION_AUTOMATIC` is the reason this section
+     * had to become writable. It is the one setting on this screen that turns
+     * a per-file cost on for every master an installation already holds, and
+     * it was reachable only over SSH — so an operator who wanted it could not
+     * switch it on, and an operator who regretted it could not switch it off.
+     *
+     * @return list<WritableSetting>
+     */
+    private function transcription(): array
+    {
+        $settings = [
+            new WritableSetting('SANITUBE_TRANSCRIPTION_PROVIDER', 'transcription.provider', false, ['string', $this->providers->rule('transcription')]),
+            new WritableSetting('SANITUBE_TRANSCRIPTION_AUTOMATIC', 'transcription.automatic', false, ['string', 'in:true,false']),
+        ];
+
+        $variables = match ((string) $this->config->get('transcription.provider', 'none')) {
+            'openai' => [
+                // Its own key rather than the shared one. The configuration
+                // falls back to the AI module's credentials when this is
+                // unset, so an installation wanting a separate project or a
+                // separate budget sets this and the fallback stops applying.
+                new WritableSetting('SANITUBE_TRANSCRIPTION_OPENAI_KEY', 'transcription.providers.openai.key', true, ['string', 'max:255']),
+                new WritableSetting('SANITUBE_TRANSCRIPTION_OPENAI_BASE_URL', 'transcription.providers.openai.base_url', false, ['url', 'max:255']),
+                new WritableSetting('SANITUBE_TRANSCRIPTION_OPENAI_MODEL', 'transcription.providers.openai.model', false, ['string', 'max:128']),
+                new WritableSetting('SANITUBE_TRANSCRIPTION_TIMEOUT', 'transcription.providers.openai.timeout', false, ['integer', 'min:1', 'max:3600']),
+                // Zero removes the ceiling and leaves the supplier's own
+                // refusal as the authority, which config/transcription.php
+                // documents as the deliberate meaning of the value.
+                new WritableSetting('SANITUBE_TRANSCRIPTION_MAX_BYTES', 'transcription.providers.openai.max_bytes', false, ['integer', 'min:0']),
+            ],
+            default => [],
+        };
+
+        return [...$settings, ...$variables];
     }
 
     /**
