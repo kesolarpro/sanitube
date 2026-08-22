@@ -341,6 +341,10 @@ export interface AssetRow {
     duration_ms: number | null;
     is_duplicate: boolean;
     is_derivative: boolean;
+    /** DUP-001. Set aside, and therefore restorable from this list. */
+    is_trashed: boolean;
+    trashed_at: string | null;
+    trash_reason: string | null;
     stored_at: string | null;
     verified_at: string | null;
     created_at: string | null;
@@ -357,6 +361,15 @@ export interface AssetFilters {
     kind: string | null;
     status: string | null;
     duplicates: string | null;
+    /**
+     * `null` hides the trash, `only` shows nothing else, `all` shows both.
+     *
+     * DUP-001. The read model has supported this from the start; nothing on
+     * the screen ever sent it, so an asset set aside for a reason other than a
+     * duplicate finding — a wrong upload, unusable audio — could be listed
+     * only by typing the query string by hand, and restored from nowhere.
+     */
+    trashed: string | null;
 }
 
 export interface AssetDetail {

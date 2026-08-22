@@ -1319,6 +1319,7 @@ return [
             'releases' => 'Sorties',
             'dimensions' => 'Dimensions',
             'actions' => 'Actions',
+            'trash' => 'Corbeille',
         ],
         'filter' => [
             'status' => 'État',
@@ -1329,6 +1330,10 @@ return [
             'any_content' => 'Tous les contenus',
             'any_type' => 'Tous les types',
             'any_kind' => 'Tous les types',
+            'trash' => 'Corbeille',
+            'trash_hidden' => 'Masquée',
+            'trash_only' => 'Corbeille seule',
+            'trash_all' => 'Les deux',
         ],
         'source' => [
             'UPLOAD' => 'Téléversement',
@@ -1411,6 +1416,8 @@ return [
     ],
 
     'duplicates' => [
+        'open' => 'Restent à décider',
+        'open_none' => 'Plus rien à décider',
         'title' => 'Doublons',
         'description' => "Des fichiers qui contiennent peut-être le même enregistrement. Rien n'est décidé tant que vous ne décidez pas, et rien n'est supprimé.",
         'empty' => 'Aucun doublon trouvé',

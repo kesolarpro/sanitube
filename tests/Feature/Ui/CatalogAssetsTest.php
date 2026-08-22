@@ -103,6 +103,44 @@ final class CatalogAssetsTest extends TestCase
     }
 
     #[Test]
+    public function the_screen_asks_for_the_trash_the_same_way_the_query_understands_it(): void
+    {
+        // DUP-001. The read model has supported `trashed` from the start and
+        // nothing on the screen ever sent it, so the only way to see the trash
+        // was to type the query string by hand. A filter the interface cannot
+        // reach is a filter that does not exist.
+        $trashed = $this->asset();
+        $trashed->forceFill(['trashed_at' => now(), 'trash_reason' => 'WRONG_UPLOAD'])->save();
+
+        $response = $this->actingAs($this->user())->get('/catalog/assets?trashed=only');
+
+        $response->assertOk();
+
+        $props = $response->viewData('page')['props'];
+
+        // Echoed back, because the control has to come back showing what was
+        // asked for rather than resetting itself on every page load.
+        $this->assertSame('only', $props['filters']['trashed']);
+        $this->assertSame([$trashed->uuid], array_column($props['page']['rows'], 'uuid'));
+    }
+
+    #[Test]
+    public function a_trashed_row_carries_what_a_restore_control_needs(): void
+    {
+        $trashed = $this->asset();
+        $trashed->forceFill(['trashed_at' => now(), 'trash_reason' => 'UNUSABLE_AUDIO'])->save();
+
+        $rows = $this->app->make(AssetIndexQuery::class)->paginate(['trashed' => 'only'])['rows'];
+
+        // An asset set aside for a reason other than a duplicate finding had
+        // no restore control anywhere: the only one in the interface lived on
+        // the duplicates page, beside a finding this asset does not have.
+        $this->assertTrue($rows[0]['is_trashed']);
+        $this->assertSame('UNUSABLE_AUDIO', $rows[0]['trash_reason']);
+        $this->assertNotNull($rows[0]['trashed_at']);
+    }
+
+    #[Test]
     public function the_trash_can_be_listed_on_its_own(): void
     {
         $kept = $this->asset();

@@ -1319,6 +1319,7 @@ return [
             'releases' => 'Releases',
             'dimensions' => 'Dimensions',
             'actions' => 'Actions',
+            'trash' => 'Trash',
         ],
         'filter' => [
             'status' => 'Status',
@@ -1329,6 +1330,10 @@ return [
             'any_content' => 'Any content',
             'any_type' => 'Any type',
             'any_kind' => 'Any kind',
+            'trash' => 'Trash',
+            'trash_hidden' => 'Hidden',
+            'trash_only' => 'Only the trash',
+            'trash_all' => 'Both',
         ],
         'source' => [
             'UPLOAD' => 'Upload',
@@ -1411,6 +1416,8 @@ return [
     ],
 
     'duplicates' => [
+        'open' => 'Still to decide',
+        'open_none' => 'Nothing left to decide',
         'title' => 'Duplicates',
         'description' => 'Files that may hold the same recording. Nothing here is decided until you decide it, and nothing is deleted.',
         'empty' => 'No duplicates found',

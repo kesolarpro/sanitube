@@ -50,6 +50,16 @@ export interface DuplicatePage {
     next_cursor: string | null;
     previous_cursor: string | null;
     per_page: number;
+    /**
+     * Findings nobody has answered yet, whatever this page is filtered to.
+     *
+     * DUP-001. A cursor-paginated list has no total by design — that is what
+     * makes it cheap over a large table — so a reviewer had no way to tell
+     * whether the backlog was shrinking. This is deliberately not the count of
+     * the filtered page: what a person wants to know between decisions is how
+     * many are still theirs to make.
+     */
+    open: number;
 }
 
 export interface DuplicateFilters {

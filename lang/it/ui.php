@@ -1319,6 +1319,7 @@ return [
             'releases' => 'Pubblicazioni',
             'dimensions' => 'Dimensioni',
             'actions' => 'Azioni',
+            'trash' => 'Cestino',
         ],
         'filter' => [
             'status' => 'Stato',
@@ -1329,6 +1330,10 @@ return [
             'any_content' => 'Qualsiasi contenuto',
             'any_type' => 'Qualsiasi tipo',
             'any_kind' => 'Qualsiasi tipo',
+            'trash' => 'Cestino',
+            'trash_hidden' => 'Nascosto',
+            'trash_only' => 'Solo il cestino',
+            'trash_all' => 'Entrambi',
         ],
         'source' => [
             'UPLOAD' => 'Caricamento',
@@ -1411,6 +1416,8 @@ return [
     ],
 
     'duplicates' => [
+        'open' => 'Ancora da decidere',
+        'open_none' => 'Non resta nulla da decidere',
         'title' => 'Duplicati',
         'description' => 'File che potrebbero contenere la stessa registrazione. Nulla viene deciso finché non decidete voi, e nulla viene eliminato.',
         'empty' => 'Nessun duplicato trovato',

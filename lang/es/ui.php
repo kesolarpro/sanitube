@@ -1319,6 +1319,7 @@ return [
             'releases' => 'Lanzamientos',
             'dimensions' => 'Dimensiones',
             'actions' => 'Acciones',
+            'trash' => 'Papelera',
         ],
         'filter' => [
             'status' => 'Estado',
@@ -1329,6 +1330,10 @@ return [
             'any_content' => 'Cualquier contenido',
             'any_type' => 'Cualquier tipo',
             'any_kind' => 'Cualquier tipo',
+            'trash' => 'Papelera',
+            'trash_hidden' => 'Oculta',
+            'trash_only' => 'Solo la papelera',
+            'trash_all' => 'Ambas',
         ],
         'source' => [
             'UPLOAD' => 'Subida',
@@ -1411,6 +1416,8 @@ return [
     ],
 
     'duplicates' => [
+        'open' => 'Quedan por decidir',
+        'open_none' => 'Nada más que decidir',
         'title' => 'Duplicados',
         'description' => 'Archivos que podrían contener la misma grabación. Nada se decide hasta que usted lo decida, y nada se elimina.',
         'empty' => 'No se encontraron duplicados',
