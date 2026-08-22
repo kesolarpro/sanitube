@@ -26,7 +26,20 @@ export interface SettingsSection {
     options: string[];
     settings: SettingValue[];
     secrets: SettingValue[];
+    /**
+     * Which connection test this section may run, or null for one that has
+     * nothing to reach. The word comes from the server and is sent back
+     * unchanged — the browser never composes a target, so the button cannot
+     * become a request somebody else writes.
+     */
+    probe: string | null;
     complete: boolean;
+}
+
+/** What a connection test answers with. Never a URL, never a credential. */
+export interface ProbeResult {
+    status: string;
+    checks: { name: string; outcome: string; detail: string | null }[];
 }
 
 export interface ApplicationSettings {

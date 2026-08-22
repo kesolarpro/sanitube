@@ -50,6 +50,7 @@ use SaniTube\Ui\Http\Controllers\Releases\ReleaseBuilderController;
 use SaniTube\Ui\Http\Controllers\Releases\ReleaseIndexController;
 use SaniTube\Ui\Http\Controllers\Releases\ReleasePackageController;
 use SaniTube\Ui\Http\Controllers\Releases\ReleasePickerController;
+use SaniTube\Ui\Http\Controllers\Settings\ConnectionTestController;
 use SaniTube\Ui\Http\Controllers\Settings\SettingsController;
 use SaniTube\Ui\Http\Controllers\Settings\SettingsUpdateController;
 use SaniTube\Ui\Http\Controllers\Studio\GenerationDetailController;
@@ -417,6 +418,17 @@ Route::middleware(['web', HandleInertiaRequests::class, 'auth', 'active'])->grou
          * What may be written is WritableSettings' list and nothing else.
          */
         Route::patch('settings', SettingsUpdateController::class)->name('settings.update');
+
+        /*
+         * CFG-001. "Does this actually work?", asked from the dashboard.
+         *
+         * A POST because it reaches out — a real object written and deleted,
+         * a real handshake — and behind the same role as the settings it
+         * tests. The target is a closed vocabulary, never an address the
+         * caller composes: that is the difference between a test button and
+         * an SSRF tool.
+         */
+        Route::post('settings/test', ConnectionTestController::class)->name('settings.test');
 
         // The one place a probe may run from a request: explicit, POST, and
         // pressed by a person who asked for it.

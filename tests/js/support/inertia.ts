@@ -27,7 +27,14 @@ export function usePage(): { props: typeof sharedProps } {
     return { props: sharedProps };
 }
 
+/** Every `router.patch` a spec provoked, in order. */
+export const patches: { url: string; data: Record<string, unknown> }[] = [];
+
 export const router = {
+    patch(url: string, data: Record<string, unknown>): void {
+        patches.push({ url, data });
+    },
+
     on(_event: string, handler: NavigationListener): () => void {
         navigationListeners.add(handler);
 

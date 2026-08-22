@@ -688,6 +688,8 @@ return [
             'generation' => 'Generación musical',
             'distribution' => 'Distribución',
             'api' => 'API',
+            'worker' => 'Worker',
+            'mail' => 'Correo',
         ],
 
         // SET-002. A subset of these is editable; the rest is still
@@ -698,6 +700,19 @@ return [
         'blank_means_unchanged' => 'Los campos vacíos se dejan como están.',
         'save' => 'Guardar cambios',
         'not_saved' => 'No se guardó nada',
+        // CFG-001. The button that asks whether a configured provider
+        // actually answers. Four words, never a fifth: a test that says
+        // "working" when it half-works sends nobody looking.
+        'test_connection' => 'Probar la conexión',
+        'testing' => 'Probando…',
+        'probe_unreachable' => 'La prueba no pudo ejecutarse. No se cambió nada.',
+        'probe_note' => 'Ejecuta la misma comprobación que usan los controles de despliegue y registra una certificación real cuando pasa. Una prueba de almacenamiento escribe, lee y borra su propio objeto, sin dejar nada. Nunca se muestra una dirección ni una credencial.',
+        'probe' => [
+            'CONNECTED' => 'Funciona',
+            'DEGRADED' => 'Funciona, con límites',
+            'FAILED' => 'No funciona',
+            'NOT_CONFIGURED' => 'Todavía no hay nada que probar',
+        ],
         'failure' => [
             'SETTINGS_NOT_WRITTEN' => 'No se pudo escribir el archivo .env. Se hizo una copia primero y se dejó exactamente como estaba.',
             'SETTINGS_CACHE_NOT_REBUILT' => 'No se pudo reconstruir la caché de configuración, así que se restauró el .env anterior. Una caché que ya no coincide con el archivo sería peor que no cambiar nada.',

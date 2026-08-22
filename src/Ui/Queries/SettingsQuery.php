@@ -6,6 +6,7 @@ namespace SaniTube\Ui\Queries;
 
 use Illuminate\Contracts\Config\Repository;
 use SaniTube\Storage\ProviderConfiguration;
+use SaniTube\Ui\Settings\ConnectionProbe;
 
 /**
  * What this installation is configured with — and never what it is configured
@@ -39,10 +40,22 @@ use SaniTube\Storage\ProviderConfiguration;
  * **Nothing here probes anything.** No provider call, no bucket round trip.
  * Whether a configured key actually works is a question for the operations
  * screen, and answering it here would mean an outage takes the settings page
- * down with it — the one page somebody opens to find out what is set.
+ * down with it — the one page somebody opens to find out what is set. A
+ * section may carry a `probe` naming a test an operator can *ask for*; naming
+ * it costs nothing and running it is a separate request.
  */
 final readonly class SettingsQuery
 {
+    /**
+     * Stands in for a value that is set and must not be shown.
+     *
+     * A worker URL is not a credential, but it is the address of a machine
+     * that holds one — and a settings screen is the most screenshotted page
+     * in any application. Present-or-absent is all this screen has ever
+     * promised about anything sensitive.
+     */
+    private const CONFIGURED_ELSEWHERE = '••••••••';
+
     public function __construct(
         private Repository $config,
         private ProviderConfiguration $storageProviders,
@@ -60,6 +73,8 @@ final readonly class SettingsQuery
                 $this->ai(),
                 $this->generation(),
                 $this->distribution(),
+                $this->worker(),
+                $this->mail(),
                 $this->api(),
             ],
         ];
@@ -127,6 +142,7 @@ final readonly class SettingsQuery
             options: $this->storageProviders->names(),
             settings: $settings,
             secrets: $secrets,
+            probe: ConnectionProbe::Storage,
         );
     }
 
@@ -203,6 +219,72 @@ final readonly class SettingsQuery
     }
 
     /**
+     * The remote worker, addressed the way every other section is.
+     *
+     * CFG-001. `selected` is the worker's *identity* when one has answered —
+     * never its URL: an address on a settings screen is an address in a
+     * screenshot, and this platform has never let one out. The token is a
+     * secret like any other and reported as present or absent, nothing more.
+     *
+     * @return array<string, mixed>
+     */
+    private function worker(): array
+    {
+        $url = trim((string) $this->config->get('worker.url'));
+        $configured = $url !== '' && trim((string) $this->config->get('worker.token')) !== '';
+
+        return $this->section(
+            key: 'worker',
+            // What this installation calls its worker, not where it is.
+            selected: $configured ? (string) $this->config->get('worker.identity', 'unnamed-worker') : 'none',
+            known: true,
+            options: [],
+            settings: [
+                $this->plain('SANITUBE_WORKER_URL', $url === '' ? '' : self::CONFIGURED_ELSEWHERE),
+                $this->plain('SANITUBE_WORKER_IDENTITY', (string) $this->config->get('worker.identity', '')),
+                $this->plain('SANITUBE_MEDIA_EXECUTION', (string) $this->config->get('media.execution', 'auto')),
+            ],
+            secrets: [
+                $this->secret('SANITUBE_WORKER_TOKEN', 'worker.token'),
+            ],
+            probe: ConnectionProbe::Worker,
+        );
+    }
+
+    /**
+     * Mail, which password resets depend on and nothing else announces.
+     *
+     * The password is a secret; the host and port are not, and an operator
+     * needs to see them to know which relay they are looking at.
+     *
+     * @return array<string, mixed>
+     */
+    private function mail(): array
+    {
+        $mailer = (string) $this->config->get('mail.default', 'log');
+        $transport = (string) $this->config->get(sprintf('mail.mailers.%s.transport', $mailer), $mailer);
+
+        return $this->section(
+            key: 'mail',
+            selected: $mailer,
+            // A log or array mailer is a real, known configuration that
+            // delivers nothing — reported as itself rather than as broken.
+            known: ! in_array($transport, ['log', 'array'], true),
+            options: array_values(array_filter(array_keys((array) $this->config->get('mail.mailers', [])), 'is_string')),
+            settings: [
+                $this->plain('MAIL_HOST', (string) $this->config->get(sprintf('mail.mailers.%s.host', $mailer), '')),
+                $this->plain('MAIL_PORT', (string) $this->config->get(sprintf('mail.mailers.%s.port', $mailer), '')),
+                $this->plain('MAIL_USERNAME', (string) $this->config->get(sprintf('mail.mailers.%s.username', $mailer), '')),
+                $this->plain('MAIL_FROM_ADDRESS', (string) $this->config->get('mail.from.address', '')),
+                $this->plain('MAIL_FROM_NAME', (string) $this->config->get('mail.from.name', '')),
+            ],
+            secrets: [
+                $this->secret('MAIL_PASSWORD', sprintf('mail.mailers.%s.password', $mailer)),
+            ],
+        );
+    }
+
+    /**
      * @return array<string, mixed>
      */
     private function api(): array
@@ -236,6 +318,7 @@ final readonly class SettingsQuery
         array $options,
         array $settings,
         array $secrets,
+        ?ConnectionProbe $probe = null,
     ): array {
         return [
             'key' => $key,
@@ -246,6 +329,11 @@ final readonly class SettingsQuery
             'options' => $options,
             'settings' => $settings,
             'secrets' => $secrets,
+            // Which probe this section may run, named by the *server*. The
+            // browser never composes a target: it can only send back one of
+            // the words the payload already gave it, so the button can never
+            // become a request somebody else writes.
+            'probe' => $probe?->value,
             'complete' => $known && ! $this->anyMissing($secrets),
         ];
     }

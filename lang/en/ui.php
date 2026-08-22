@@ -688,6 +688,8 @@ return [
             'generation' => 'Music generation',
             'distribution' => 'Distribution',
             'api' => 'API',
+            'worker' => 'Worker',
+            'mail' => 'Email',
         ],
 
         // SET-002. A subset of these is editable; the rest is still
@@ -698,6 +700,19 @@ return [
         'blank_means_unchanged' => 'Blank fields are left alone.',
         'save' => 'Save changes',
         'not_saved' => 'Nothing was saved',
+        // CFG-001. The button that asks whether a configured provider
+        // actually answers. Four words, never a fifth: a test that says
+        // "working" when it half-works sends nobody looking.
+        'test_connection' => 'Test connection',
+        'testing' => 'Testing…',
+        'probe_unreachable' => 'The test could not be run. Nothing was changed.',
+        'probe_note' => 'This runs the same probe the deployment checks use, and records a real certification when it passes. A storage test writes, reads and deletes its own object, leaving nothing behind. No address and no credential is ever shown.',
+        'probe' => [
+            'CONNECTED' => 'Working',
+            'DEGRADED' => 'Working, with limits',
+            'FAILED' => 'Not working',
+            'NOT_CONFIGURED' => 'Nothing to test yet',
+        ],
         'failure' => [
             'SETTINGS_NOT_WRITTEN' => 'The .env file could not be written. It was backed up first and has been left exactly as it was.',
             'SETTINGS_CACHE_NOT_REBUILT' => 'The configuration cache could not be rebuilt, so the previous .env has been restored. A cache that no longer matches the file would be worse than no change at all.',

@@ -2,7 +2,7 @@
  "$comment": "Machine-readable project state. Any new session reads this first, then verifies it against GitHub before trusting it. Written at the end of each ticket, so a stale entry means a session ended mid-ticket — check the branch and CI rather than the status field.",
  "updated_at": "2026-08-21",
  "current_phase": "Mission deploiement automatise terminee cote interne : DEP-007 a DEP-018 fusionnes. INTERNAL_DEPLOYMENT_AUTOMATION_COMPLETE = YES, READY_FOR_REAL_VPS_CERTIFICATION = YES. Le reste demande un vrai hote, un vrai identifiant, ou une decision humaine — le plan A-K est docs/deployment/certification-plan.md.",
- "last_completed_ticket": "DEP-020",
+ "last_completed_ticket": "UPL-004",
  "default_branch": "main — confirmed by API this session. The EXTERNAL_ADMIN_ACTION_REQUIRED blocker is cleared.",
  "tickets": {
   "ARCH-001": {
@@ -1025,12 +1025,19 @@
    "recorded_from": "git log origin/main (14879cd)"
   },
   "UPL-004": {
+   "status": "merged",
+   "pr": 149,
+   "ci": "green 13/13",
+   "note": "Le vrai MP3 refuse en production. L'ecran d'import promettait le plafond configure (2 Go) alors qu'un depot relaye meurt a post_max_size ; la regle qui reconcilie les deux n'existait que sur l'ecran d'upload unitaire. Elle vit desormais dans UploadAdmission et les deux ecrans la lisent. Un corps que PHP a jete repond HOST_UPLOAD_LIMIT (413) avec le nombre, au lieu de « le champ fichier est obligatoire ». Le docteur signale le desaccord avant qu'une personne ne le rencontre.",
+   "found_in_production": "https://sanitube.livegine.com — Bibliotheque > Importer un catalogue",
+   "recorded_from": "git log origin/main (74309f7)"
+  },
+  "CFG-001": {
    "status": "in_review",
    "pr": null,
    "ci": "pending",
    "branch": "claude/sanitube-autonomous-v1-5pycx0",
-   "note": "Le vrai MP3 refuse en production. L'ecran d'import promettait le plafond configure (2 Go) alors qu'un depot relaye meurt a post_max_size ; la regle qui reconcilie les deux n'existait que sur l'ecran d'upload unitaire. Elle vit desormais dans UploadAdmission et les deux ecrans la lisent. Un corps que PHP a jete repond HOST_UPLOAD_LIMIT (413) avec le nombre, au lieu de « le champ fichier est obligatoire ». Le docteur signale le desaccord avant qu'une personne ne le rencontre.",
-   "found_in_production": "https://sanitube.livegine.com — Bibliotheque > Importer un catalogue"
+   "note": "Le worker et le courrier rejoignent le centre de configuration ; POST /settings/test execute les memes sondes que les commandes et enregistre une vraie certification. La cible est un vocabulaire ferme (enum ConnectionProbe, une seule copie lue par le modele de lecture, la requete et le controleur), jamais une adresse composee par l'appelant. Les details sont censures en sortie : une lecture signee en echec cite sa propre URL signee. Le bouton « Tester la connexion » existe sur l'ecran, sinon l'endpoint n'aurait aucun appelant en production."
   }
  },
  "architecture_amendments": [
@@ -1132,9 +1139,9 @@
    "history": "Not rewritten. PRs #111-#122 were merged by earlier sessions and #123-#129 by the 2026-08-21 session while this policy still read active:true. That happened and stays on the record; the policy is superseded from today rather than retroactively."
   }
  },
- "main_sha": "14879cd",
- "current_ticket": "UPL-004",
- "tests": "1820 passed, 1 skipped, 23189 assertions",
+ "main_sha": "74309f7",
+ "current_ticket": "CFG-001",
+ "tests": "2307 passed, 1 skipped, 28845 assertions (PHP) + 33 (Vitest)",
  "phpstan": {
   "level": 6,
   "baseline": false,
