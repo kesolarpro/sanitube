@@ -187,6 +187,23 @@ final class SettingsWriteTest extends TestCase
         // form breaks every integration already pointed at this installation,
         // silently, at the moment of saving something else.
         'SANITUBE_API_PREFIX' => 'Changing it breaks every client already pointed here.',
+
+        // CFG-004. The platform *executes* whatever these name. Writing an
+        // executable path from a web form turns a stolen admin session into
+        // arbitrary command execution on the host — a different order of
+        // damage from every other setting on this page. They are published
+        // because an operator debugging a missing binary needs to see what is
+        // being looked for; changing one stays a .env edit, which is a shell
+        // they already have.
+        'SANITUBE_FFPROBE_PATH' => 'The platform executes it; a form field here is remote code execution.',
+        'SANITUBE_FPCALC_PATH' => 'The platform executes it; a form field here is remote code execution.',
+
+        // Repointing a running installation's queue does not move the jobs
+        // already sitting in the old connection. They are simply never run
+        // again, silently, while the screen reports a successful save. That is
+        // a migration, not a setting — the same reason DB_* has never been on
+        // this form.
+        'QUEUE_CONNECTION' => 'Switching it strands every job already queued elsewhere.',
     ];
 
     #[Test]

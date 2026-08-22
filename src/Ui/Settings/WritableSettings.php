@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace SaniTube\Ui\Settings;
 
 use Illuminate\Contracts\Config\Repository;
+use Illuminate\Contracts\Validation\ValidationRule;
 use SaniTube\Storage\ProviderConfiguration;
 use SaniTube\Ui\Queries\SettingsQuery;
+use SaniTube\Ui\Settings\Rules\OutsideTheWebRoot;
 
 /**
  * Everything the settings screen may write, and nothing else.
@@ -102,6 +104,53 @@ final readonly class WritableSettings
             new WritableSetting('MAIL_PASSWORD', 'mail.mailers.smtp.password', true, ['string', 'max:255']),
             new WritableSetting('MAIL_FROM_ADDRESS', 'mail.from.address', false, ['email', 'max:255']),
             new WritableSetting('MAIL_FROM_NAME', 'mail.from.name', false, ['string', 'max:255']),
+
+            // --- audio and media. CFG-004. What this installation will accept
+            // and how patiently it inspects it. The upload ceilings were
+            // configurable and invisible, which is the combination UPL-004 was
+            // about: an operator on a host with a small post_max_size needs to
+            // see the number the application promises.
+            //
+            // The binary *paths* are absent on purpose, and named in
+            // SettingsWriteTest with the reason: writing an executable path
+            // from a web form turns a stolen session into arbitrary command
+            // execution.
+            new WritableSetting('SANITUBE_MAX_MASTER_BYTES', 'assets.max_upload_bytes.AUDIO_MASTER', false, ['integer', 'min:0', 'max:17179869184']),
+            new WritableSetting('SANITUBE_MAX_DERIVATIVE_BYTES', 'assets.max_upload_bytes.AUDIO_DERIVATIVE', false, ['integer', 'min:0', 'max:17179869184']),
+            new WritableSetting('SANITUBE_MAX_ARTWORK_BYTES', 'assets.max_upload_bytes.ARTWORK', false, ['integer', 'min:0', 'max:17179869184']),
+            new WritableSetting('SANITUBE_ASSET_PREVIEW_TTL', 'assets.preview.ttl_seconds', false, ['integer', 'min:60', 'max:86400']),
+            new WritableSetting('SANITUBE_STAGING_TTL_HOURS', 'assets.staging.ttl_hours', false, ['integer', 'min:1', 'max:720']),
+            new WritableSetting('SANITUBE_MEDIA_ANALYSIS_REQUIRED', 'media.analysis_required', false, ['string', 'in:true,false']),
+            new WritableSetting('SANITUBE_FFPROBE_TIMEOUT', 'media.ffprobe.timeout', false, ['integer', 'min:5', 'max:3600']),
+            new WritableSetting('SANITUBE_FPCALC_TIMEOUT', 'media.fingerprint.timeout', false, ['integer', 'min:5', 'max:3600']),
+
+            // --- queue. The *connection* is absent, and named with its
+            // reason: repointing a running installation's queue does not move
+            // the jobs already sitting in the old one. They are simply never
+            // run again, and the screen would report success.
+            new WritableSetting('SANITUBE_BACKLOG_CEILING', 'operations.backlog.ceiling', false, ['integer', 'min:1', 'max:10000000']),
+
+            // --- backup. The destination is checked here as well as at backup
+            // time: a form that accepts a path the next run will refuse is a
+            // form that lets somebody save a configuration which fails at two
+            // in the morning.
+            new WritableSetting('SANITUBE_BACKUP_PATH', 'backup.destination', false, ['string', 'max:4096', new OutsideTheWebRoot(public_path())]),
+            new WritableSetting('SANITUBE_BACKUP_KEEP', 'backup.keep', false, ['integer', 'min:1', 'max:365']),
+            // An empty value is how an operator turns the scheduled backup off,
+            // and blank means unchanged on this form — so switching it off
+            // stays a .env edit, like every other removal here.
+            new WritableSetting('SANITUBE_BACKUP_AT', 'backup.schedule_at', false, ['date_format:H:i']),
+
+            // --- production automation. How long a claimed occasion stays
+            // claimed. What a plan is *allowed* to do is not here: that belongs
+            // to the plan, per plan, and a global switch would change what
+            // every plan may do at once.
+            new WritableSetting('SANITUBE_PRODUCTION_CLAIM_LEASE_SECONDS', 'production.claim_lease_seconds', false, ['integer', 'min:60', 'max:86400']),
+            new WritableSetting('SANITUBE_PRODUCTION_RECLAIM_BATCH', 'production.reclaim_batch', false, ['integer', 'min:1', 'max:10000']),
+
+            // --- system. The thresholds the health screens judge against.
+            new WritableSetting('SANITUBE_DISK_WARN_MB', 'operations.disk.warn_below_mb', false, ['integer', 'min:1', 'max:1048576']),
+            new WritableSetting('SANITUBE_DISK_BLOCKER_MB', 'operations.disk.blocker_below_mb', false, ['integer', 'min:1', 'max:1048576']),
 
             new WritableSetting('SANITUBE_INTERNAL_API_TOKEN', 'sanitube.api.internal_token', true, ['string', 'min:32', 'max:255']),
             new WritableSetting('SANITUBE_HEALTH_TOKEN', 'sanitube.health.token', true, ['string', 'min:32', 'max:255']),
@@ -208,7 +257,7 @@ final readonly class WritableSettings
      * a secret, a blank one means "unchanged". Requiredness is not a property
      * of a settings form — nothing on it has to be filled in to save the rest.
      *
-     * @return array<string, list<string>>
+     * @return array<string, list<string|ValidationRule>>
      */
     public function rules(): array
     {
