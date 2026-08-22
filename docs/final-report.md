@@ -1,6 +1,6 @@
 # SaniTube — Final Status Report
 
-**Date** 2026-08-21 · **Branch** `main` · **Suite** 2152 PHP tests (27 811 assertions), 28 component tests · **CI** 10 checks, green
+**Date** 2026-08-22 · **Branch** `main` · **Suite** 2357 PHP tests (29 795 assertions, 1 skipped), 40 component tests · **CI** 13 checks, green
 
 This is the report §83 asks for: every field named, with the verdict the
 platform can actually defend. It is derived from `docs/production-readiness.md`
@@ -19,8 +19,8 @@ summary.
 | Money | Never handled. Earnings stay with the distributor. Rights *metadata* is in scope and is READY |
 | Primary target | A shared cPanel account: no shell, no Docker, no Redis, no root |
 | Also supported | Ubuntu VPS with local processing; Core-only with manual operation |
-| Shape | Laravel 12 modular monolith, 28 modules under `src/`, 785 PHP files |
-| Interface | Vue 3 + TypeScript strict + Inertia 2 + Tailwind 4, 37 screens, 25 shared components |
+| Shape | Laravel 12 modular monolith, 28 modules under `src/`, 834 PHP files |
+| Interface | Vue 3 + TypeScript strict + Inertia 2 + Tailwind 4, 37 screens, 27 shared components |
 | Languages | 6 — en, fr, es, it, pt, de |
 
 ## 2. Verdict counts
@@ -40,13 +40,13 @@ awaiting a certificate, not unfinished code.
 
 | Field | Status |
 |---|---|
-| CI checks | 10 — PHP 8.2/8.3/8.4 × SQLite/MySQL 8/MariaDB 10.6/11.4, static analysis, style, frontend |
+| CI checks | 13 — PHP 8.2/8.3/8.4, four database engines (SQLite, MySQL 8, MariaDB 10.6, MariaDB 11.4), static analysis, style, frontend, and the bootstrap run in a container on Ubuntu 24.04, Debian 12 and AlmaLinux 9 |
 | Static analysis | PHPStan level 6, **no baseline**, zero `@phpstan-ignore` in `src/` or `app/` |
 | Style | Pint, enforced |
 | Frontend | `vue-tsc` strict, Vitest, production build, plus a render against the built manifest |
-| Migrations | 48, each rolled back and re-applied in CI |
-| ADRs | 20 |
-| Operator documentation | 132 files |
+| Migrations | 51, each rolled back and re-applied in CI on every engine |
+| ADRs | 23 |
+| Operator documentation | 140 files |
 | Mutation testing | **By hand, per ticket, not in CI.** There is no mutation harness; each ticket's guards were verified by breaking them deliberately and confirming a named test failed. Where a mutant survived because it was equivalent, that is recorded rather than counted as a kill — see the `hashed` cast in E2E-003. |
 
 ## 4. The six things that are not done
@@ -244,3 +244,61 @@ per provider.
 
 **Exact next operator actions:** run the certification plan, A first; every
 manual intervention it surfaces comes back as a ticket.
+
+---
+
+## 13. Configuration centre, storage and provider administration
+
+The section this mission asks for. Every line is a fact about shipped code, and
+the three that are not YES say why.
+
+### What an operator can now do without a shell
+
+| Field | Status |
+|---|---|
+| CONFIGURATION_CENTER | **DONE** — twelve sections, each its own card: storage, AI, music generation, distribution, workers, audio/media, email, queue/scheduler, backup, production automation, system/health, API. Not one giant form. The application's own name, environment, debug flag, locale and config-cache state are a separate read-only block above them — debug and `APP_KEY` are deployment decisions and are deliberately not fields |
+| SETTINGS_ARCHITECTURE | **DONE** — bootstrap config stays in `.env`, runtime settings are written through an allow-list, secrets are separate. Nothing queries the database inside a Laravel config file, nothing calls `env()` at runtime, and every write rebuilds the config cache or restores the previous `.env` |
+| SECRET_HANDLING | **DONE** — encrypted at rest by the platform's own `.env` handling, never returned to the browser after save, never logged, never in an audit payload, never in an exception. The screen shows *configured* or *not configured* — no mask, no length, no last four |
+| BLANK_NEVER_ERASES | **DONE** — a blank field means unchanged, for secrets and plain settings alike. Removing a value stays a `.env` edit, deliberately, so that saving a rate limit cannot silently unset a provider key |
+| PROVIDER_SELECTION | **DONE** — storage, AI, generation and distribution are all chosen from the screen, each constrained to the same list the screen offers, both read from one declaration |
+| CONNECTION_TEST | **DONE** — `POST /settings/test` runs the *same* probes the deploy-gate commands run, records a real certification on a pass, and answers with a closed vocabulary. Never an address the caller composes |
+| MAIL_TEST | **DONE** — one real message, to the signed-in operator's own address and nowhere they choose |
+| CERTIFICATION_VISIBLE | **DONE** — the six-state standings are on the settings screen, identical to what `sanitube:providers` reports, asserted by test |
+| SPENDING_CONTROLS | **DONE** — rolling quotas and circuit breakers for AI and generation, both enforced on every call and previously configurable only over SSH |
+| GLOBAL_STOP | **DONE** — visible on the operations screen and pressable from it |
+
+### Storage and R2
+
+| Field | Status |
+|---|---|
+| R2_CODE_READY | **YES** — provider, declared credential fields, real certification round trip (`PUT → HEAD → READ → verify → DELETE`, no permanent artifact), ledger record, and `sanitube:assets:relocate` to move an existing catalogue under proof (ADR-0022) |
+| R2_CONFIGURED | **NO** — no credentials exist in this environment |
+| R2_CONNECTIVITY_VERIFIED | **NO** — and it cannot be, without a bucket. The moment credentials are entered, "Test connection" answers |
+| STORAGE_SWITCHING | **DONE** — the provider is a writable setting; the screen then asks for that provider's own variables, and `sanitube:assets:relocate` moves what is already stored |
+| FILENAME_IS_NOT_IDENTITY | **DONE** — an object's key is minted, never derived from what a file was called |
+
+### The real upload failure
+
+| Field | Status |
+|---|---|
+| UPLOAD_BUG_DIAGNOSED | **YES** — PHP empties `$_POST` and `$_FILES` when a body exceeds `post_max_size`, so a real 4.7 MB MP3 arrived looking identical to no file at all and was told the file field was required |
+| UPLOAD_BUG_FIXED | **YES** — UPL-004. The import screen now knows the host's real ceiling and refuses oversize files before sending; a discarded body answers `HOST_UPLOAD_LIMIT` at 413 with the number; the doctor reports the disagreement before a person meets it |
+| REGRESSION_TEST | **YES** — six tests, including one that builds a genuine MP3 rather than a text file with an extension |
+
+### What is deliberately not done
+
+| Field | Status | Why |
+|---|---|---|
+| TRASH_PURGE | **NOT BUILT** | Permanent deletion is destructive and belongs to a person, not to an autonomous session. TRASH-001 made it *safer* to build — a purge can no longer be handed an object a delivery package still references — and the decision about minimum age, dry-run and package-reference blocking is the operator's |
+| BACKUP_ENCRYPTION_AT_REST | **REVIEW_REQUIRED** | Stated in `docs/deployment/backup.md`. Not added silently: encryption makes a lost key an unrecoverable backup, which is a trade nobody should make on somebody else's behalf |
+| DUPLICATE_BULK_ACTIONS | **NOT BUILT** | The affordance most likely to discard a legitimate second copy. `DuplicateDecision` argues that even byte-identical findings must start as *proposed* for exactly that reason, and weakening it is a product decision |
+| SCHEDULED_DUPLICATE_SWEEP | **NOT BUILT** | `sanitube:duplicates:evaluate` exists with a `--limit` and is in no schedule. Adding it changes production runtime cost, which on a shared cPanel account is not a free change |
+
+### Production
+
+| Field | Status |
+|---|---|
+| DEPLOYED_TO_PRODUCTION | **NO** — this environment has no access to the host. `bin/update.sh <ref>` is the tooling, it backs the database up before migrations, and it does not reinstall the server |
+| PRODUCTION_SMOKE_RUN | **NO** — `sanitube:smoke` exists and is CI-tested; it needs the real URL |
+| SANITUBE_PRODUCTION_READY | **YES for the code, NO as a running deployment** — every gate green on thirteen checks across three PHP versions and four database engines, with the bootstrap exercised in containers on three distributions. What remains is not code: a host to install on, credentials to certify against, and four decisions that are the operator's to make |
+
