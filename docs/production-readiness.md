@@ -338,6 +338,8 @@ written down.
 
 | Control | Verdict | Notes |
 |---|---|---|
+| Worker and mail are administrable from the dashboard | READY | CFG-001. Both join the existing section model: the worker's *identity* is shown, never its URL — an address on a settings screen is an address in a screenshot — and its token is present-or-absent like every other secret. Mail exposes host, port, username, from-address; the password is a secret. The guardrail that every writable variable appears on the screen caught a mail variable that did not. |
+| "Test connection", from the dashboard | READY | CFG-001. `POST /settings/test` runs the *same* probes the commands run (`storage:check --certify`, `worker:check`) so a screen cannot disagree with the deploy gate, and a pass records a real certification in the shared ledger — a button cannot invent CERTIFIED. The target is a closed vocabulary held in one place (`ConnectionProbe`), read by the payload, the request rule and the controller alike: a section offering a probe the endpoint rejects would need that file to disagree with itself. Never an address the caller composes — that is the line between a test button and an SSRF tool. Details are scrubbed on the way out, because a failed signed read quotes its own signed URL, which is fine in a terminal and not in a browser. The button is on the screen: an endpoint with no caller is not a feature. |
 | Read what is configured, without values | READY | SET-001. |
 | Write configuration from the interface | READY | SET-002. Allow-list; blank never clears; config cache rebuilt or the file is restored. |
 | The screen names the variables this install reads | READY | STO-004. Per provider, from `config/storage.php`; a name outside the vocabulary is dropped, not offered. |

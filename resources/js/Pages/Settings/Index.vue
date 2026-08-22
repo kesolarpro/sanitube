@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, reactive } from 'vue';
 import { router, usePage } from '@inertiajs/vue3';
+import ProbeReport from '@/Components/Settings/ProbeReport.vue';
 import AppAlert from '@/Components/Ui/AppAlert.vue';
 import AppButton from '@/Components/Ui/AppButton.vue';
 import AppCard from '@/Components/Ui/AppCard.vue';
@@ -8,7 +9,7 @@ import CodeValue from '@/Components/Ui/CodeValue.vue';
 import TextInput from '@/Components/Ui/TextInput.vue';
 import { trans } from '@/Support/i18n';
 import type { SharedProps } from '@/Types/inertia';
-import type { SettingsOverview } from '@/Types/settings';
+import type { ProbeResult, SettingsOverview } from '@/Types/settings';
 
 /**
  * What this installation is configured with.
@@ -67,6 +68,61 @@ function save(): void {
             }
         },
     });
+}
+
+/**
+ * "Does this actually work?", asked without SSH.
+ *
+ * The target is never composed here: it is the word the payload gave this
+ * section, sent back unchanged. A settings screen that let the browser name
+ * what to reach would be a settings screen that reaches whatever anybody asks
+ * it to.
+ */
+const probing = reactive<Record<string, boolean>>({});
+const probed = reactive<Record<string, ProbeResult>>({});
+
+/** The last answer for a section, or null when it has not been asked. */
+function probeOf(key: string): ProbeResult | null {
+    return probed[key] ?? null;
+}
+
+function csrf(): string {
+    return document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content ?? '';
+}
+
+async function test(section: { key: string; probe: string | null }): Promise<void> {
+    const target = section.probe;
+
+    if (target === null || probing[section.key] === true) {
+        return;
+    }
+
+    probing[section.key] = true;
+    delete probed[section.key];
+
+    try {
+        const response = await fetch('/settings/test', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                Accept: 'application/json',
+                'X-CSRF-TOKEN': csrf(),
+            },
+            body: JSON.stringify({ target }),
+        });
+
+        if (!response.ok) {
+            throw new Error('refused');
+        }
+
+        probed[section.key] = (await response.json()) as ProbeResult;
+    } catch {
+        // Deliberately without detail. A request that never came back carries
+        // the address it could not reach, and this page has never let one out.
+        probed[section.key] = { status: 'UNREACHABLE', checks: [] };
+    } finally {
+        probing[section.key] = false;
+    }
 }
 </script>
 
@@ -208,6 +264,24 @@ function save(): void {
                 </ul>
 
                 <p class="mt-3 text-caption text-muted">{{ trans('ui.settings.never_shown') }}</p>
+            </div>
+
+            <!-- CFG-001. The one control on this page that reaches anything.
+                 It sends back the word the server put in `probe` and nothing
+                 else, so there is no address for a caller to choose. -->
+            <div v-if="section.probe !== null" class="mt-4 border-t border-border pt-3">
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                    <p class="text-caption text-muted">{{ trans('ui.settings.probe_note') }}</p>
+                    <AppButton :loading="probing[section.key] === true" @click="test(section)">
+                        {{
+                            probing[section.key] === true
+                                ? trans('ui.settings.testing')
+                                : trans('ui.settings.test_connection')
+                        }}
+                    </AppButton>
+                </div>
+
+                <ProbeReport :result="probeOf(section.key)" />
             </div>
         </AppCard>
 

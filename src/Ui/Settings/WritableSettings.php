@@ -66,6 +66,25 @@ final readonly class WritableSettings
             new WritableSetting('SANITUBE_GENERATION_POLL_INTERVAL', 'generation.poll.interval_seconds', false, ['integer', 'min:5', 'max:3600']),
 
             // --- API. Both are bearer credentials for server-to-server calls.
+            // CFG-001. The worker, addressable from the dashboard rather than
+            // only over SSH. The URL is validated as a URL and nothing more:
+            // a worker legitimately lives on a private address, and a rule
+            // that demanded a public one would refuse the deployment this
+            // platform documents.
+            new WritableSetting('SANITUBE_WORKER_URL', 'worker.url', false, ['url', 'max:255']),
+            new WritableSetting('SANITUBE_WORKER_TOKEN', 'worker.token', true, ['string', 'min:32', 'max:255']),
+            new WritableSetting('SANITUBE_WORKER_IDENTITY', 'worker.identity', false, ['string', 'max:64']),
+
+            // Mail, which password resets depend on. The password is a secret
+            // like any other; the rest is what an operator needs to see to
+            // know which relay they are looking at.
+            new WritableSetting('MAIL_HOST', 'mail.mailers.smtp.host', false, ['string', 'max:255']),
+            new WritableSetting('MAIL_PORT', 'mail.mailers.smtp.port', false, ['integer', 'min:1', 'max:65535']),
+            new WritableSetting('MAIL_USERNAME', 'mail.mailers.smtp.username', false, ['string', 'max:255']),
+            new WritableSetting('MAIL_PASSWORD', 'mail.mailers.smtp.password', true, ['string', 'max:255']),
+            new WritableSetting('MAIL_FROM_ADDRESS', 'mail.from.address', false, ['email', 'max:255']),
+            new WritableSetting('MAIL_FROM_NAME', 'mail.from.name', false, ['string', 'max:255']),
+
             new WritableSetting('SANITUBE_INTERNAL_API_TOKEN', 'sanitube.api.internal_token', true, ['string', 'min:32', 'max:255']),
             new WritableSetting('SANITUBE_HEALTH_TOKEN', 'sanitube.health.token', true, ['string', 'min:32', 'max:255']),
             new WritableSetting('SANITUBE_API_RATE_LIMIT', 'sanitube.api.rate_limit_per_minute', false, ['integer', 'min:1', 'max:10000']),

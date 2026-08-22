@@ -167,8 +167,19 @@ final class StorageSettingsTest extends TestCase
             $published = $this->publishedSecrecy();
             $writable = [];
 
+            // Scoped by asking the provider which variables are *its own*,
+            // rather than by excluding the SANITUBE_ prefix. The exclusion
+            // stood in for "storage variables are the ones without it" — true
+            // until CFG-001 made MAIL_* writable, at which point this test
+            // failed for a reason that had nothing to do with storage. A set
+            // derived from the thing it is about cannot drift that way.
+            $storageVariables = array_map(
+                static fn (object $field): string => (string) $field->variable,
+                $this->app->make(ProviderConfiguration::class)->selectedFields(),
+            );
+
             foreach ($this->app->make(WritableSettings::class)->all() as $setting) {
-                if (str_starts_with($setting->variable, 'SANITUBE_')) {
+                if (! in_array($setting->variable, $storageVariables, true)) {
                     continue;
                 }
 
