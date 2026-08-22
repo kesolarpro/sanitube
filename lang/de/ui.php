@@ -690,6 +690,11 @@ return [
             'api' => 'API',
             'worker' => 'Worker',
             'mail' => 'E-Mail',
+            'media' => 'Audio und Medien',
+            'queue' => 'Warteschlange und Planer',
+            'backup' => 'Sicherung',
+            'automation' => 'Produktionsautomatik',
+            'system' => 'System und Zustand',
         ],
 
         // SET-002. A subset of these is editable; the rest is still
@@ -735,6 +740,7 @@ return [
         'failure' => [
             'SETTINGS_NOT_WRITTEN' => 'Die .env-Datei konnte nicht geschrieben werden. Sie wurde zuvor gesichert und exakt so belassen, wie sie war.',
             'SETTINGS_CACHE_NOT_REBUILT' => 'Der Konfigurations-Cache konnte nicht neu erstellt werden, deshalb wurde die vorherige .env wiederhergestellt. Ein Cache, der nicht mehr zur Datei passt, wäre schlimmer als gar keine Änderung.',
+            'PATH_IS_PUBLIC' => 'Dieser Pfad liegt im Web-Root. Eine Sicherung dort ist die gesamte Datenbank, herunterladbar von jedem, der den Dateinamen errät.',
         ],
     ],
     'production' => [

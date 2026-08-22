@@ -49,6 +49,21 @@ function isWritable(variable: string): boolean {
     return props.writable.includes(variable);
 }
 
+/**
+ * What the server said about one field.
+ *
+ * CFG-004. Every writable setting on this page is validated — a provider name
+ * outside the vocabulary, a backup path inside the web root, a byte ceiling
+ * past what the host could carry — and until now none of those refusals had
+ * anywhere to appear. The form simply came back unchanged, which reads as "it
+ * saved" and is the worst possible answer to "it refused".
+ */
+function fieldError(variable: string): string | null {
+    const errors = page.props.errors as Record<string, string> | undefined;
+
+    return errors?.[variable] ?? null;
+}
+
 function save(): void {
     // Only what was actually typed into. Sending every field as an empty
     // string would mean nothing, since a blank field changes nothing — but it
@@ -233,6 +248,9 @@ async function test(section: { key: string; probe: string | null }): Promise<voi
                                     v-model="draft[setting.variable]"
                                     :placeholder="setting.value"
                                 />
+                                <p v-if="fieldError(setting.variable)" class="mt-1 text-caption text-danger">
+                                    {{ fieldError(setting.variable) }}
+                                </p>
                             </template>
                             <template v-else>{{ setting.value }}</template>
                         </dd>
@@ -264,15 +282,18 @@ async function test(section: { key: string; probe: string | null }): Promise<voi
                         <!-- Always empty, on every load. The field is where a
                              replacement is typed, never where the current
                              value is shown. -->
-                        <TextInput
-                            v-if="isWritable(secret.variable)"
-                            :id="secret.variable"
-                            v-model="draft[secret.variable]"
-                            type="password"
-                            autocomplete="new-password"
-                            class="w-full sm:w-64"
-                            :placeholder="trans('ui.settings.replace_placeholder')"
-                        />
+                        <div v-if="isWritable(secret.variable)" class="w-full sm:w-64">
+                            <TextInput
+                                :id="secret.variable"
+                                v-model="draft[secret.variable]"
+                                type="password"
+                                autocomplete="new-password"
+                                :placeholder="trans('ui.settings.replace_placeholder')"
+                            />
+                            <p v-if="fieldError(secret.variable)" class="mt-1 text-caption text-danger">
+                                {{ fieldError(secret.variable) }}
+                            </p>
+                        </div>
                     </li>
                 </ul>
 

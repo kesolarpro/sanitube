@@ -76,7 +76,12 @@ final readonly class SettingsQuery
                 $this->generation(),
                 $this->distribution(),
                 $this->worker(),
+                $this->media(),
                 $this->mail(),
+                $this->queue(),
+                $this->backup(),
+                $this->automation(),
+                $this->system(),
                 $this->api(),
             ],
         ];
@@ -289,6 +294,161 @@ final readonly class SettingsQuery
             ],
             probe: ConnectionProbe::Mail,
         );
+    }
+
+    /**
+     * What this installation will accept and how it inspects it.
+     *
+     * CFG-004. The upload ceilings were configurable and invisible, which is
+     * the combination UPL-004 was about: an operator on a host with a small
+     * `post_max_size` needs to see the number the application promises and set
+     * it to something the host can actually carry.
+     *
+     * **The binary paths are published and not writable.** Writing an
+     * executable path from a web form would turn a stolen session into
+     * arbitrary command execution — the platform runs whatever that value
+     * names. An operator who genuinely needs a different `ffprobe` edits
+     * `.env`, which is a shell they already have.
+     *
+     * @return array<string, mixed>
+     */
+    private function media(): array
+    {
+        /** @var array<string, int> $maxima */
+        $maxima = (array) $this->config->get('assets.max_upload_bytes', []);
+
+        return $this->section(
+            key: 'media',
+            selected: (string) $this->config->get('media.execution', 'auto'),
+            known: true,
+            options: ['auto', 'local', 'remote_worker'],
+            settings: [
+                $this->plain('SANITUBE_MAX_MASTER_BYTES', (string) ($maxima['AUDIO_MASTER'] ?? 0)),
+                $this->plain('SANITUBE_MAX_DERIVATIVE_BYTES', (string) ($maxima['AUDIO_DERIVATIVE'] ?? 0)),
+                $this->plain('SANITUBE_MAX_ARTWORK_BYTES', (string) ($maxima['ARTWORK'] ?? 0)),
+                $this->plain('SANITUBE_ASSET_PREVIEW_TTL', (string) $this->config->get('assets.preview.ttl_seconds')),
+                $this->plain('SANITUBE_STAGING_TTL_HOURS', (string) $this->config->get('assets.staging.ttl_hours')),
+                $this->plain('SANITUBE_MEDIA_ANALYSIS_REQUIRED', $this->flag('media.analysis_required')),
+                $this->plain('SANITUBE_FFPROBE_TIMEOUT', (string) $this->config->get('media.ffprobe.timeout')),
+                $this->plain('SANITUBE_FPCALC_TIMEOUT', (string) $this->config->get('media.fingerprint.timeout')),
+
+                // Read-only, and named in SettingsWriteTest with the reason.
+                $this->plain('SANITUBE_FFPROBE_PATH', (string) $this->config->get('media.ffprobe.path')),
+                $this->plain('SANITUBE_FPCALC_PATH', (string) $this->config->get('media.fingerprint.path')),
+            ],
+            secrets: [],
+        );
+    }
+
+    /**
+     * Where deferred work goes, and whether anything is taking it.
+     *
+     * CFG-004. Published, and the connection itself is **not** writable.
+     * Repointing a running installation's queue does not move the jobs already
+     * sitting in the old one — they are simply never run again, silently, and
+     * the screen would report success. That is a migration, not a setting,
+     * which is the same reason `DB_*` has never been on this form.
+     *
+     * @return array<string, mixed>
+     */
+    private function queue(): array
+    {
+        $connection = (string) $this->config->get('queue.default', 'sync');
+
+        return $this->section(
+            key: 'queue',
+            selected: $connection,
+            // `sync` runs jobs inside the request that made them. A real
+            // configuration for development and the wrong one for a server, so
+            // it is reported as itself rather than as broken.
+            known: $connection !== 'sync',
+            options: array_values(array_filter(array_keys((array) $this->config->get('queue.connections', [])), 'is_string')),
+            settings: [
+                $this->plain('QUEUE_CONNECTION', $connection),
+                $this->plain('SANITUBE_BACKLOG_CEILING', (string) $this->config->get('operations.backlog.ceiling')),
+            ],
+            secrets: [],
+        );
+    }
+
+    /**
+     * Where the database goes at night, and how many nights are kept.
+     *
+     * @return array<string, mixed>
+     */
+    private function backup(): array
+    {
+        $at = trim((string) $this->config->get('backup.schedule_at', ''));
+
+        return $this->section(
+            key: 'backup',
+            // An empty time is a real choice: no scheduled backup at all,
+            // which some operators make deliberately because their host
+            // snapshots the whole machine.
+            selected: $at === '' ? 'none' : $at,
+            known: true,
+            options: [],
+            settings: [
+                $this->plain('SANITUBE_BACKUP_PATH', (string) $this->config->get('backup.destination')),
+                $this->plain('SANITUBE_BACKUP_KEEP', (string) $this->config->get('backup.keep')),
+                $this->plain('SANITUBE_BACKUP_AT', $at),
+            ],
+            secrets: [],
+        );
+    }
+
+    /**
+     * How long a claimed occasion stays claimed.
+     *
+     * The autonomy a plan is allowed is **not** here: it belongs to the plan,
+     * per plan, in the database, and a global switch would silently change what
+     * every plan is permitted to do at once.
+     *
+     * @return array<string, mixed>
+     */
+    private function automation(): array
+    {
+        return $this->section(
+            key: 'automation',
+            selected: (string) $this->config->get('production.claim_lease_seconds'),
+            known: true,
+            options: [],
+            settings: [
+                $this->plain('SANITUBE_PRODUCTION_CLAIM_LEASE_SECONDS', (string) $this->config->get('production.claim_lease_seconds')),
+                $this->plain('SANITUBE_PRODUCTION_RECLAIM_BATCH', (string) $this->config->get('production.reclaim_batch')),
+            ],
+            secrets: [],
+        );
+    }
+
+    /**
+     * The thresholds the health screens judge against.
+     *
+     * @return array<string, mixed>
+     */
+    private function system(): array
+    {
+        return $this->section(
+            key: 'system',
+            selected: (string) $this->config->get('app.env'),
+            known: true,
+            options: [],
+            settings: [
+                $this->plain('SANITUBE_DISK_WARN_MB', (string) $this->config->get('operations.disk.warn_below_mb')),
+                $this->plain('SANITUBE_DISK_BLOCKER_MB', (string) $this->config->get('operations.disk.blocker_below_mb')),
+            ],
+            secrets: [
+                $this->secret('SANITUBE_HEALTH_TOKEN', 'sanitube.health.token'),
+            ],
+        );
+    }
+
+    /**
+     * A boolean as the two words a .env file understands.
+     */
+    private function flag(string $path): string
+    {
+        return $this->config->get($path) === true ? 'true' : 'false';
     }
 
     /**

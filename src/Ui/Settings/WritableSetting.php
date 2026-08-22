@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace SaniTube\Ui\Settings;
 
+use Illuminate\Contracts\Validation\ValidationRule;
+
 /**
  * One thing the settings screen is allowed to change.
  *
@@ -25,7 +27,7 @@ final readonly class WritableSetting
      * @param  string  $variable  the environment variable, which is what an operator edits
      * @param  string  $configPath  where the value lands after the config cache is rebuilt
      * @param  bool  $secret  whether the browser is told only configured/not configured
-     * @param  list<string>  $rules  validation, applied before anything is written
+     * @param  list<string|ValidationRule>  $rules  validation, applied before anything is written
      */
     public function __construct(
         public string $variable,
