@@ -56,6 +56,13 @@ final class SettingsWriteTest extends TestCase
             'SANITUBE_API_RATE_LIMIT=60',
         ])."\n");
 
+        // CFG-002. The fixture's .env describes an installation using OpenAI,
+        // so its configuration has to say so too. Before the AI variables were
+        // gated on the selection, this fixture could name a provider's
+        // credentials while the platform was configured to use no provider at
+        // all — writable, invisible on the screen, and read by nothing.
+        config(['ai.default' => 'openai']);
+
         $this->app->bind(EnvironmentFile::class, fn (): EnvironmentFile => new EnvironmentFile($this->sandbox.'/.env'));
     }
 
@@ -166,34 +173,74 @@ final class SettingsWriteTest extends TestCase
         $this->assertStringNotContainsString(base64_encode(str_repeat('x', 32)), $environment);
     }
 
+    /**
+     * Variables the screen publishes on purpose without offering to write them,
+     * each with the reason it is read-only.
+     *
+     * An exemption is a line with a sentence. A read-only setting is sometimes
+     * right; an unexplained one never is.
+     *
+     * @var array<string, string>
+     */
+    private const READ_ONLY_ON_PURPOSE = [
+        // The API prefix is in every published client URL. Changing it from a
+        // form breaks every integration already pointed at this installation,
+        // silently, at the moment of saving something else.
+        'SANITUBE_API_PREFIX' => 'Changing it breaks every client already pointed here.',
+    ];
+
     #[Test]
-    public function every_writable_variable_is_one_the_screen_actually_shows(): void
+    public function the_screen_and_the_writer_name_the_same_variables_in_every_configuration(): void
     {
         // Two lists that can drift are two lists that will, and the failure
         // mode is a field an operator can change and cannot see the state of.
-        // Across every provider selection, because the screen publishes a
-        // section's credentials only when that provider is the one in use —
-        // reading it in a single configuration would call three quarters of
-        // the list invisible.
         //
-        // A union is the weaker half of the guarantee: it proves nothing is
-        // writable that no screen ever shows. That the *storage* half agrees
-        // configuration by configuration — which is what STO-004 broke — is
-        // asserted in StorageSettingsTest, where a union would be no proof at
-        // all.
-        $published = [
-            ...$this->publishedVariables(['storage.default' => 's3', 'ai.default' => 'openai']),
-            ...$this->publishedVariables(['storage.default' => 'r2', 'ai.default' => 'claude']),
-            ...$this->publishedVariables(['storage.default' => 'b2', 'ai.default' => 'openai']),
-            ...$this->publishedVariables(['storage.default' => 'local', 'ai.default' => 'claude']),
+        // **Configuration by configuration, and in both directions.** A union
+        // was the weaker half: it proved nothing was writable that *no* screen
+        // ever shows, which let a variable be writable in every configuration
+        // and visible in one. CFG-002 found exactly that -- the AI credentials
+        // were owned by the writer unconditionally while the screen published
+        // them only for the selected provider, so on a `claude` installation
+        // the two OpenAI variables were writable and invisible.
+        //
+        // The other direction is the one that has no other test at all: a
+        // variable the screen publishes and nobody can write is a field that
+        // looks editable and refuses. Its exemptions are named above.
+        $configurations = [
+            ['storage.default' => 's3', 'ai.default' => 'openai', 'generation.default' => 'none', 'distribution.default' => 'none'],
+            ['storage.default' => 'r2', 'ai.default' => 'claude', 'generation.default' => 'fake', 'distribution.default' => 'fake'],
+            ['storage.default' => 'b2', 'ai.default' => 'none', 'generation.default' => 'acestep', 'distribution.default' => 'none'],
+            ['storage.default' => 'local', 'ai.default' => 'openai', 'generation.default' => 'fake', 'distribution.default' => 'none'],
         ];
 
-        foreach ($this->app->make(WritableSettings::class)->variables() as $variable) {
-            $this->assertContains(
-                $variable,
-                $published,
-                sprintf('[%s] can be written but never appears on the settings screen.', $variable),
-            );
+        foreach ($configurations as $configuration) {
+            $published = $this->publishedVariables($configuration);
+            $writable = $this->app->make(WritableSettings::class)->variables();
+            $describe = json_encode($configuration);
+
+            foreach ($writable as $variable) {
+                $this->assertContains(
+                    $variable,
+                    $published,
+                    sprintf('[%s] can be written and does not appear on the screen under %s.', $variable, $describe),
+                );
+            }
+
+            foreach ($published as $variable) {
+                if (array_key_exists($variable, self::READ_ONLY_ON_PURPOSE)) {
+                    continue;
+                }
+
+                $this->assertContains(
+                    $variable,
+                    $writable,
+                    sprintf(
+                        '[%s] appears on the screen under %s and nothing can write it. Make it writable, or name it in READ_ONLY_ON_PURPOSE with the reason.',
+                        $variable,
+                        $describe,
+                    ),
+                );
+            }
         }
     }
 

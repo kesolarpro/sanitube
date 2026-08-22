@@ -9,6 +9,8 @@
  * so this module's exports *are* the mocked module.
  */
 
+import { reactive } from 'vue';
+
 export type NavigationListener = () => void;
 
 /** Every listener currently registered through `router.on` and not yet removed. */
@@ -48,3 +50,27 @@ export const router = {
 };
 
 export const Link = { template: '<a><slot /></a>' };
+
+/**
+ * Enough of `useForm` for a screen to mount.
+ *
+ * A page that happens to contain a form should be testable for the things that
+ * are not the form — a banner, a link, an empty state. Deliberately small: the
+ * fields as given, an `errors` bag, a `processing` flag, and submissions
+ * recorded rather than sent.
+ */
+export const submissions: { url: string; data: Record<string, unknown> }[] = [];
+
+export function useForm<T extends Record<string, unknown>>(fields: T) {
+    return reactive({
+        ...fields,
+        errors: {} as Record<string, string>,
+        processing: false,
+        post(url: string): void {
+            submissions.push({ url, data: { ...fields } });
+        },
+        reset(): void {
+            Object.assign(this, fields);
+        },
+    });
+}

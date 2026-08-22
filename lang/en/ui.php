@@ -791,6 +791,7 @@ return [
         'provider' => 'Provider',
         'not_configured' => 'No generation provider is configured',
         'not_configured_note' => 'Nothing is wrong. Generation is optional, and SaniTube runs fully without it.',
+        'configure_provider' => 'Configure a provider',
         'unavailable' => 'The configured provider cannot run',
         'unavailable_note' => 'It is named in configuration but reports that it cannot accept work — usually missing credentials or unaccepted terms.',
         'available' => 'Ready to accept work',

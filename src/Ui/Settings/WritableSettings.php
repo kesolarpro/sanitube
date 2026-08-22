@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SaniTube\Ui\Settings;
 
+use Illuminate\Contracts\Config\Repository;
 use SaniTube\Storage\ProviderConfiguration;
 use SaniTube\Ui\Queries\SettingsQuery;
 
@@ -36,7 +37,11 @@ use SaniTube\Ui\Queries\SettingsQuery;
  */
 final readonly class WritableSettings
 {
-    public function __construct(private ProviderConfiguration $storageProviders) {}
+    public function __construct(
+        private ProviderConfiguration $storageProviders,
+        private SelectableProviders $providers,
+        private Repository $config,
+    ) {}
 
     /**
      * @return list<WritableSetting>
@@ -55,15 +60,19 @@ final readonly class WritableSettings
             // --- AI. The base URL is a setting, not a credential: which
             // endpoint an installation talks to is exactly what an operator
             // needs to see when an integration is pointed somewhere wrong.
-            new WritableSetting('SANITUBE_OPENAI_KEY', 'ai.providers.openai.key', true, ['string', 'max:255']),
-            new WritableSetting('SANITUBE_OPENAI_BASE_URL', 'ai.providers.openai.base_url', false, ['url', 'max:255']),
-            new WritableSetting('SANITUBE_CLAUDE_KEY', 'ai.providers.claude.key', true, ['string', 'max:255']),
-            new WritableSetting('SANITUBE_CLAUDE_BASE_URL', 'ai.providers.claude.base_url', false, ['url', 'max:255']),
+            ...$this->ai(),
 
-            // --- generation. Both bound the polling loop; a generation that
-            // polls forever is the failure GEN-001 exists to prevent.
+            // --- generation. CFG-002: the engine itself is chosen here, from
+            // what this build declares. Both polling bounds exist so that a
+            // provider which never answers costs a fixed amount of work — the
+            // failure GEN-001 exists to prevent.
+            new WritableSetting('SANITUBE_GENERATION_PROVIDER', 'generation.default', false, ['string', $this->providers->rule('generation')]),
             new WritableSetting('SANITUBE_GENERATION_MAX_POLLS', 'generation.poll.max_polls', false, ['integer', 'min:1', 'max:500']),
             new WritableSetting('SANITUBE_GENERATION_POLL_INTERVAL', 'generation.poll.interval_seconds', false, ['integer', 'min:5', 'max:3600']),
+
+            // --- distribution. A distributor with no credentials of its own
+            // yet, so the choice is the whole surface.
+            new WritableSetting('SANITUBE_DISTRIBUTOR', 'distribution.default', false, ['string', $this->providers->rule('distribution')]),
 
             // --- API. Both are bearer credentials for server-to-server calls.
             // CFG-001. The worker, addressable from the dashboard rather than
@@ -74,6 +83,15 @@ final readonly class WritableSettings
             new WritableSetting('SANITUBE_WORKER_URL', 'worker.url', false, ['url', 'max:255']),
             new WritableSetting('SANITUBE_WORKER_TOKEN', 'worker.token', true, ['string', 'min:32', 'max:255']),
             new WritableSetting('SANITUBE_WORKER_IDENTITY', 'worker.identity', false, ['string', 'max:64']),
+
+            // CFG-002. Which execution path media work takes. It is a
+            // preference, not a capability: config/media.php documents forcing
+            // `local` on a host whose CPU limit ffprobe trips, and that is a
+            // decision an operator makes and then wants to see. Availability is
+            // never inferred from it -- a worker is used only when its
+            // handshake advertises the capability -- so the worst a wrong value
+            // can do is refuse work rather than attempt something impossible.
+            new WritableSetting('SANITUBE_MEDIA_EXECUTION', 'media.execution', false, ['string', 'in:auto,local,remote_worker']),
 
             // Mail, which password resets depend on. The password is a secret
             // like any other; the rest is what an operator needs to see to
@@ -89,6 +107,46 @@ final readonly class WritableSettings
             new WritableSetting('SANITUBE_HEALTH_TOKEN', 'sanitube.health.token', true, ['string', 'min:32', 'max:255']),
             new WritableSetting('SANITUBE_API_RATE_LIMIT', 'sanitube.api.rate_limit_per_minute', false, ['integer', 'min:1', 'max:10000']),
         ];
+    }
+
+    /**
+     * The AI fields, which depend on which provider is in use.
+     *
+     * CFG-002. Gated on the selection for the same reason storage is: the
+     * screen only publishes the selected provider's variables, and a writer
+     * that owned all of them made the two lists disagree in every
+     * configuration — writable, invisible, and therefore impossible to change
+     * from the one screen that offers to change it.
+     *
+     * @return list<WritableSetting>
+     */
+    private function ai(): array
+    {
+        $settings = [
+            new WritableSetting(
+                'SANITUBE_AI_PROVIDER',
+                'ai.default',
+                false,
+                ['string', $this->providers->rule('ai')],
+            ),
+        ];
+
+        // Declared per provider rather than assumed: a provider that arrives
+        // with different variable names gets them here, and one that needs
+        // none — the null provider — honestly offers none.
+        $variables = match ((string) $this->config->get('ai.default', 'none')) {
+            'openai' => [
+                new WritableSetting('SANITUBE_OPENAI_KEY', 'ai.providers.openai.key', true, ['string', 'max:255']),
+                new WritableSetting('SANITUBE_OPENAI_BASE_URL', 'ai.providers.openai.base_url', false, ['url', 'max:255']),
+            ],
+            'claude' => [
+                new WritableSetting('SANITUBE_CLAUDE_KEY', 'ai.providers.claude.key', true, ['string', 'max:255']),
+                new WritableSetting('SANITUBE_CLAUDE_BASE_URL', 'ai.providers.claude.base_url', false, ['url', 'max:255']),
+            ],
+            default => [],
+        };
+
+        return [...$settings, ...$variables];
     }
 
     /**

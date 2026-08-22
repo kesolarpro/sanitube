@@ -32,6 +32,14 @@ const states = ['DRAFT', 'QUEUED', 'PROCESSING', 'COMPLETED', 'FAILED', 'CANCELL
 
 const page = usePage<SharedProps>();
 
+/**
+ * CFG-002. Whether this reader can go and configure the thing the banner says
+ * is unconfigured. Shown only to somebody the settings screen would actually
+ * admit: a link that answers 403 is worse than no link, because it turns "you
+ * cannot do this" into "something is broken".
+ */
+const mayConfigure = computed(() => page.props.auth.user?.can.administer === true);
+
 const generating = ref(false);
 const creatingProject = ref(false);
 
@@ -107,6 +115,15 @@ function submitProject(): void {
             :title="trans('ui.studio.not_configured')"
         >
             {{ trans('ui.studio.not_configured_note') }}
+
+            <!-- CFG-002. The banner said generation was unconfigured and
+                 offered nowhere to configure it, so the only way from here to
+                 the setting was knowing the URL. -->
+            <p v-if="mayConfigure" class="mt-2">
+                <Link href="/settings" class="text-small text-accent hover:underline">
+                    {{ trans('ui.studio.configure_provider') }}
+                </Link>
+            </p>
         </AppAlert>
 
         <AppAlert
@@ -115,6 +132,12 @@ function submitProject(): void {
             :title="trans('ui.studio.unavailable')"
         >
             {{ trans('ui.studio.unavailable_note') }}
+
+            <p v-if="mayConfigure" class="mt-2">
+                <Link href="/settings" class="text-small text-accent hover:underline">
+                    {{ trans('ui.studio.configure_provider') }}
+                </Link>
+            </p>
         </AppAlert>
 
         <AppAlert v-else tone="success" :title="trans('ui.studio.available')">

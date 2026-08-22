@@ -111,7 +111,19 @@ final class ProviderProvenanceTest extends TestCase
         // `fake` is shipped deliberately -- it is what makes the Studio
         // demonstrable and fully exercised without a vendor, which is what
         // makes ADR-0018 affordable rather than merely principled.
-        $this->assertSame(['none', 'fake'], array_keys($providers));
+        //
+        // CFG-002 added `acestep`, and it is the kind of provider this ADR
+        // exists to *allow*: ACE-Step is self-hosted on hardware the operator
+        // owns, reached over its own published contract through a SaniTube
+        // worker, holding nobody's session credentials and giving nobody else
+        // the rights to what it makes. Its adapter was already in this
+        // repository and already passed the provenance checks below; what was
+        // missing was the declaration, so the one real engine SaniTube has
+        // could not be selected. The shipped *default* is still `none`.
+        //
+        // A fourth name here still has to be a deliberate act. A vendor's
+        // would fail the checks that follow, not this line.
+        $this->assertSame(['none', 'fake', 'acestep'], array_keys($providers));
     }
 
     #[Test]
