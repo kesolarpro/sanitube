@@ -1,8 +1,8 @@
 {
  "$comment": "Machine-readable project state. Any new session reads this first, then verifies it against GitHub before trusting it. Written at the end of each ticket, so a stale entry means a session ended mid-ticket — check the branch and CI rather than the status field.",
  "updated_at": "2026-08-22",
- "current_phase": "Mission deploiement automatise terminee cote interne : DEP-007 a DEP-018 fusionnes. INTERNAL_DEPLOYMENT_AUTOMATION_COMPLETE = YES, READY_FOR_REAL_VPS_CERTIFICATION = YES. Le reste demande un vrai hote, un vrai identifiant, ou une decision humaine — le plan A-K est docs/deployment/certification-plan.md.",
- "last_completed_ticket": "OPS-002",
+ "current_phase": "Mission centre de configuration terminee cote interne : CFG-001 a CFG-005, TRASH-001, DUP-001, OPS-002, UPL-004, DOC-006 fusionnes. SANITUBE_PRODUCTION_READY = oui pour le code, non comme deploiement en fonctionnement. R2_CODE_READY=YES, R2_CONFIGURED=NO, R2_CONNECTIVITY_VERIFIED=NO — aucun identifiant dans cet environnement. Quatre decisions attendent l'operateur : purge de la corbeille, chiffrement des sauvegardes au repos, actions groupees sur les doublons, planification du balayage des doublons. Le detail est docs/final-report.md section 13.",
+ "last_completed_ticket": "DOC-006",
  "default_branch": "main — confirmed by API this session. The EXTERNAL_ADMIN_ACTION_REQUIRED blocker is cleared.",
  "tickets": {
   "ARCH-001": {
@@ -1082,11 +1082,11 @@
    "recorded_from": "git log origin/main (3f9ee2a)"
   },
   "DOC-006": {
-   "status": "in_review",
-   "pr": null,
-   "ci": "pending",
-   "branch": "claude/sanitube-autonomous-v1-5pycx0",
-   "note": "Le rapport final portait les chiffres d'il y a une mission. Chacun verifie plutot que reecrit de memoire. Section nouvelle pour le vocabulaire de cette mission : centre de configuration, stockage et R2, le vrai echec de depot, ce qui n'est deliberement pas fait, et la production. Trois champs disent non et disent pourquoi ; quatre lignes nomment la decision qui appartient a l'operateur."
+   "status": "merged",
+   "pr": 158,
+   "ci": "green 13/13",
+   "note": "Le rapport final portait les chiffres d'il y a une mission ; chacun verifie plutot que reecrit. Section nouvelle pour le vocabulaire de cette mission. Trois champs disent non et disent pourquoi ; quatre lignes nomment la decision qui appartient a l'operateur.",
+   "recorded_from": "git log origin/main (b22e224)"
   }
  },
  "architecture_amendments": [
@@ -1188,8 +1188,8 @@
    "history": "Not rewritten. PRs #111-#122 were merged by earlier sessions and #123-#129 by the 2026-08-21 session while this policy still read active:true. That happened and stays on the record; the policy is superseded from today rather than retroactively."
   }
  },
- "main_sha": "2277184",
- "current_ticket": "DOC-006",
+ "main_sha": "b22e224",
+ "current_ticket": null,
  "tests": "2357 passed, 1 skipped, 29792 assertions (PHP) + 40 (Vitest)",
  "phpstan": {
   "level": 6,
