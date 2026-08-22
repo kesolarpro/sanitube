@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace SaniTube\Observability\Certification;
 
-use SaniTube\Observability\Console\MailCertifyCommand;
-
 /**
  * Every external provider this platform can use, and where each one stands
  * on this installation — derived from configuration and the certification
@@ -229,7 +227,7 @@ final readonly class ProviderStandings
             'mail',
             'Mail delivery',
             'mail',
-            MailCertifyCommand::fingerprint(),
+            CertifyMail::fingerprint(),
             sprintf('[%s] is configured. sanitube:mail:certify <address> sends the one real proof.', $mailer),
             sprintf('[%s] delivered a real certification message.', $mailer),
         );

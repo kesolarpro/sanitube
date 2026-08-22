@@ -2,7 +2,7 @@
  "$comment": "Machine-readable project state. Any new session reads this first, then verifies it against GitHub before trusting it. Written at the end of each ticket, so a stale entry means a session ended mid-ticket — check the branch and CI rather than the status field.",
  "updated_at": "2026-08-22",
  "current_phase": "Mission deploiement automatise terminee cote interne : DEP-007 a DEP-018 fusionnes. INTERNAL_DEPLOYMENT_AUTOMATION_COMPLETE = YES, READY_FOR_REAL_VPS_CERTIFICATION = YES. Le reste demande un vrai hote, un vrai identifiant, ou une decision humaine — le plan A-K est docs/deployment/certification-plan.md.",
- "last_completed_ticket": "CFG-001",
+ "last_completed_ticket": "CFG-002",
  "default_branch": "main — confirmed by API this session. The EXTERNAL_ADMIN_ACTION_REQUIRED blocker is cleared.",
  "tickets": {
   "ARCH-001": {
@@ -1040,11 +1040,18 @@
    "recorded_from": "git log origin/main (eaaeeca)"
   },
   "CFG-002": {
+   "status": "merged",
+   "pr": 151,
+   "ci": "green 13/13",
+   "note": "Administration des fournisseurs. acestep etait resoluble et non declare : le seul vrai moteur de generation ne pouvait pas etre choisi. La selection devient inscriptible pour la generation, l'IA et la distribution, contrainte par in: sur les memes noms que l'ecran propose (SelectableProviders). Les identifiants IA suivent le fournisseur selectionne. Le test de parite passe d'une union a une egalite configuration par configuration, dans les deux sens. Le studio dit ou configurer ce qu'il declare non configure.",
+   "recorded_from": "git log origin/main (0892435)"
+  },
+  "CFG-003": {
    "status": "in_review",
    "pr": null,
    "ci": "pending",
    "branch": "claude/sanitube-autonomous-v1-5pycx0",
-   "note": "Administration des fournisseurs. acestep etait resoluble et non declare : le seul vrai moteur de generation de SaniTube ne pouvait pas etre choisi. La selection devient inscriptible pour la generation, l'IA et la distribution, contrainte par in: sur les memes noms que l'ecran propose (SelectableProviders, une seule liste). Les identifiants IA suivent desormais le fournisseur selectionne comme ceux du stockage. Le test de parite passe d'une union a une egalite configuration par configuration, dans les deux sens. Le studio dit enfin ou configurer ce qu'il declare non configure."
+   "note": "Le courrier et les etats de certification quittent la console. CertifyMail est extrait de la commande : une seule implementation, appelee par la commande et par le bouton. Le destinataire est l'adresse de l'operateur connecte et ne peut jamais venir de la requete — une adresse lue dans la charge utile ferait de la plateforme un serveur de courrier pointe vers la boite de quelqu'un d'autre. Un refus est FAILED sans repeter ce que le transport a dit, et n'enregistre rien. Les neuf etats de ProviderStandings sont publies sur l'ecran de reglages, identiques a ce que sanitube:providers rapporte."
   }
  },
  "architecture_amendments": [
@@ -1146,9 +1153,9 @@
    "history": "Not rewritten. PRs #111-#122 were merged by earlier sessions and #123-#129 by the 2026-08-21 session while this policy still read active:true. That happened and stays on the record; the policy is superseded from today rather than retroactively."
   }
  },
- "main_sha": "eaaeeca",
- "current_ticket": "CFG-002",
- "tests": "2315 passed, 1 skipped, 29071 assertions (PHP) + 37 (Vitest)",
+ "main_sha": "0892435",
+ "current_ticket": "CFG-003",
+ "tests": "2322 passed, 1 skipped, 29221 assertions (PHP) + 40 (Vitest)",
  "phpstan": {
   "level": 6,
   "baseline": false,

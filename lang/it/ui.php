@@ -707,6 +707,25 @@ return [
         'testing' => 'Prova in corso…',
         'probe_unreachable' => 'Non è stato possibile eseguire la prova. Non è stato modificato nulla.',
         'probe_note' => 'Esegue la stessa verifica usata dai controlli di distribuzione e registra una certificazione reale quando passa. Una prova di archiviazione scrive, legge ed elimina il proprio oggetto, senza lasciare nulla. Non viene mai mostrato un indirizzo né una credenziale.',
+        // CFG-003. Where each provider integration actually stands,
+        // read from the ledger. Six words and never a boolean: "is it
+        // working?" answered yes-or-no is how a platform ships
+        // claiming things nobody ever ran.
+        'standings' => 'È dimostrato?',
+        'standings_note' => 'Ciò che una vera certificazione ha registrato, non ciò che è raggiungibile adesso: mostrare questa pagina non deve mai dipendere dal fatto che nove fornitori rispondano. Una prova registrata qui è una prova realmente eseguita sulla configurazione allora in vigore.',
+        'standing_provider' => 'Fornitore',
+        'standing_status' => 'Stato',
+        'standing_detail' => 'Che cosa significa',
+        'certified_at' => 'Dimostrato il',
+        'probe_mail_note' => 'Invia un solo messaggio reale al tuo indirizzo. Da nessun\'altra parte: un indirizzo digitato in questa pagina renderebbe la piattaforma un server di posta che chiunque abbia un account potrebbe puntare su uno sconosciuto.',
+        'standing' => [
+            'CERTIFIED' => 'Dimostrato',
+            'CODE_READY' => 'Costruito, nulla da configurare',
+            'CONFIGURED_UNCERTIFIED' => 'Configurato, mai dimostrato',
+            'NOT_CONFIGURED' => 'Non configurato',
+            'BLOCKED_EXTERNAL' => 'In attesa di qualcun altro',
+            'UNAVAILABLE' => 'Non esiste',
+        ],
         'probe' => [
             'CONNECTED' => 'Funziona',
             'DEGRADED' => 'Funziona, con limiti',

@@ -55,3 +55,32 @@ export interface SettingsOverview {
     application: ApplicationSettings;
     sections: SettingsSection[];
 }
+
+/**
+ * Where a provider integration actually stands.
+ *
+ * The six words are `CertificationStatus`'s own values, written out rather
+ * than typed as `string` so that a status renamed in PHP fails the type check
+ * here instead of silently rendering nothing.
+ *
+ * They answer two different questions and it matters which. The first four are
+ * about *this installation* — what has been configured and proven here. The
+ * last two are about *the world*: no amount of local configuration turns
+ * UNAVAILABLE into anything else.
+ */
+export type CertificationStatus =
+    | 'NOT_CONFIGURED'
+    | 'CODE_READY'
+    | 'CONFIGURED_UNCERTIFIED'
+    | 'CERTIFIED'
+    | 'BLOCKED_EXTERNAL'
+    | 'UNAVAILABLE';
+
+export interface ProviderStanding {
+    key: string;
+    label: string;
+    status: CertificationStatus;
+    detail: string;
+    /** When a real run passed, or null when none has. Never a guess. */
+    certified_at: string | null;
+}

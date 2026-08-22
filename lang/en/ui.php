@@ -707,6 +707,25 @@ return [
         'testing' => 'Testing…',
         'probe_unreachable' => 'The test could not be run. Nothing was changed.',
         'probe_note' => 'This runs the same probe the deployment checks use, and records a real certification when it passes. A storage test writes, reads and deletes its own object, leaving nothing behind. No address and no credential is ever shown.',
+        // CFG-003. Where each provider integration actually stands,
+        // read from the ledger. Six words and never a boolean: "is it
+        // working?" answered yes-or-no is how a platform ships
+        // claiming things nobody ever ran.
+        'standings' => 'Has this been proved?',
+        'standings_note' => 'What a real certification run recorded, not what is reachable right now — reading this page must never depend on nine providers answering. A test recorded here is a test that actually ran against the configuration in place at the time.',
+        'standing_provider' => 'Provider',
+        'standing_status' => 'Standing',
+        'standing_detail' => 'What that means',
+        'certified_at' => 'Proved',
+        'probe_mail_note' => 'Sends one real message to your own address. Nowhere else: an address taken from this page would make the platform a mailer anybody with an account could point at a stranger.',
+        'standing' => [
+            'CERTIFIED' => 'Proved',
+            'CODE_READY' => 'Built, nothing to configure',
+            'CONFIGURED_UNCERTIFIED' => 'Configured, never proved',
+            'NOT_CONFIGURED' => 'Not configured',
+            'BLOCKED_EXTERNAL' => 'Waiting on somebody else',
+            'UNAVAILABLE' => 'Does not exist to be had',
+        ],
         'probe' => [
             'CONNECTED' => 'Working',
             'DEGRADED' => 'Working, with limits',

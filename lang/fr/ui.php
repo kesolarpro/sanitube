@@ -707,6 +707,25 @@ return [
         'testing' => 'Test en cours…',
         'probe_unreachable' => 'Le test n\'a pas pu être exécuté. Rien n\'a été modifié.',
         'probe_note' => 'Ce test exécute la même vérification que les contrôles de déploiement et enregistre une véritable certification lorsqu\'il réussit. Un test de stockage écrit, lit puis supprime son propre objet, sans rien laisser derrière lui. Aucune adresse ni aucun identifiant n\'est jamais affiché.',
+        // CFG-003. Where each provider integration actually stands,
+        // read from the ledger. Six words and never a boolean: "is it
+        // working?" answered yes-or-no is how a platform ships
+        // claiming things nobody ever ran.
+        'standings' => 'Est-ce prouvé ?',
+        'standings_note' => 'Ce qu\'une véritable certification a enregistré, non ce qui est joignable à l\'instant — l\'affichage de cette page ne doit jamais dépendre de neuf fournisseurs qui répondent. Un test enregistré ici est un test réellement exécuté contre la configuration alors en place.',
+        'standing_provider' => 'Fournisseur',
+        'standing_status' => 'État',
+        'standing_detail' => 'Ce que cela signifie',
+        'certified_at' => 'Prouvé le',
+        'probe_mail_note' => 'Envoie un seul vrai message à votre propre adresse. Nulle part ailleurs : une adresse saisie sur cette page ferait de la plateforme un serveur de courrier que tout titulaire de compte pourrait pointer vers un inconnu.',
+        'standing' => [
+            'CERTIFIED' => 'Prouvé',
+            'CODE_READY' => 'Construit, rien à configurer',
+            'CONFIGURED_UNCERTIFIED' => 'Configuré, jamais prouvé',
+            'NOT_CONFIGURED' => 'Non configuré',
+            'BLOCKED_EXTERNAL' => 'En attente de quelqu\'un d\'autre',
+            'UNAVAILABLE' => 'N\'existe pas',
+        ],
         'probe' => [
             'CONNECTED' => 'Fonctionne',
             'DEGRADED' => 'Fonctionne, avec des limites',

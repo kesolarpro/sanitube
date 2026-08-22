@@ -5,10 +5,8 @@ declare(strict_types=1);
 namespace SaniTube\Observability\Console;
 
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\Mail;
-use SaniTube\Observability\Certification\CertificationLedger;
-use SaniTube\Observability\Certification\ProviderStandings;
-use Throwable;
+use SaniTube\Observability\Certification\CertifyMail;
+use SaniTube\Observability\Certification\MailCertificationOutcome;
 
 /**
  * One real message, because "configured" and "delivers" are different facts.
@@ -20,11 +18,10 @@ use Throwable;
  * operator asks. Nothing schedules it; certification mail sent on a timer
  * would be a heartbeat nobody reads decaying into spam.
  *
- * A send the transport accepted becomes a ledger record fingerprinted to
- * the mailer configuration — change the host or the transport and the
- * standing quietly returns to CONFIGURED_UNCERTIFIED. Acceptance is what
- * SMTP can promise; if the message lands in spam, that is between the
- * operator and their DNS records, and the command says so.
+ * CFG-003 moved the sending itself into {@see CertifyMail}, so that the same
+ * act performed from the settings screen is the same code and not a second
+ * implementation that eventually disagrees. What stays here is the console's
+ * own job: reading an argument and writing sentences.
  */
 final class MailCertifyCommand extends Command
 {
@@ -33,62 +30,45 @@ final class MailCertifyCommand extends Command
 
     protected $description = 'Send one real message to prove the configured mailer delivers';
 
-    public function handle(CertificationLedger $ledger): int
+    public function handle(CertifyMail $mail): int
     {
         $address = trim((string) $this->argument('address'));
 
-        if (filter_var($address, FILTER_VALIDATE_EMAIL) === false) {
-            $this->error('That is not an email address.');
+        return match ($mail->send($address)) {
+            MailCertificationOutcome::NoRecipient => $this->refuse('That is not an email address.', self::INVALID),
 
-            return self::INVALID;
-        }
+            MailCertificationOutcome::NotConfigured => $this->refuse(
+                sprintf(
+                    'Mailer [%s] does not deliver anything, so there is nothing to certify. Configure '
+                        .'MAIL_MAILER first — the doctor explains what is missing.',
+                    (string) config('mail.default', 'log'),
+                ),
+                self::FAILURE,
+            ),
 
-        $mailer = (string) config('mail.default', 'log');
-        $transport = (string) config(sprintf('mail.mailers.%s.transport', $mailer), $mailer);
-
-        if (in_array($transport, ['log', 'array'], true)) {
-            $this->error(sprintf(
-                'Mailer [%s] does not deliver anything, so there is nothing to certify. Configure '
-                    .'MAIL_MAILER first — the doctor explains what is missing.',
-                $mailer,
-            ));
-
-            return self::FAILURE;
-        }
-
-        try {
-            Mail::raw(
-                'This is the one SaniTube mail certification message. Receiving it proves the '
-                    .'configured mailer delivers; nothing further will be sent.',
-                static function ($message) use ($address): void {
-                    $message->to($address)->subject('SaniTube mail certification');
-                },
-            );
-        } catch (Throwable) {
             // The transport's own words carry hosts and sometimes credentials;
             // the doctor and the mail log are where the detail lives.
-            $this->error('The transport refused the message. Check the MAIL_ settings and the laravel.log for the exchange.');
+            MailCertificationOutcome::Refused => $this->refuse(
+                'The transport refused the message. Check the MAIL_ settings and the laravel.log for the exchange.',
+                self::FAILURE,
+            ),
 
-            return self::FAILURE;
-        }
+            MailCertificationOutcome::Accepted => $this->accepted($address),
+        };
+    }
 
-        $ledger->record('mail', self::fingerprint());
-
+    private function accepted(string $address): int
+    {
         $this->info(sprintf('Sent to %s and accepted by the transport.', $address));
         $this->line('Acceptance is what SMTP can promise. If it landed in spam, that is DNS (SPF/DKIM/DMARC), not SaniTube.');
 
         return self::SUCCESS;
     }
 
-    public static function fingerprint(): string
+    private function refuse(string $message, int $code): int
     {
-        $mailer = (string) config('mail.default', 'log');
+        $this->error($message);
 
-        return ProviderStandings::fingerprint([
-            $mailer,
-            (string) config(sprintf('mail.mailers.%s.transport', $mailer)),
-            (string) config(sprintf('mail.mailers.%s.host', $mailer)),
-            (string) config(sprintf('mail.mailers.%s.port', $mailer)),
-        ]);
+        return $code;
     }
 }

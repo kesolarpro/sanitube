@@ -287,6 +287,7 @@ final readonly class SettingsQuery
             secrets: [
                 $this->secret('MAIL_PASSWORD', sprintf('mail.mailers.%s.password', $mailer)),
             ],
+            probe: ConnectionProbe::Mail,
         );
     }
 

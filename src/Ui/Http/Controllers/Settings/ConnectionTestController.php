@@ -5,9 +5,12 @@ declare(strict_types=1);
 namespace SaniTube\Ui\Http\Controllers\Settings;
 
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use SaniTube\Audit\Enums\AuditAction;
 use SaniTube\Audit\Services\RecordAuditEvent;
 use SaniTube\Observability\Certification\CertificationLedger;
+use SaniTube\Observability\Certification\CertifyMail;
+use SaniTube\Observability\Certification\MailCertificationOutcome;
 use SaniTube\Observability\Certification\ProviderStandings;
 use SaniTube\Storage\Certification\CertificationOutcome;
 use SaniTube\Storage\Certification\CertifyStorage;
@@ -51,6 +54,7 @@ final class ConnectionTestController
         $result = match ($target) {
             ConnectionProbe::Storage => $this->storage(),
             ConnectionProbe::Worker => $this->worker(),
+            ConnectionProbe::Mail => $this->mail($request),
         };
 
         // The target and the verdict, never the address and never a key. An
@@ -110,6 +114,43 @@ final class ConnectionTestController
         );
 
         return ['status' => $failed === [] ? 'DEGRADED' : 'FAILED', 'checks' => $checks];
+    }
+
+    /**
+     * One real message, to the person who pressed the button.
+     *
+     * CFG-003. The recipient is **never** taken from the request. Reading an
+     * address out of the payload would make an authenticated account into a
+     * mailer somebody else's inbox receives — the classic way a legitimate
+     * "send test email" control becomes an open relay with a login page in
+     * front of it. The signed-in operator's own address is the only address
+     * this can reach, and the server already had it.
+     *
+     * @return array{status: string, checks: list<array<string, mixed>>}
+     */
+    private function mail(Request $request): array
+    {
+        $user = $request->user();
+        $address = is_string($user?->email) ? $user->email : '';
+
+        $outcome = app(CertifyMail::class)->send($address);
+
+        // Nothing the transport said. A refusal quotes the host it could not
+        // authenticate against and sometimes the username it tried; the
+        // exchange stays in the log, where somebody already trusted with the
+        // server can read it.
+        return [
+            'status' => match ($outcome) {
+                MailCertificationOutcome::Accepted => 'CONNECTED',
+                MailCertificationOutcome::NotConfigured => 'NOT_CONFIGURED',
+                // No address on the account is this installation's problem to
+                // fix, not the relay's, and saying "failed" would point at the
+                // wrong thing.
+                MailCertificationOutcome::NoRecipient => 'NOT_CONFIGURED',
+                MailCertificationOutcome::Refused => 'FAILED',
+            },
+            'checks' => [],
+        ];
     }
 
     /**

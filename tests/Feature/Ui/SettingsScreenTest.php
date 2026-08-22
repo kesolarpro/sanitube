@@ -8,6 +8,9 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\Test;
 use SaniTube\Identity\Enums\UserRole;
+use SaniTube\Observability\Certification\CertificationStatus;
+use SaniTube\Observability\Certification\ProviderStanding;
+use SaniTube\Observability\Certification\ProviderStandings;
 use SaniTube\Ui\Navigation\NavigationTree;
 use SaniTube\Ui\Queries\SettingsQuery;
 use Tests\TestCase;
@@ -315,6 +318,75 @@ final class SettingsScreenTest extends TestCase
                 $this->assertNull($item['href']);
             }
         }
+    }
+
+    // ------------------------------------------------------------ standings
+
+    #[Test]
+    public function the_screen_says_whether_anybody_has_actually_proved_each_provider(): void
+    {
+        // CFG-003. The six-state vocabulary existed for a phase and could be
+        // read from exactly one place — `sanitube:providers`, over SSH — so
+        // the question was answerable only by somebody with a shell, on the
+        // screen whose whole subject is what is configured.
+        $response = $this->actingAs($this->user(UserRole::Owner, 'owner@sanitube.test'))->get('/settings');
+
+        $response->assertOk();
+
+        /** @var list<array<string, mixed>> $standings */
+        $standings = $response->viewData('page')['props']['standings'];
+
+        $this->assertNotEmpty($standings);
+
+        $vocabulary = array_map(
+            static fn (CertificationStatus $status): string => $status->value,
+            CertificationStatus::cases(),
+        );
+
+        foreach ($standings as $standing) {
+            // Never a boolean, and never a word outside the enum. "Is object
+            // storage working?" answered yes-or-no is how a platform ships
+            // claiming things nobody ever ran.
+            $this->assertContains($standing['status'], $vocabulary);
+            $this->assertNotSame('', $standing['detail']);
+        }
+    }
+
+    #[Test]
+    public function the_standings_the_screen_shows_are_the_ones_the_command_reports(): void
+    {
+        // Two readers of one assessment. A screen with its own copy is the
+        // copy that eventually disagrees with the deploy gate.
+        $response = $this->actingAs($this->user(UserRole::Owner, 'owner@sanitube.test'))->get('/settings');
+
+        $expected = array_map(
+            static fn (ProviderStanding $standing): array => $standing->toArray(),
+            $this->app->make(ProviderStandings::class)->assess(),
+        );
+
+        $this->assertSame($expected, $response->viewData('page')['props']['standings']);
+    }
+
+    #[Test]
+    public function a_standing_carries_no_credential_and_no_address(): void
+    {
+        // A standing quotes what is configured to explain itself, and this
+        // page is the most screenshotted page in any application.
+        config([
+            'storage.default' => 's3',
+            'filesystems.disks.s3.secret' => self::SECRET,
+            'worker.url' => 'http://worker.internal:9000',
+            'worker.token' => str_repeat('t', 40),
+        ]);
+
+        $response = $this->actingAs($this->user(UserRole::Owner, 'owner@sanitube.test'))->get('/settings');
+
+        $body = json_encode($response->viewData('page')['props']['standings']);
+
+        $this->assertIsString($body);
+        $this->assertStringNotContainsString(self::SECRET, $body);
+        $this->assertStringNotContainsString('worker.internal', $body);
+        $this->assertStringNotContainsString(str_repeat('t', 40), $body);
     }
 
     // -------------------------------------------------------------- fixtures

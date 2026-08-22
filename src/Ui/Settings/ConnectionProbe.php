@@ -27,6 +27,16 @@ enum ConnectionProbe: string
     case Worker = 'worker';
 
     /**
+     * CFG-003. Mail is the odd one: proving it means *sending* something, so
+     * a recipient is needed and a recipient is exactly what a request must
+     * never supply. The address is the signed-in operator's own, which the
+     * server already has — so this stays a word with no argument, like the
+     * other two, rather than a form that turns an authenticated account into
+     * a mailer pointed anywhere.
+     */
+    case Mail = 'mail';
+
+    /**
      * The vocabulary as a validation rule, derived rather than retyped.
      *
      * @return list<string>

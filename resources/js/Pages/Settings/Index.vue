@@ -2,6 +2,7 @@
 import { computed, reactive } from 'vue';
 import { router, usePage } from '@inertiajs/vue3';
 import ProbeReport from '@/Components/Settings/ProbeReport.vue';
+import StandingsTable from '@/Components/Settings/StandingsTable.vue';
 import AppAlert from '@/Components/Ui/AppAlert.vue';
 import AppButton from '@/Components/Ui/AppButton.vue';
 import AppCard from '@/Components/Ui/AppCard.vue';
@@ -9,7 +10,7 @@ import CodeValue from '@/Components/Ui/CodeValue.vue';
 import TextInput from '@/Components/Ui/TextInput.vue';
 import { trans } from '@/Support/i18n';
 import type { SharedProps } from '@/Types/inertia';
-import type { ProbeResult, SettingsOverview } from '@/Types/settings';
+import type { ProbeResult, ProviderStanding, SettingsOverview } from '@/Types/settings';
 
 /**
  * What this installation is configured with.
@@ -31,7 +32,7 @@ import type { ProbeResult, SettingsOverview } from '@/Types/settings';
  * "clear" control: emptying a value stays a .env edit, deliberately, so that
  * saving a rate limit can never silently unset a provider key.
  */
-const props = defineProps<{ settings: SettingsOverview; writable: string[] }>();
+const props = defineProps<{ settings: SettingsOverview; writable: string[]; standings: ProviderStanding[] }>();
 
 const page = usePage<SharedProps>();
 
@@ -80,6 +81,18 @@ function save(): void {
  */
 const probing = reactive<Record<string, boolean>>({});
 const probed = reactive<Record<string, ProbeResult>>({});
+
+/**
+ * What pressing the button on this section actually does.
+ *
+ * Storage writes and deletes its own object; mail *sends* something, to the
+ * signed-in operator and nowhere else. Saying so beside the button matters
+ * more here than anywhere: a test that mails a stranger is a different act
+ * from one that touches a bucket.
+ */
+function probeNote(probe: string | null): string {
+    return probe === 'mail' ? trans('ui.settings.probe_mail_note') : trans('ui.settings.probe_note');
+}
 
 /** The last answer for a section, or null when it has not been asked. */
 function probeOf(key: string): ProbeResult | null {
@@ -271,7 +284,7 @@ async function test(section: { key: string; probe: string | null }): Promise<voi
                  else, so there is no address for a caller to choose. -->
             <div v-if="section.probe !== null" class="mt-4 border-t border-border pt-3">
                 <div class="flex flex-wrap items-center justify-between gap-2">
-                    <p class="text-caption text-muted">{{ trans('ui.settings.probe_note') }}</p>
+                    <p class="text-caption text-muted">{{ probeNote(section.probe) }}</p>
                     <AppButton :loading="probing[section.key] === true" @click="test(section)">
                         {{
                             probing[section.key] === true
@@ -284,6 +297,8 @@ async function test(section: { key: string; probe: string | null }): Promise<voi
                 <ProbeReport :result="probeOf(section.key)" />
             </div>
         </AppCard>
+
+        <StandingsTable :standings="standings" />
 
         <div class="flex items-center justify-end gap-3">
             <p class="text-caption text-muted">{{ trans('ui.settings.blank_means_unchanged') }}</p>
