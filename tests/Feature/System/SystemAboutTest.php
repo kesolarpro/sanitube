@@ -6,6 +6,7 @@ namespace Tests\Feature\System;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Env;
 use Illuminate\Support\Facades\Schema;
 use PHPUnit\Framework\Attributes\Test;
 use SaniTube\Deployment\Frontend\FrontendBuildInstaller;
@@ -143,8 +144,16 @@ final class SystemAboutTest extends TestCase
         // config file that had stopped reading the environment at all — which
         // is the state where an operator sets the variable and the screen
         // never changes.
-        putenv('SANITUBE_VERSION=9.9.9-fixture');
-        $_ENV['SANITUBE_VERSION'] = '9.9.9-fixture';
+        //
+        // Written into the repository `env()` reads rather than through
+        // `putenv`. `.env.example` documents `SANITUBE_VERSION=` as an empty
+        // line, so on any installation whose `.env` came from it the name is
+        // already defined — and Dotenv keeps the value it loaded, which made
+        // this pass locally and fail everywhere the file had been copied.
+        $repository = Env::getRepository();
+        $before = $repository->get('SANITUBE_VERSION');
+
+        $repository->set('SANITUBE_VERSION', '9.9.9-fixture');
 
         try {
             /** @var array<string, mixed> $config */
@@ -152,8 +161,9 @@ final class SystemAboutTest extends TestCase
 
             $this->assertSame('9.9.9-fixture', $config['version']);
         } finally {
-            putenv('SANITUBE_VERSION');
-            unset($_ENV['SANITUBE_VERSION']);
+            $before === null
+                ? $repository->clear('SANITUBE_VERSION')
+                : $repository->set('SANITUBE_VERSION', $before);
         }
     }
 
