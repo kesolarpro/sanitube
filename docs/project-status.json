@@ -2,7 +2,7 @@
  "$comment": "Machine-readable project state. Any new session reads this first, then verifies it against GitHub before trusting it. Written at the end of each ticket, so a stale entry means a session ended mid-ticket — check the branch and CI rather than the status field.",
  "updated_at": "2026-08-22",
  "current_phase": "Mission deploiement automatise terminee cote interne : DEP-007 a DEP-018 fusionnes. INTERNAL_DEPLOYMENT_AUTOMATION_COMPLETE = YES, READY_FOR_REAL_VPS_CERTIFICATION = YES. Le reste demande un vrai hote, un vrai identifiant, ou une decision humaine — le plan A-K est docs/deployment/certification-plan.md.",
- "last_completed_ticket": "CFG-004",
+ "last_completed_ticket": "TRASH-001",
  "default_branch": "main — confirmed by API this session. The EXTERNAL_ADMIN_ACTION_REQUIRED blocker is cleared.",
  "tickets": {
   "ARCH-001": {
@@ -1061,12 +1061,20 @@
    "recorded_from": "git log origin/main (393109a)"
   },
   "TRASH-001": {
+   "status": "merged",
+   "pr": 154,
+   "ci": "green 13/13",
+   "note": "Un actif mis a la corbeille pouvait devenir le master d'un titre et partir dans un package. La garde vit sur le modele Track ; BuildDeliveryPackage refuse aussi, en defense en profondeur. Les deux tests ont d'abord echoue.",
+   "found_by": "audit interne de la revue des doublons et de la corbeille",
+   "recorded_from": "git log origin/main (4a50ff7)"
+  },
+  "DUP-001": {
    "status": "in_review",
    "pr": null,
    "ci": "pending",
    "branch": "claude/sanitube-autonomous-v1-5pycx0",
-   "note": "Un actif mis a la corbeille pouvait devenir le master d'un titre et partir dans un package de distribution. TrashAsset gardait un sens — on ne jette pas un actif qu'un titre utilise — et jamais l'autre. La garde vit sur le modele Track, pour qu'un troisieme service qui assigne un master en herite. BuildDeliveryPackage refuse aussi, en defense en profondeur : ce cas la est celui ou l'actif a ete jete apres que le titre pointait deja dessus.",
-   "found_by": "audit interne de la revue des doublons et de la corbeille"
+   "note": "La file de doublons n'avait aucun filtre par defaut : tout ce qu'un relecteur avait deja tranche revenait a la visite suivante. Une decision absente signifie desormais « non tranche », une decision explicitement vide signifie « tout ». Le payload porte un compte des findings ouverts. Cote corbeille, l'ecran du catalogue expose enfin le filtre trashed que le modele de lecture supportait depuis le debut, avec un bouton de restauration : un actif jete pour une autre raison qu'un doublon n'etait restaurable de nulle part.",
+   "mutation_note": "Un mutant a survecu au premier passage — le compte ouvert remplace par le compte de la page filtree — parce que le fixture donnait 1 et 1. Corrige en deux ouverts contre un tranche."
   }
  },
  "architecture_amendments": [
@@ -1168,9 +1176,9 @@
    "history": "Not rewritten. PRs #111-#122 were merged by earlier sessions and #123-#129 by the 2026-08-21 session while this policy still read active:true. That happened and stays on the record; the policy is superseded from today rather than retroactively."
   }
  },
- "main_sha": "393109a",
- "current_ticket": "TRASH-001",
- "tests": "2337 passed, 1 skipped, 29455 assertions (PHP) + 40 (Vitest)",
+ "main_sha": "4a50ff7",
+ "current_ticket": "DUP-001",
+ "tests": "2343 passed, 1 skipped, 29526 assertions (PHP) + 40 (Vitest)",
  "phpstan": {
   "level": 6,
   "baseline": false,

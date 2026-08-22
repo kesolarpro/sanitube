@@ -118,6 +118,17 @@ function agreement(value: number | null): string {
         <div>
             <h1 class="text-page-title text-foreground">{{ trans('ui.duplicates.title') }}</h1>
             <p class="mt-1 text-small text-muted">{{ trans('ui.duplicates.description') }}</p>
+
+            <!-- DUP-001. How much is left, so the backlog visibly shrinks. A
+                 queue that never showed a number was one where confirming
+                 fifty findings looked exactly like confirming none. -->
+            <p class="mt-1 text-small" :class="page.open > 0 ? 'text-warning' : 'text-success'">
+                {{
+                    page.open > 0
+                        ? `${trans('ui.duplicates.open')}: ${page.open}`
+                        : trans('ui.duplicates.open_none')
+                }}
+            </p>
         </div>
 
         <AppCard :padded="false">

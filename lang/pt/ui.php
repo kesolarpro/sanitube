@@ -1319,6 +1319,7 @@ return [
             'releases' => 'Lançamentos',
             'dimensions' => 'Dimensões',
             'actions' => 'Ações',
+            'trash' => 'Reciclagem',
         ],
         'filter' => [
             'status' => 'Estado',
@@ -1329,6 +1330,10 @@ return [
             'any_content' => 'Qualquer conteúdo',
             'any_type' => 'Qualquer tipo',
             'any_kind' => 'Qualquer tipo',
+            'trash' => 'Reciclagem',
+            'trash_hidden' => 'Oculta',
+            'trash_only' => 'Só a reciclagem',
+            'trash_all' => 'Ambos',
         ],
         'source' => [
             'UPLOAD' => 'Carregamento',
@@ -1411,6 +1416,8 @@ return [
     ],
 
     'duplicates' => [
+        'open' => 'Ainda por decidir',
+        'open_none' => 'Nada mais para decidir',
         'title' => 'Duplicados',
         'description' => 'Ficheiros que podem conter a mesma gravação. Nada é decidido até que o decida, e nada é eliminado.',
         'empty' => 'Nenhum duplicado encontrado',

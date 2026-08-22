@@ -56,7 +56,29 @@ final readonly class DuplicateReviewQuery
             'next_cursor' => $page->nextCursor()?->encode(),
             'previous_cursor' => $page->previousCursor()?->encode(),
             'per_page' => $perPage,
+
+            // DUP-001. How much is left, whatever this page is filtered to.
+            // A cursor-paginated list has no total by design — it is what
+            // makes it cheap over hundreds of thousands of rows — so a
+            // reviewer had no way to tell whether the backlog was shrinking.
+            // One count of the undecided, deliberately not a count of the
+            // filtered page: what a person wants to know between decisions is
+            // how many are still theirs to make.
+            'open' => $this->openCount(),
         ];
+    }
+
+    /**
+     * Findings nobody has answered yet.
+     *
+     * Unfiltered on purpose. Narrowing to `level` would make the number change
+     * as somebody browses, which is the opposite of what it is for.
+     */
+    public function openCount(): int
+    {
+        return DuplicateRelation::query()
+            ->where('decision', DuplicateDecision::Proposed->value)
+            ->count();
     }
 
     /**

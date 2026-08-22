@@ -233,6 +233,25 @@ final class DuplicateQueueTest extends TestCase
 
     // ------------------------------------------------------------ fixtures
 
+    /**
+     * A finding whose pair matches nothing else in the fixture.
+     *
+     * {@see self::finding()} stores the same bytes every time it is called, so
+     * two calls produce four assets that all match each other and rather more
+     * than two findings. Fine for a test about one row; useless for a test
+     * about a count, which is what DUP-001 needed.
+     */
+    private function separateFinding(string $marker): DuplicateRelation
+    {
+        $this->asset($marker.'-original.wav', 'the very same bytes, '.$marker);
+        $second = $this->asset($marker.'-copy.wav', 'the very same bytes, '.$marker);
+
+        $relation = $this->app->make(EvaluateAssetDuplicates::class)->for($second)->first();
+        $this->assertInstanceOf(DuplicateRelation::class, $relation, 'The fixture produced no finding.');
+
+        return $relation;
+    }
+
     private function finding(): DuplicateRelation
     {
         $this->asset('original.wav', 'the very same bytes');
@@ -253,6 +272,88 @@ final class DuplicateQueueTest extends TestCase
         ]);
 
         return $user->forceFill(['role' => $role, 'is_active' => true]);
+    }
+
+    #[Test]
+    public function the_queue_shows_what_is_left_to_decide_and_hides_what_is_not(): void
+    {
+        // DUP-001. Without a default, every finding a reviewer had already
+        // answered came back on the next visit, and the only way to see what
+        // remained was to re-select "proposed" every time. A backlog that
+        // never visibly shrinks is one people stop opening.
+        $open = $this->finding();
+        $answered = $this->finding();
+
+        $answered->update(['decision' => DuplicateDecision::Confirmed->value]);
+
+        $response = $this->actingAs($this->user())->get('/duplicates');
+
+        $response->assertOk();
+
+        $uuids = [];
+
+        foreach ($response->viewData('page')['props']['page']['rows'] as $row) {
+            $uuids[] = $row['uuid'];
+        }
+
+        $this->assertContains($open->uuid, $uuids);
+        $this->assertNotContains($answered->uuid, $uuids);
+    }
+
+    #[Test]
+    public function asking_for_everything_shows_the_answered_ones_too(): void
+    {
+        // An empty `decision` — the "all" option on the screen — is how a
+        // reviewer looks back at what they already decided. Absent means
+        // undecided; present-and-empty means everything.
+        $answered = $this->finding();
+        $answered->update(['decision' => DuplicateDecision::Rejected->value]);
+
+        $response = $this->actingAs($this->user())->get('/duplicates?decision=');
+
+        $response->assertOk();
+
+        $uuids = [];
+
+        foreach ($response->viewData('page')['props']['page']['rows'] as $row) {
+            $uuids[] = $row['uuid'];
+        }
+
+        $this->assertContains($answered->uuid, $uuids);
+    }
+
+    #[Test]
+    public function the_number_left_counts_the_undecided_and_nothing_else(): void
+    {
+        $this->separateFinding('open');
+        $this->separateFinding('answered')->update(['decision' => DuplicateDecision::Confirmed->value]);
+
+        $response = $this->actingAs($this->user())->get('/duplicates');
+
+        $this->assertSame(1, $response->viewData('page')['props']['page']['open']);
+    }
+
+    #[Test]
+    public function the_number_left_ignores_the_filter_a_reviewer_is_browsing_with(): void
+    {
+        // Narrowing it to the current filter would make the number change as
+        // somebody browses, which is the opposite of what it is for.
+        //
+        // **Two open and one answered**, deliberately. An earlier version of
+        // this test used one of each, and the mutation pass caught it: with
+        // those numbers a count of the *filtered page* is also 1, so the test
+        // passed against an implementation that answers the wrong question.
+        $this->separateFinding('first');
+        $this->separateFinding('second');
+        $this->separateFinding('answered')->update(['decision' => DuplicateDecision::Confirmed->value]);
+
+        $response = $this->actingAs($this->user())->get('/duplicates?decision=CONFIRMED');
+
+        // One row on screen, two still to decide.
+        $props = $response->viewData('page')['props'];
+
+        $this->assertCount(1, $props['page']['rows']);
+        $this->assertSame(2, $props['page']['open']);
     }
 
     private function asset(string $filename, string $contents): Asset

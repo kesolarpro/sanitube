@@ -1319,6 +1319,7 @@ return [
             'releases' => 'Veröffentlichungen',
             'dimensions' => 'Abmessungen',
             'actions' => 'Aktionen',
+            'trash' => 'Papierkorb',
         ],
         'filter' => [
             'status' => 'Status',
@@ -1329,6 +1330,10 @@ return [
             'any_content' => 'Beliebiger Inhalt',
             'any_type' => 'Beliebiger Typ',
             'any_kind' => 'Beliebige Art',
+            'trash' => 'Papierkorb',
+            'trash_hidden' => 'Ausgeblendet',
+            'trash_only' => 'Nur der Papierkorb',
+            'trash_all' => 'Beides',
         ],
         'source' => [
             'UPLOAD' => 'Upload',
@@ -1411,6 +1416,8 @@ return [
     ],
 
     'duplicates' => [
+        'open' => 'Noch zu entscheiden',
+        'open_none' => 'Nichts mehr zu entscheiden',
         'title' => 'Duplikate',
         'description' => 'Dateien, die dieselbe Aufnahme enthalten könnten. Nichts wird entschieden, bis Sie entscheiden, und nichts wird gelöscht.',
         'empty' => 'Keine Duplikate gefunden',
