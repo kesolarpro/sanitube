@@ -174,10 +174,34 @@ final readonly class SettingsQuery
             settings: [
                 $this->plain('SANITUBE_AI_PROVIDER', $selected),
                 ...match ($selected) {
-                    'openai' => [$this->plain('SANITUBE_OPENAI_BASE_URL', (string) $this->config->get('ai.providers.openai.base_url'))],
-                    'claude' => [$this->plain('SANITUBE_CLAUDE_BASE_URL', (string) $this->config->get('ai.providers.claude.base_url'))],
+                    'openai' => [
+                        $this->plain('SANITUBE_OPENAI_BASE_URL', (string) $this->config->get('ai.providers.openai.base_url')),
+                        // CFG-005. The model is a running cost and a quality
+                        // decision at once, and it was configurable only over
+                        // SSH. Never hardcoded anywhere: which model an
+                        // installation asks for is theirs to choose.
+                        $this->plain('SANITUBE_OPENAI_MODEL', (string) $this->config->get('ai.providers.openai.model')),
+                    ],
+                    'claude' => [
+                        $this->plain('SANITUBE_CLAUDE_BASE_URL', (string) $this->config->get('ai.providers.claude.base_url')),
+                        $this->plain('SANITUBE_CLAUDE_MODEL', (string) $this->config->get('ai.providers.claude.model')),
+                    ],
                     default => [],
                 },
+
+                // CFG-005. What stops an invoice. These are enforced on every
+                // call and were visible on no screen, so the one control that
+                // bounds what a backfill costs at a vendor could only be set
+                // by somebody with a shell. Zero means no ceiling, which is
+                // the shipped default and has to keep being sayable.
+                $this->plain('SANITUBE_AI_DAILY_CALLS', (string) $this->config->get('ai.limits.daily')),
+                $this->plain('SANITUBE_AI_WEEKLY_CALLS', (string) $this->config->get('ai.limits.weekly')),
+                $this->plain('SANITUBE_AI_MONTHLY_CALLS', (string) $this->config->get('ai.limits.monthly')),
+
+                $this->plain('SANITUBE_AI_TIMEOUT', (string) $this->config->get('ai.timeout')),
+                $this->plain('SANITUBE_AI_MAX_OUTPUT_TOKENS', (string) $this->config->get('ai.max_output_tokens')),
+                $this->plain('SANITUBE_AI_CIRCUIT_FAILURES', (string) $this->config->get('ai.circuit.consecutive_failures')),
+                $this->plain('SANITUBE_AI_CIRCUIT_COOLDOWN_MINUTES', (string) $this->config->get('ai.circuit.cooldown_minutes')),
             ],
             secrets: match ($selected) {
                 'openai' => [$this->secret('SANITUBE_OPENAI_KEY', 'ai.providers.openai.key')],
@@ -205,6 +229,16 @@ final readonly class SettingsQuery
                 // reading this screen could see that `acestep` existed and had
                 // no way to choose it.
                 $this->plain('SANITUBE_GENERATION_PROVIDER', $selected),
+                // CFG-005. The same ceilings, for the supplier that costs the
+                // most per call. A generation backfill that drains steadily
+                // spends steadily, and the first sign of that is an invoice.
+                $this->plain('SANITUBE_GENERATION_DAILY_LIMIT', (string) $this->config->get('generation.limits.daily')),
+                $this->plain('SANITUBE_GENERATION_WEEKLY_LIMIT', (string) $this->config->get('generation.limits.weekly')),
+                $this->plain('SANITUBE_GENERATION_MONTHLY_LIMIT', (string) $this->config->get('generation.limits.monthly')),
+
+                $this->plain('SANITUBE_GENERATION_CIRCUIT_FAILURES', (string) $this->config->get('generation.circuit.consecutive_failures')),
+                $this->plain('SANITUBE_GENERATION_CIRCUIT_COOLDOWN', (string) $this->config->get('generation.circuit.cooldown_minutes')),
+
                 $this->plain('SANITUBE_GENERATION_MAX_POLLS', (string) $this->config->get('generation.poll.max_polls')),
                 $this->plain('SANITUBE_GENERATION_POLL_INTERVAL', (string) $this->config->get('generation.poll.interval_seconds')),
             ],

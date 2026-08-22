@@ -217,6 +217,91 @@ final class ProviderAdministrationTest extends TestCase
             ->assertSessionHasErrors('SANITUBE_MEDIA_EXECUTION');
     }
 
+    // --------------------------------------------------- what it may cost
+
+    #[Test]
+    public function the_ceilings_that_stop_an_invoice_are_on_the_screen(): void
+    {
+        // CFG-005. Both are enforced on every call and appeared on no screen,
+        // so the one control that bounds what a backfill costs at a supplier
+        // could be set only by somebody with a shell. The failure they prevent
+        // is specific: four thousand masters enqueue four thousand jobs, and a
+        // queue that drains steadily spends steadily.
+        foreach ([
+            'SANITUBE_AI_DAILY_CALLS',
+            'SANITUBE_AI_WEEKLY_CALLS',
+            'SANITUBE_AI_MONTHLY_CALLS',
+            'SANITUBE_AI_CIRCUIT_FAILURES',
+            'SANITUBE_AI_CIRCUIT_COOLDOWN_MINUTES',
+        ] as $variable) {
+            $this->assertContains($variable, $this->variablesIn('ai'));
+        }
+
+        foreach ([
+            'SANITUBE_GENERATION_DAILY_LIMIT',
+            'SANITUBE_GENERATION_WEEKLY_LIMIT',
+            'SANITUBE_GENERATION_MONTHLY_LIMIT',
+            'SANITUBE_GENERATION_CIRCUIT_FAILURES',
+            'SANITUBE_GENERATION_CIRCUIT_COOLDOWN',
+        ] as $variable) {
+            $this->assertContains($variable, $this->variablesIn('generation'));
+        }
+    }
+
+    #[Test]
+    public function no_ceiling_at_all_stays_a_thing_an_operator_can_say(): void
+    {
+        // Zero means no ceiling, it is the shipped default, and a `min:1` here
+        // would quietly make the shipped configuration unrepresentable on the
+        // form that edits it — a form that cannot express what is currently
+        // set is a form that lies about what it can change.
+        $this->actingAs($this->owner())
+            ->patch('/settings', [
+                'SANITUBE_AI_DAILY_CALLS' => '0',
+                'SANITUBE_GENERATION_MONTHLY_LIMIT' => '0',
+            ])
+            ->assertSessionHasNoErrors();
+
+        $environment = (string) file_get_contents($this->sandbox.'/.env');
+
+        $this->assertStringContainsString('SANITUBE_AI_DAILY_CALLS=0', $environment);
+        $this->assertStringContainsString('SANITUBE_GENERATION_MONTHLY_LIMIT=0', $environment);
+    }
+
+    #[Test]
+    public function a_circuit_breaker_that_never_trips_is_refused(): void
+    {
+        // Zero consecutive failures would mean the breaker opens before
+        // anything has failed; and a cooldown of zero would mean it reopens
+        // instantly, which is a breaker that does not exist while looking like
+        // one that does.
+        $this->actingAs($this->owner())
+            ->patch('/settings', ['SANITUBE_AI_CIRCUIT_FAILURES' => '0'])
+            ->assertSessionHasErrors('SANITUBE_AI_CIRCUIT_FAILURES');
+
+        $this->actingAs($this->owner())
+            ->patch('/settings', ['SANITUBE_AI_CIRCUIT_COOLDOWN_MINUTES' => '0'])
+            ->assertSessionHasErrors('SANITUBE_AI_CIRCUIT_COOLDOWN_MINUTES');
+    }
+
+    #[Test]
+    public function the_model_is_the_operators_and_never_a_closed_list(): void
+    {
+        config(['ai.default' => 'openai']);
+
+        // Vendors publish new models faster than this platform ships. An `in:`
+        // rule here would mean a release is required before an operator can
+        // use the model they are already paying for.
+        $this->actingAs($this->owner())
+            ->patch('/settings', ['SANITUBE_OPENAI_MODEL' => 'a-model-shipped-after-this-release'])
+            ->assertSessionHasNoErrors();
+
+        $this->assertStringContainsString(
+            'SANITUBE_OPENAI_MODEL=a-model-shipped-after-this-release',
+            (string) file_get_contents($this->sandbox.'/.env'),
+        );
+    }
+
     // ----------------------------------------------------------- fixtures
 
     /**

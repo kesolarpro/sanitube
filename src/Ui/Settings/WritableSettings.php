@@ -69,6 +69,13 @@ final readonly class WritableSettings
             // provider which never answers costs a fixed amount of work — the
             // failure GEN-001 exists to prevent.
             new WritableSetting('SANITUBE_GENERATION_PROVIDER', 'generation.default', false, ['string', $this->providers->rule('generation')]),
+            // CFG-005. The same ceilings for the supplier that costs the most
+            // per call. Zero means no ceiling here too.
+            new WritableSetting('SANITUBE_GENERATION_DAILY_LIMIT', 'generation.limits.daily', false, ['integer', 'min:0', 'max:100000']),
+            new WritableSetting('SANITUBE_GENERATION_WEEKLY_LIMIT', 'generation.limits.weekly', false, ['integer', 'min:0', 'max:100000']),
+            new WritableSetting('SANITUBE_GENERATION_MONTHLY_LIMIT', 'generation.limits.monthly', false, ['integer', 'min:0', 'max:100000']),
+            new WritableSetting('SANITUBE_GENERATION_CIRCUIT_FAILURES', 'generation.circuit.consecutive_failures', false, ['integer', 'min:1', 'max:1000']),
+            new WritableSetting('SANITUBE_GENERATION_CIRCUIT_COOLDOWN', 'generation.circuit.cooldown_minutes', false, ['integer', 'min:1', 'max:1440']),
             new WritableSetting('SANITUBE_GENERATION_MAX_POLLS', 'generation.poll.max_polls', false, ['integer', 'min:1', 'max:500']),
             new WritableSetting('SANITUBE_GENERATION_POLL_INTERVAL', 'generation.poll.interval_seconds', false, ['integer', 'min:5', 'max:3600']),
 
@@ -187,15 +194,35 @@ final readonly class WritableSettings
             'openai' => [
                 new WritableSetting('SANITUBE_OPENAI_KEY', 'ai.providers.openai.key', true, ['string', 'max:255']),
                 new WritableSetting('SANITUBE_OPENAI_BASE_URL', 'ai.providers.openai.base_url', false, ['url', 'max:255']),
+                // CFG-005. Never a closed list. Vendors publish new models
+                // faster than this platform ships, and an `in:` rule here
+                // would mean a release is required before an operator can use
+                // the model they are already paying for.
+                new WritableSetting('SANITUBE_OPENAI_MODEL', 'ai.providers.openai.model', false, ['string', 'max:128']),
             ],
             'claude' => [
                 new WritableSetting('SANITUBE_CLAUDE_KEY', 'ai.providers.claude.key', true, ['string', 'max:255']),
                 new WritableSetting('SANITUBE_CLAUDE_BASE_URL', 'ai.providers.claude.base_url', false, ['url', 'max:255']),
+                new WritableSetting('SANITUBE_CLAUDE_MODEL', 'ai.providers.claude.model', false, ['string', 'max:128']),
             ],
             default => [],
         };
 
-        return [...$settings, ...$variables];
+        // CFG-005. The ceilings, which apply whichever provider is selected.
+        // **Zero has to stay sayable**: it means no ceiling, it is the shipped
+        // default, and a `min:1` here would quietly make the shipped
+        // configuration unrepresentable on the form that edits it.
+        $limits = [
+            new WritableSetting('SANITUBE_AI_DAILY_CALLS', 'ai.limits.daily', false, ['integer', 'min:0', 'max:1000000']),
+            new WritableSetting('SANITUBE_AI_WEEKLY_CALLS', 'ai.limits.weekly', false, ['integer', 'min:0', 'max:1000000']),
+            new WritableSetting('SANITUBE_AI_MONTHLY_CALLS', 'ai.limits.monthly', false, ['integer', 'min:0', 'max:1000000']),
+            new WritableSetting('SANITUBE_AI_TIMEOUT', 'ai.timeout', false, ['integer', 'min:1', 'max:600']),
+            new WritableSetting('SANITUBE_AI_MAX_OUTPUT_TOKENS', 'ai.max_output_tokens', false, ['integer', 'min:1', 'max:100000']),
+            new WritableSetting('SANITUBE_AI_CIRCUIT_FAILURES', 'ai.circuit.consecutive_failures', false, ['integer', 'min:1', 'max:1000']),
+            new WritableSetting('SANITUBE_AI_CIRCUIT_COOLDOWN_MINUTES', 'ai.circuit.cooldown_minutes', false, ['integer', 'min:1', 'max:1440']),
+        ];
+
+        return [...$settings, ...$variables, ...$limits];
     }
 
     /**
