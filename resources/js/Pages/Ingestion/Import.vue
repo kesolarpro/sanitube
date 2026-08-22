@@ -10,6 +10,7 @@ import ProgressBar from '@/Components/Ui/ProgressBar.vue';
 import StatusBadge from '@/Components/Ui/StatusBadge.vue';
 import { bytes } from '@/Support/format';
 import { trans } from '@/Support/i18n';
+import { csrfToken, refusalCode, refusalFrom } from '@/Support/request';
 import type { SharedProps } from '@/Types/inertia';
 import type { DepositItem, ImportCapability } from '@/Types/ingestion';
 
@@ -248,10 +249,6 @@ class DepositRefused extends Error {
     }
 }
 
-function csrf(): string {
-    return document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content ?? '';
-}
-
 /** Through the application. The path a shared account without object storage has. */
 function sendRelayed(item: DepositItem, file: File): Promise<string> {
     const body = new FormData();
@@ -264,7 +261,7 @@ function sendRelayed(item: DepositItem, file: File): Promise<string> {
         inFlight.set(item.id, request);
 
         request.open('POST', '/ingestion/import/relay');
-        request.setRequestHeader('X-CSRF-TOKEN', csrf());
+        request.setRequestHeader('X-CSRF-TOKEN', csrfToken());
         request.setRequestHeader('Accept', 'application/json');
 
         request.upload.addEventListener('progress', (event) => {
@@ -282,7 +279,7 @@ function sendRelayed(item: DepositItem, file: File): Promise<string> {
                 return;
             }
 
-            reject(new DepositRefused(readCode(request.responseText)));
+            reject(new DepositRefused(refusalCode(request.status, request.responseText, 'DEPOSIT_FAILED')));
         });
 
         request.addEventListener('error', () => reject(new DepositRefused('NETWORK')));
@@ -290,17 +287,6 @@ function sendRelayed(item: DepositItem, file: File): Promise<string> {
 
         request.send(body);
     });
-}
-
-function readCode(body: string): string {
-    try {
-        const parsed = JSON.parse(body) as { code?: unknown };
-
-        return typeof parsed.code === 'string' ? parsed.code : 'DEPOSIT_FAILED';
-    } catch {
-        // Not JSON. The status is all there is.
-        return 'DEPOSIT_FAILED';
-    }
 }
 
 /**
@@ -316,13 +302,13 @@ async function sendDirect(item: DepositItem, file: File): Promise<string> {
         headers: {
             'Content-Type': 'application/json',
             Accept: 'application/json',
-            'X-CSRF-TOKEN': csrf(),
+            'X-CSRF-TOKEN': csrfToken(),
         },
         body: JSON.stringify({ files: [{ name: file.name, type: file.type }] }),
     });
 
     if (!minted.ok) {
-        throw new DepositRefused(readCode(await minted.text()));
+        throw new DepositRefused(await refusalFrom(minted, 'DEPOSIT_FAILED'));
     }
 
     const answer = (await minted.json()) as {

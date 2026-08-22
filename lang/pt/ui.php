@@ -753,6 +753,13 @@ return [
             'DEGRADED' => 'Funciona, com limites',
             'FAILED' => 'Não funciona',
             'NOT_CONFIGURED' => 'Ainda não há nada para testar',
+            // UPL-005. Recusas do próprio pedido, nomeadas pelo navegador.
+            // Nenhuma diz seja o que for sobre o fornecedor, que nunca chegou
+            // a ser contactado — por isso nenhuma é «não funciona».
+            'SESSION_EXPIRED' => 'A sua sessão expirou antes de o teste correr. Recarregue a página e tente de novo — nada foi alterado.',
+            'NOT_SIGNED_IN' => 'Já não tem sessão iniciada, por isso o teste não correu. Recarregue a página e inicie sessão de novo.',
+            'NOT_PERMITTED' => 'Esta conta não pode correr esse teste.',
+            'SERVER_ERROR' => 'O servidor não conseguiu terminar o teste. Nada foi alterado.',
         ],
         'failure' => [
             'SETTINGS_NOT_WRITTEN' => 'O ficheiro .env não pôde ser escrito. Foi primeiro copiado e deixado exatamente como estava.',
@@ -978,6 +985,13 @@ return [
             'STORAGE_UNAVAILABLE' => 'O armazenamento não respondeu. Nada se perdeu; tente de novo.',
             'DEPOSIT_FAILED' => 'Não foi possível depositar o ficheiro.',
             'HOST_UPLOAD_LIMIT' => 'O servidor recusou este ficheiro pelo seu tamanho antes de o SaniTube o ver. O limite de envio do alojamento é inferior ao que esta instalação aceita — um administrador aumenta upload_max_filesize e post_max_size (e o limite de corpo do servidor web) para o resolver.',
+            // UPL-005. Recusas que o servidor nunca escreve: as do framework, as
+            // do servidor web, as do PHP. Todas caíam antes no código genérico
+            // deste ecrã, que não nomeava nada.
+            'SESSION_EXPIRED' => 'A sua sessão expirou, por isso o servidor recusou este pedido antes de ler o ficheiro. Nada foi enviado. Recarregue a página e tente de novo — o ficheiro continua no seu computador.',
+            'NOT_SIGNED_IN' => 'Já não tem sessão iniciada, por isso nada foi enviado. Recarregue a página e inicie sessão de novo.',
+            'NOT_PERMITTED' => 'Esta conta não pode enviar aqui.',
+            'SERVER_ERROR' => 'O servidor não conseguiu terminar este. Nada foi guardado; tente de novo.',
             'NETWORK' => 'A ligação não aguentou.',
             'CANCELLED' => 'Parado antes de terminar.',
             'FILE_HANDLE_LOST' => 'Este separador já não tem esse ficheiro: foi escolhido antes do recarregamento. Escolha-o outra vez.',
@@ -1534,6 +1548,14 @@ return [
             'MEDIA_TYPE_NOT_ACCEPTED' => 'Esse tipo de ficheiro não é aceite para este género. O tipo é lido do próprio ficheiro, não do seu nome.',
             'FILE_TOO_LARGE' => 'O ficheiro excede o que esta instalação aceita.',
             'UPLOAD_NOT_ACCEPTABLE' => 'O envio não pôde ser aceite.',
+            'HOST_UPLOAD_LIMIT' => 'O servidor recusou este ficheiro pelo seu tamanho antes de o SaniTube o ver. O limite de envio do alojamento é inferior ao que esta instalação aceita — um administrador aumenta upload_max_filesize e post_max_size (e o limite de corpo do servidor web) para o resolver.',
+            // UPL-005. Recusas que o servidor nunca escreve: as do framework, as
+            // do servidor web, as do PHP. Todas caíam antes no código genérico
+            // deste ecrã, que não nomeava nada.
+            'SESSION_EXPIRED' => 'A sua sessão expirou, por isso o servidor recusou este pedido antes de ler o ficheiro. Nada foi enviado. Recarregue a página e tente de novo — o ficheiro continua no seu computador.',
+            'NOT_SIGNED_IN' => 'Já não tem sessão iniciada, por isso nada foi enviado. Recarregue a página e inicie sessão de novo.',
+            'NOT_PERMITTED' => 'Esta conta não pode enviar aqui.',
+            'SERVER_ERROR' => 'O servidor não conseguiu terminar este. Nada foi guardado; tente de novo.',
             'STORAGE_UNAVAILABLE' => 'O armazenamento está inacessível neste momento. Nada foi guardado.',
             'DIRECT_UPLOAD_UNSUPPORTED' => 'O armazenamento configurado não consegue receber um envio direto.',
             'NETWORK' => 'O envio não terminou. Nada foi guardado.',

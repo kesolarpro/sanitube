@@ -160,6 +160,33 @@ describe('the connection test', () => {
         expect(wrapper.text()).not.toContain('ENOTFOUND');
     });
 
+    it('names an expired session rather than calling the provider unreachable', async () => {
+        // UPL-005. This request also carried the CSRF token from the layout,
+        // and when the layout stopped publishing it every connection test came
+        // back 419 — reported here as "the test could not be run", which sent
+        // somebody to check credentials that were never asked for.
+        vi.stubGlobal(
+            'fetch',
+            vi.fn(() =>
+                Promise.resolve({
+                    ok: false,
+                    status: 419,
+                    text: () => Promise.resolve('{"message": "CSRF token mismatch."}'),
+                }),
+            ),
+        );
+
+        const wrapper = screen();
+
+        await theTestButton(wrapper).trigger('click');
+        await wrapper.vm.$nextTick();
+        await wrapper.vm.$nextTick();
+        await wrapper.vm.$nextTick();
+
+        expect(wrapper.text()).toContain('ui.settings.probe.SESSION_EXPIRED');
+        expect(wrapper.text()).not.toContain('ui.settings.probe_unreachable');
+    });
+
     it('shows the checks a probe answered with, as the server worded them', async () => {
         vi.stubGlobal(
             'fetch',

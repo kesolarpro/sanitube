@@ -753,6 +753,13 @@ return [
             'DEGRADED' => 'Funciona, con límites',
             'FAILED' => 'No funciona',
             'NOT_CONFIGURED' => 'Todavía no hay nada que probar',
+            // UPL-005. Rechazos de la propia petición, nombrados por el
+            // navegador. Ninguno dice nada del proveedor, al que nunca se
+            // llegó, así que ninguno es «no funciona».
+            'SESSION_EXPIRED' => 'Tu sesión caducó antes de que se ejecutara la prueba. Recarga la página e inténtalo de nuevo: no se cambió nada.',
+            'NOT_SIGNED_IN' => 'Ya no has iniciado sesión, así que la prueba no se ejecutó. Recarga la página y vuelve a entrar.',
+            'NOT_PERMITTED' => 'Esta cuenta no puede ejecutar esa prueba.',
+            'SERVER_ERROR' => 'El servidor no pudo terminar la prueba. No se cambió nada.',
         ],
         'failure' => [
             'SETTINGS_NOT_WRITTEN' => 'No se pudo escribir el archivo .env. Se hizo una copia primero y se dejó exactamente como estaba.',
@@ -978,6 +985,13 @@ return [
             'STORAGE_UNAVAILABLE' => 'El almacenamiento no respondió. No se perdió nada; inténtelo otra vez.',
             'DEPOSIT_FAILED' => 'No se pudo depositar el archivo.',
             'HOST_UPLOAD_LIMIT' => 'El servidor rechazó este archivo por su tamaño antes de que SaniTube lo viera. El límite de subida del alojamiento es menor que lo que esta instalación acepta — un administrador sube upload_max_filesize y post_max_size (y el límite de cuerpo del servidor web) para solucionarlo.',
+            // UPL-005. Rechazos que el servidor nunca escribe: los del framework,
+            // los del servidor web, los de PHP. Todos acababan antes en el código
+            // genérico de esta pantalla, que no nombraba nada.
+            'SESSION_EXPIRED' => 'Tu sesión caducó, así que el servidor rechazó esta petición antes de leer el archivo. No se subió nada. Recarga la página e inténtalo de nuevo: el archivo sigue en tu ordenador.',
+            'NOT_SIGNED_IN' => 'Ya no has iniciado sesión, así que no se subió nada. Recarga la página y vuelve a entrar.',
+            'NOT_PERMITTED' => 'Esta cuenta no puede subir aquí.',
+            'SERVER_ERROR' => 'El servidor no pudo terminar este. No se guardó nada; inténtalo otra vez.',
             'NETWORK' => 'La conexión no aguantó.',
             'CANCELLED' => 'Detenido antes de terminar.',
             'FILE_HANDLE_LOST' => 'Esta pestaña ya no tiene ese archivo: se eligió antes de recargar. Elíjalo de nuevo.',
@@ -1534,6 +1548,14 @@ return [
             'MEDIA_TYPE_NOT_ACCEPTED' => 'Ese tipo de archivo no se acepta para esta clase. El tipo se lee del propio archivo, no de su nombre.',
             'FILE_TOO_LARGE' => 'El archivo supera lo que esta instalación acepta.',
             'UPLOAD_NOT_ACCEPTABLE' => 'No se ha podido aceptar la subida.',
+            'HOST_UPLOAD_LIMIT' => 'El servidor rechazó este archivo por su tamaño antes de que SaniTube lo viera. El límite de subida del alojamiento es menor que lo que esta instalación acepta — un administrador sube upload_max_filesize y post_max_size (y el límite de cuerpo del servidor web) para solucionarlo.',
+            // UPL-005. Rechazos que el servidor nunca escribe: los del framework,
+            // los del servidor web, los de PHP. Todos acababan antes en el código
+            // genérico de esta pantalla, que no nombraba nada.
+            'SESSION_EXPIRED' => 'Tu sesión caducó, así que el servidor rechazó esta petición antes de leer el archivo. No se subió nada. Recarga la página e inténtalo de nuevo: el archivo sigue en tu ordenador.',
+            'NOT_SIGNED_IN' => 'Ya no has iniciado sesión, así que no se subió nada. Recarga la página y vuelve a entrar.',
+            'NOT_PERMITTED' => 'Esta cuenta no puede subir aquí.',
+            'SERVER_ERROR' => 'El servidor no pudo terminar este. No se guardó nada; inténtalo otra vez.',
             'STORAGE_UNAVAILABLE' => 'El almacenamiento no está accesible ahora mismo. No se ha guardado nada.',
             'DIRECT_UPLOAD_UNSUPPORTED' => 'El almacenamiento configurado no puede recibir una subida directa.',
             'NETWORK' => 'La subida no ha terminado. No se ha guardado nada.',

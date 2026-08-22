@@ -454,6 +454,48 @@ final class CatalogueImportFromTheBrowserTest extends TestCase
     }
 
     #[Test]
+    public function two_files_with_the_same_name_are_two_objects_and_neither_is_lost(): void
+    {
+        // A catalogue of nine hundred masters arrives with `01 - Intro.mp3` in
+        // forty different album folders. The browser sends a name and nothing
+        // else, so a key derived from the name alone would have the fortieth
+        // deposit silently overwrite the first thirty-nine — and the import
+        // would report forty successes for one surviving file.
+        //
+        // `keyFor` puts a uuid segment between the prefix and the name, which
+        // is what stops that. It has been true since BULK-001; nothing held it.
+        $user = $this->user();
+
+        $first = $this->actingAs($user)
+            ->post('/ingestion/import/relay', ['file' => $this->mp3('01 - Intro.mp3', frames: 40)])
+            ->assertOk()
+            ->json('reference');
+
+        $second = $this->actingAs($user)
+            ->post('/ingestion/import/relay', ['file' => $this->mp3('01 - Intro.mp3', frames: 80)])
+            ->assertOk()
+            ->json('reference');
+
+        $this->assertIsString($first);
+        $this->assertIsString($second);
+        $this->assertNotSame($first, $second);
+
+        // Both keys still carry the name — it is a label a person reads in the
+        // inbox — and both objects are there to be imported.
+        $this->assertStringEndsWith('01 - Intro.mp3', $first);
+        $this->assertStringEndsWith('01 - Intro.mp3', $second);
+
+        $inbox = $this->store->files('inbox/');
+
+        $this->assertContains($first, $inbox);
+        $this->assertContains($second, $inbox);
+
+        // Not "two keys exist" but "two files' worth of bytes survive": the
+        // second deposit is twice the first, and neither is the other.
+        $this->assertNotSame($this->store->get($first), $this->store->get($second));
+    }
+
+    #[Test]
     public function the_screen_states_the_ceiling_that_will_actually_refuse(): void
     {
         // The defect: the screen promised `maximum_bytes` — two gigabytes by
