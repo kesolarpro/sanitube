@@ -119,6 +119,8 @@ written down.
 | Provider is handed a local path, never a URL | READY | No adapter can be talked into fetching an arbitrary address. |
 | Transcription reachable from the interface and the queue | READY | TRN-003. Route, job, listener and backlog command; automatic mode off by default. |
 | Idempotent per provider version | READY | Re-running the same version returns the stored row rather than paying again. |
+| Transcription is configurable from the product | READY | CFG-006. The provider, its own credential, its model, timeout and upload ceiling, and — the reason this could not wait — `SANITUBE_TRANSCRIPTION_AUTOMATIC`. That switch turns a paid per-file call on for every master an installation already holds, and it was reachable only over SSH: an operator who wanted it could not switch it on, and one who regretted it could not switch it off. |
+| A switch is two words and never anything else | READY | CFG-006. `on`, `1` and `yes` all read as false through Laravel's env casting, so accepting one would be a saved setting that silently means the opposite of what was typed. The form refuses them. |
 | **Certified against the real OpenAI API** | BLOCKED_EXTERNAL | No key in CI. The adapter has never spoken to the live endpoint. |
 
 ## AI enrichment
@@ -161,7 +163,9 @@ written down.
 | Backfill for covers verified earlier | READY | `sanitube:artwork:measure`, bounded, and it says what it left behind. |
 | Image generation refuses before spending | READY | ART-002. Feasibility is checked against the provider's declared sizes before a request leaves; an unreachable requirement is `REQUIREMENTS_UNREACHABLE` and nothing is sent. |
 | A generated cover is an ordinary asset | READY | Registered, stored, checksummed, verified and measured like any upload. The provider's claim about what it produced is never what the platform reports. |
-| Generation usable on the shipped configuration | **NOT_READY** | Deliberate and stated in `config/artwork.php`: the default 3000px requirement and the specification's only square GPT-image size (1024) genuinely disagree, so generation declines out of the box. An operator resolves it by lowering the requirement or declaring a larger size their account supports. |
+| Generation usable on the shipped configuration | **NOT_READY** | Deliberate and stated in `config/artwork.php`: the default 3000px requirement and the specification's only square GPT-image size (1024) genuinely disagree, so generation declines out of the box. An operator resolves it by lowering the requirement or declaring a larger size their account supports — and since CFG-006 they resolve it from the settings screen rather than over SSH. |
+| Artwork is configurable from the product | READY | CFG-006. Eighteen variables and a credential, reachable only by editing `.env`. The provider, its key, its model and format, what a cover has to be, what generation may cost, the circuit breaker, and the off switch are all on the settings screen. Zero stays sayable in every threshold and every ceiling: it means "no requirement" and "no ceiling", it is the shipped default for most of them, and a `min:1` anywhere would make the shipped configuration unrepresentable on the form that edits it. |
+| Artwork variables are documented where an operator looks | READY | CFG-006. `.env.example` named none of them, so choosing the provider gave an operator a supplier with no documented way to point it anywhere. The size disagreement above is stated there in full, before the switch that turns generation on. |
 | No colour-profile inspection | NOT_READY | `getimagesize` cannot read an ICC profile, so "is this sRGB" is unanswered rather than guessed. Needs an image library this platform deliberately avoids. |
 | **Certified against a real image endpoint** | BLOCKED_EXTERNAL | No key in CI. The adapter has never spoken to OpenAI. |
 

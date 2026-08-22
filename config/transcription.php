@@ -75,6 +75,15 @@ return [
 
     'providers' => [
 
+        /*
+         * Declared, though the manager answers this name before it reads this
+         * array. CFG-006 put the choice on the settings screen, and a screen
+         * offering only `openai` would make the shipped default the one option
+         * an operator could not choose — while every other supplier family in
+         * this platform declares its own `none`.
+         */
+        'none' => ['driver' => 'none'],
+
         'openai' => [
             'driver' => 'openai',
             'base_url' => env('SANITUBE_TRANSCRIPTION_OPENAI_BASE_URL', env('SANITUBE_OPENAI_BASE_URL')),
