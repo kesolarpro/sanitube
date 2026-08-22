@@ -84,8 +84,25 @@ export interface BackupSummary {
     destination_configured: boolean;
 }
 
+/**
+ * Whether the installation is taking on background work at all.
+ *
+ * OPS-002. The global stop existed, worked, and was reported on no screen — an
+ * installation somebody paused yesterday looked identical to a healthy one
+ * while nothing was processed. `paused_by` is a name and never an address: an
+ * operations screen is a screen people share.
+ */
+export interface BackgroundWorkView {
+    paused: boolean;
+    /** A machine code the interface renders, never a sentence from the server. */
+    reason: string | null;
+    paused_at: string | null;
+    paused_by: string | null;
+}
+
 export interface Operations {
     health: OperationalHealthView;
+    work: BackgroundWorkView;
     scheduler: { last_run_at: string | null; seconds_since: number | null };
     queue: QueueSummary;
     backups: BackupSummary;
