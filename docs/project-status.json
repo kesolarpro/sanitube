@@ -1212,7 +1212,7 @@
  },
  "main_sha": "b22e224",
  "current_ticket": "USR-001",
- "tests": "2381 passed, 1 skipped, 30177 assertions (PHP) + 40 (Vitest) — avant la fusion de UPL-005",
+ "tests": "2389 passed, 1 skipped, 30329 assertions (PHP) + 57 (Vitest)",
  "phpstan": {
   "level": 6,
   "baseline": false,
