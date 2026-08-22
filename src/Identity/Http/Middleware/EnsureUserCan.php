@@ -33,6 +33,9 @@ final class EnsureUserCan
             'catalogue' => $user->role->canWriteCatalogue(),
             'distribute' => $user->role->canDistribute(),
             'administer' => $user->role->canAdminister(),
+            // USR-001. The ownership and security root: who else is an owner,
+            // and what credential this installation holds.
+            'own' => $user->role->canManageOwnership(),
             // An unknown ability is a routing mistake, and defaulting to
             // "allowed" would make a typo into an open door.
             default => false,

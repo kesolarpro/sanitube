@@ -21,6 +21,24 @@ final class SettingsWriteFailed extends RuntimeException
         parent::__construct($message);
     }
 
+    /**
+     * A credential was submitted by somebody who administers the platform but
+     * does not own it.
+     *
+     * USR-001. The split is deliberate and narrow: an administrator changes
+     * how a provider behaves — quotas, timeouts, which one is selected — and
+     * an owner decides which *account* it spends against. Refused rather than
+     * quietly dropped, because a form that reports success while ignoring the
+     * field somebody typed into is worse than one that says no.
+     */
+    public static function secretsAreOwnersBusiness(): self
+    {
+        return new self(
+            'Only an owner may change a credential.',
+            'SETTINGS_SECRETS_ARE_OWNERS_BUSINESS',
+        );
+    }
+
     public static function notWritten(): self
     {
         return new self(

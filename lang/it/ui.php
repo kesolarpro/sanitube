@@ -61,6 +61,7 @@ return [
         'distribution' => 'Distribuzione',
         'rights' => 'Diritti',
         'analytics' => 'Analisi',
+        'users' => 'Utenti',
         'jobs' => 'Processi',
         'operations' => 'Operatività',
         'audit' => 'Registro di controllo',
@@ -255,6 +256,45 @@ return [
             'distribution' => 'Distribuzione',
         ],
     ],
+    // USR-001. Who may use this installation. The one screen that
+    // publishes an address, because the address *is* the account.
+    'users' => [
+        'title' => 'Utenti e accessi',
+        'description' => 'Chi può usare questa installazione, e con quale ruolo. Un proprietario possiede la piattaforma; un amministratore la gestisce.',
+        'add' => 'Aggiungi qualcuno',
+        'name' => 'Nome',
+        'email' => 'E-mail',
+        'role' => 'Ruolo',
+        'status' => 'Stato',
+        'last_login' => 'Ultimo accesso',
+        'never' => 'Mai',
+        'active' => 'Attivo',
+        'inactive' => 'Disattivato',
+        'deactivate' => 'Disattiva',
+        'reactivate' => 'Riattiva',
+        'password' => 'Password',
+        'password_hint' => 'Dodici caratteri o più. La lunghezza conta più della punteggiatura: una frase che si ricorda è più solida di una che si annota.',
+        'self' => 'Sei tu',
+        'last_owner' => 'L\'ultimo proprietario',
+        'no_delete' => 'Gli account non vengono mai eliminati: il registro di controllo conserva chi ha fatto cosa, e un account eliminato porterebbe via quel registro. Disattivare impedisce l\'accesso e mantiene la storia leggibile.',
+        'role_name' => [
+            'OWNER' => 'Proprietario',
+            'ADMIN' => 'Amministratore',
+            'MEMBER' => 'Membro',
+        ],
+        'role_note' => [
+            'OWNER' => 'Possiede la piattaforma: gestisce proprietari, credenziali e impostazioni di sicurezza.',
+            'ADMIN' => 'Gestisce la piattaforma: code, backup, fornitori, pubblicazioni. Non può cambiare proprietari né credenziali.',
+            'MEMBER' => 'Lavora il catalogo: importa, revisiona, costruisce pubblicazioni. Non può distribuire né amministrare.',
+        ],
+        'failure' => [
+            'LAST_OWNER' => 'È l\'ultimo proprietario. Rimuoverlo, disattivarlo o retrocederlo lascerebbe l\'installazione senza nessuno che possa amministrarla.',
+            'OWNER_ONLY' => 'Solo un proprietario può cambiare chi altro è proprietario.',
+            'NOT_YOURSELF' => 'Non puoi cambiare il tuo ruolo né disattivare il tuo account.',
+            'EMAIL_TAKEN' => 'Un account usa già questo indirizzo.',
+        ],
+    ],
+
     'system' => [
         // OPS-002. The global stop, and the fact that it is on. An
         // installation somebody paused yesterday looked identical to a
@@ -377,6 +417,9 @@ return [
                 'identity.user.sign_in_failed' => 'Accesso rifiutato',
                 'identity.user.signed_out' => 'Uscita effettuata',
                 'identity.user.created' => 'Account creato',
+                'identity.user.role_changed' => 'Ruolo modificato',
+                'identity.user.deactivated' => 'Account disattivato',
+                'identity.user.reactivated' => 'Account riattivato',
                 'identity.password.reset_requested' => 'Reimpostazione richiesta',
                 'identity.password.reset_completed' => 'Password reimpostata',
                 'catalogue.candidate.promoted' => 'Proposta promossa',
@@ -762,6 +805,7 @@ return [
             'SERVER_ERROR' => 'Il server non ha potuto completare la prova. Non è stato modificato nulla.',
         ],
         'failure' => [
+            'SETTINGS_SECRETS_ARE_OWNERS_BUSINESS' => 'Solo un proprietario può cambiare una credenziale.',
             'SETTINGS_NOT_WRITTEN' => 'Il file .env non è stato scritto. È stato prima salvato e lasciato esattamente com’era.',
             'SETTINGS_CACHE_NOT_REBUILT' => 'La cache di configurazione non è stata ricostruita, quindi il .env precedente è stato ripristinato. Una cache che non corrisponde più al file sarebbe peggio di nessuna modifica.',
             'PATH_IS_PUBLIC' => 'Quel percorso è dentro la radice web. Un backup lì è tutto il database, scaricabile da chiunque indovini il nome del file.',

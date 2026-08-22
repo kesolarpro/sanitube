@@ -61,6 +61,7 @@ return [
         'distribution' => 'Distribution',
         'rights' => 'Droits',
         'analytics' => 'Analyses',
+        'users' => 'Utilisateurs',
         'jobs' => 'Tâches',
         'operations' => 'Exploitation',
         'audit' => 'Journal d\'audit',
@@ -255,6 +256,45 @@ return [
             'distribution' => 'Distribution',
         ],
     ],
+    // USR-001. Who may use this installation. The one screen that
+    // publishes an address, because the address *is* the account.
+    'users' => [
+        'title' => 'Utilisateurs et accès',
+        'description' => 'Qui peut utiliser cette installation, et à quel titre. Un propriétaire possède la plateforme ; un administrateur l\'exploite.',
+        'add' => 'Ajouter quelqu\'un',
+        'name' => 'Nom',
+        'email' => 'E-mail',
+        'role' => 'Rôle',
+        'status' => 'État',
+        'last_login' => 'Dernière connexion',
+        'never' => 'Jamais',
+        'active' => 'Actif',
+        'inactive' => 'Désactivé',
+        'deactivate' => 'Désactiver',
+        'reactivate' => 'Réactiver',
+        'password' => 'Mot de passe',
+        'password_hint' => 'Douze caractères ou plus. La longueur vaut mieux que la ponctuation : une phrase de passe qu\'on retient est plus solide qu\'une qu\'on note.',
+        'self' => 'C\'est vous',
+        'last_owner' => 'Le dernier propriétaire',
+        'no_delete' => 'Les comptes ne sont jamais supprimés — le journal d\'audit enregistre qui a fait quoi, et un compte supprimé emporterait cet enregistrement. Désactiver empêche la connexion et garde l\'historique lisible.',
+        'role_name' => [
+            'OWNER' => 'Propriétaire',
+            'ADMIN' => 'Administrateur',
+            'MEMBER' => 'Membre',
+        ],
+        'role_note' => [
+            'OWNER' => 'Possède la plateforme : gère les propriétaires, les identifiants et les réglages de sécurité.',
+            'ADMIN' => 'Exploite la plateforme : files, sauvegardes, fournisseurs, sorties. Ne peut changer ni les propriétaires ni les identifiants.',
+            'MEMBER' => 'Travaille le catalogue : imports, revues, construction de sorties. Ne peut ni distribuer ni administrer.',
+        ],
+        'failure' => [
+            'LAST_OWNER' => 'C\'est le dernier propriétaire. Le retirer, le désactiver ou le rétrograder laisserait l\'installation sans personne pour l\'administrer.',
+            'OWNER_ONLY' => 'Seul un propriétaire peut changer qui est propriétaire.',
+            'NOT_YOURSELF' => 'Vous ne pouvez pas changer votre propre rôle ni désactiver votre propre compte.',
+            'EMAIL_TAKEN' => 'Un compte utilise déjà cette adresse.',
+        ],
+    ],
+
     'system' => [
         // OPS-002. The global stop, and the fact that it is on. An
         // installation somebody paused yesterday looked identical to a
@@ -377,6 +417,9 @@ return [
                 'identity.user.sign_in_failed' => 'Connexion refusée',
                 'identity.user.signed_out' => 'Déconnexion',
                 'identity.user.created' => 'Compte créé',
+                'identity.user.role_changed' => 'Rôle modifié',
+                'identity.user.deactivated' => 'Compte désactivé',
+                'identity.user.reactivated' => 'Compte réactivé',
                 'identity.password.reset_requested' => 'Réinitialisation demandée',
                 'identity.password.reset_completed' => 'Mot de passe réinitialisé',
                 'catalogue.candidate.promoted' => 'Proposition promue',
@@ -762,6 +805,7 @@ return [
             'SERVER_ERROR' => 'Le serveur n\'a pas pu terminer le test. Rien n\'a été modifié.',
         ],
         'failure' => [
+            'SETTINGS_SECRETS_ARE_OWNERS_BUSINESS' => 'Seul un propriétaire peut changer un identifiant.',
             'SETTINGS_NOT_WRITTEN' => 'Le fichier .env n\'a pas pu être écrit. Il a d\'abord été sauvegardé et laissé exactement tel qu\'il était.',
             'SETTINGS_CACHE_NOT_REBUILT' => 'Le cache de configuration n\'a pas pu être reconstruit, donc le .env précédent a été restauré. Un cache qui ne correspond plus au fichier serait pire qu\'aucun changement.',
             'PATH_IS_PUBLIC' => 'Ce chemin est dans la racine web. Une sauvegarde à cet endroit, c\'est toute la base de données, téléchargeable par quiconque devine le nom du fichier.',

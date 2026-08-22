@@ -61,6 +61,7 @@ return [
         'distribution' => 'Distribution',
         'rights' => 'Rights',
         'analytics' => 'Analytics',
+        'users' => 'Users',
         'jobs' => 'Jobs',
         'operations' => 'Operations',
         'audit' => 'Audit log',
@@ -255,6 +256,45 @@ return [
             'distribution' => 'Distribution',
         ],
     ],
+    // USR-001. Who may use this installation. The one screen that
+    // publishes an address, because the address *is* the account.
+    'users' => [
+        'title' => 'Users and access',
+        'description' => 'Who may use this installation, and as what. An owner owns the platform; an administrator operates it.',
+        'add' => 'Add someone',
+        'name' => 'Name',
+        'email' => 'Email',
+        'role' => 'Role',
+        'status' => 'Status',
+        'last_login' => 'Last signed in',
+        'never' => 'Never',
+        'active' => 'Active',
+        'inactive' => 'Deactivated',
+        'deactivate' => 'Deactivate',
+        'reactivate' => 'Reactivate',
+        'password' => 'Password',
+        'password_hint' => 'Twelve characters or more. Length beats punctuation: a passphrase somebody remembers is stronger than one they write down.',
+        'self' => 'This is you',
+        'last_owner' => 'The last owner',
+        'no_delete' => 'Accounts are never deleted — the audit log records who did what, and a deleted account would take that record with it. Deactivating stops somebody signing in and keeps the history readable.',
+        'role_name' => [
+            'OWNER' => 'Owner',
+            'ADMIN' => 'Administrator',
+            'MEMBER' => 'Member',
+        ],
+        'role_note' => [
+            'OWNER' => 'Owns the platform: manages owners, credentials and security settings.',
+            'ADMIN' => 'Operates the platform: queues, backups, providers, releases. Cannot change owners or credentials.',
+            'MEMBER' => 'Works the catalogue: imports, reviews, builds releases. Cannot distribute or administer.',
+        ],
+        'failure' => [
+            'LAST_OWNER' => 'This is the last owner. Removing, deactivating or demoting them would leave the installation with nobody who can administer it.',
+            'OWNER_ONLY' => 'Only an owner may change who else is an owner.',
+            'NOT_YOURSELF' => 'You cannot change your own role or deactivate your own account.',
+            'EMAIL_TAKEN' => 'An account already uses that email address.',
+        ],
+    ],
+
     'system' => [
         // OPS-002. The global stop, and the fact that it is on. An
         // installation somebody paused yesterday looked identical to a
@@ -377,6 +417,9 @@ return [
                 'identity.user.sign_in_failed' => 'Sign-in refused',
                 'identity.user.signed_out' => 'Signed out',
                 'identity.user.created' => 'Account created',
+                'identity.user.role_changed' => 'Role changed',
+                'identity.user.deactivated' => 'Account deactivated',
+                'identity.user.reactivated' => 'Account reactivated',
                 'identity.password.reset_requested' => 'Password reset requested',
                 'identity.password.reset_completed' => 'Password reset completed',
                 'catalogue.candidate.promoted' => 'Candidate promoted',
@@ -762,6 +805,7 @@ return [
             'SERVER_ERROR' => 'The server could not finish the test. Nothing was changed.',
         ],
         'failure' => [
+            'SETTINGS_SECRETS_ARE_OWNERS_BUSINESS' => 'Only an owner may change a credential.',
             'SETTINGS_NOT_WRITTEN' => 'The .env file could not be written. It was backed up first and has been left exactly as it was.',
             'SETTINGS_CACHE_NOT_REBUILT' => 'The configuration cache could not be rebuilt, so the previous .env has been restored. A cache that no longer matches the file would be worse than no change at all.',
             'PATH_IS_PUBLIC' => 'That path is inside the web root. A backup there is the whole database, downloadable by anyone who guesses the filename.',

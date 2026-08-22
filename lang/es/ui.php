@@ -61,6 +61,7 @@ return [
         'distribution' => 'Distribución',
         'rights' => 'Derechos',
         'analytics' => 'Analíticas',
+        'users' => 'Usuarios',
         'jobs' => 'Tareas',
         'operations' => 'Operaciones',
         'audit' => 'Registro de auditoría',
@@ -255,6 +256,45 @@ return [
             'distribution' => 'Distribución',
         ],
     ],
+    // USR-001. Who may use this installation. The one screen that
+    // publishes an address, because the address *is* the account.
+    'users' => [
+        'title' => 'Usuarios y acceso',
+        'description' => 'Quién puede usar esta instalación, y con qué papel. Un propietario posee la plataforma; un administrador la opera.',
+        'add' => 'Añadir a alguien',
+        'name' => 'Nombre',
+        'email' => 'Correo',
+        'role' => 'Papel',
+        'status' => 'Estado',
+        'last_login' => 'Último acceso',
+        'never' => 'Nunca',
+        'active' => 'Activo',
+        'inactive' => 'Desactivado',
+        'deactivate' => 'Desactivar',
+        'reactivate' => 'Reactivar',
+        'password' => 'Contraseña',
+        'password_hint' => 'Doce caracteres o más. La longitud vale más que la puntuación: una frase que alguien recuerda es más fuerte que una que apunta.',
+        'self' => 'Este es usted',
+        'last_owner' => 'El último propietario',
+        'no_delete' => 'Las cuentas nunca se borran: el registro de auditoría guarda quién hizo qué, y una cuenta borrada se llevaría ese registro. Desactivar impide el acceso y mantiene el historial legible.',
+        'role_name' => [
+            'OWNER' => 'Propietario',
+            'ADMIN' => 'Administrador',
+            'MEMBER' => 'Miembro',
+        ],
+        'role_note' => [
+            'OWNER' => 'Posee la plataforma: gestiona propietarios, credenciales y ajustes de seguridad.',
+            'ADMIN' => 'Opera la plataforma: colas, copias, proveedores, lanzamientos. No puede cambiar propietarios ni credenciales.',
+            'MEMBER' => 'Trabaja el catálogo: importa, revisa, construye lanzamientos. No puede distribuir ni administrar.',
+        ],
+        'failure' => [
+            'LAST_OWNER' => 'Es el último propietario. Quitarlo, desactivarlo o degradarlo dejaría la instalación sin nadie que pueda administrarla.',
+            'OWNER_ONLY' => 'Solo un propietario puede cambiar quién más es propietario.',
+            'NOT_YOURSELF' => 'No puede cambiar su propio papel ni desactivar su propia cuenta.',
+            'EMAIL_TAKEN' => 'Ya existe una cuenta con ese correo.',
+        ],
+    ],
+
     'system' => [
         // OPS-002. The global stop, and the fact that it is on. An
         // installation somebody paused yesterday looked identical to a
@@ -377,6 +417,9 @@ return [
                 'identity.user.sign_in_failed' => 'Inicio de sesión rechazado',
                 'identity.user.signed_out' => 'Cierre de sesión',
                 'identity.user.created' => 'Cuenta creada',
+                'identity.user.role_changed' => 'Rol cambiado',
+                'identity.user.deactivated' => 'Cuenta desactivada',
+                'identity.user.reactivated' => 'Cuenta reactivada',
                 'identity.password.reset_requested' => 'Restablecimiento solicitado',
                 'identity.password.reset_completed' => 'Contraseña restablecida',
                 'catalogue.candidate.promoted' => 'Propuesta promovida',
@@ -762,6 +805,7 @@ return [
             'SERVER_ERROR' => 'El servidor no pudo terminar la prueba. No se cambió nada.',
         ],
         'failure' => [
+            'SETTINGS_SECRETS_ARE_OWNERS_BUSINESS' => 'Solo un propietario puede cambiar una credencial.',
             'SETTINGS_NOT_WRITTEN' => 'No se pudo escribir el archivo .env. Se hizo una copia primero y se dejó exactamente como estaba.',
             'SETTINGS_CACHE_NOT_REBUILT' => 'No se pudo reconstruir la caché de configuración, así que se restauró el .env anterior. Una caché que ya no coincide con el archivo sería peor que no cambiar nada.',
             'PATH_IS_PUBLIC' => 'Esa ruta está dentro de la raíz web. Una copia ahí es toda la base de datos, descargable por cualquiera que adivine el nombre del archivo.',

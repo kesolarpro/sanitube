@@ -261,6 +261,96 @@ final class SettingsWriteTest extends TestCase
         }
     }
 
+    // ------------------------------------------------- who may write a secret
+
+    /**
+     * USR-001. The credentials an installation holds are the owner's.
+     *
+     * An administrator operates the platform: they pause work, retry jobs,
+     * change limits, and read every screen. What they do not do is replace the
+     * key the platform pays a supplier with, or the token a worker
+     * authenticates with — because that is the one change that turns
+     * administering an installation into taking it over, and it leaves no
+     * trace an administrator could not also write.
+     *
+     * The gate is on the write, not on the field's presence. An administrator
+     * still sees that a credential is configured, because "is the key set" is
+     * an operational question they need answered during an outage.
+     */
+    #[Test]
+    public function an_administrator_may_not_replace_a_credential(): void
+    {
+        $this->actingAs($this->user(UserRole::Admin))
+            ->patch('/settings', ['SANITUBE_OPENAI_KEY' => 'a-key-an-administrator-chose'])
+            ->assertSessionHasErrors('settings');
+
+        $environment = $this->environment();
+
+        $this->assertStringContainsString('SANITUBE_OPENAI_KEY=the-existing-key', $environment);
+        $this->assertStringNotContainsString('a-key-an-administrator-chose', $environment);
+    }
+
+    #[Test]
+    public function a_refused_secret_takes_the_whole_submission_with_it(): void
+    {
+        // Not a partial write. Saving the harmless half of a form and
+        // discarding the rest silently is how an operator comes away believing
+        // they changed a key they did not, and the screen would have no way to
+        // tell them otherwise.
+        $this->actingAs($this->user(UserRole::Admin))
+            ->patch('/settings', [
+                'SANITUBE_OPENAI_KEY' => 'a-key-an-administrator-chose',
+                'SANITUBE_API_RATE_LIMIT' => '120',
+            ])
+            ->assertSessionHasErrors('settings');
+
+        $this->assertStringContainsString('SANITUBE_API_RATE_LIMIT=60', $this->environment());
+    }
+
+    #[Test]
+    public function an_administrator_may_still_change_everything_that_is_not_a_credential(): void
+    {
+        // The gate has to be narrow, or it is a demotion of the administrator
+        // role rather than a protection of the ownership root.
+        $this->actingAs($this->user(UserRole::Admin))
+            ->patch('/settings', ['SANITUBE_API_RATE_LIMIT' => '120'])
+            ->assertRedirect()
+            ->assertSessionHasNoErrors();
+
+        $this->assertStringContainsString('SANITUBE_API_RATE_LIMIT=120', $this->environment());
+    }
+
+    #[Test]
+    public function an_owner_replaces_a_credential(): void
+    {
+        $this->actingAs($this->user(UserRole::Owner))
+            ->patch('/settings', ['SANITUBE_OPENAI_KEY' => 'the-owners-key'])
+            ->assertRedirect()
+            ->assertSessionHasNoErrors();
+
+        $this->assertStringContainsString('SANITUBE_OPENAI_KEY=the-owners-key', $this->environment());
+    }
+
+    #[Test]
+    public function an_administrator_submitting_a_blank_credential_is_not_refused(): void
+    {
+        // Every settings form carries every secret field, rendered empty. If a
+        // blank one counted as an attempt to write, an administrator could
+        // never save the page at all — and the rule would read as "an
+        // administrator may not use settings" rather than "may not replace a
+        // credential".
+        $this->actingAs($this->user(UserRole::Admin))
+            ->patch('/settings', [
+                'SANITUBE_OPENAI_KEY' => '',
+                'SANITUBE_API_RATE_LIMIT' => '120',
+            ])
+            ->assertRedirect()
+            ->assertSessionHasNoErrors();
+
+        $this->assertStringContainsString('SANITUBE_OPENAI_KEY=the-existing-key', $this->environment());
+        $this->assertStringContainsString('SANITUBE_API_RATE_LIMIT=120', $this->environment());
+    }
+
     // ------------------------------------------------------------ validation
 
     #[Test]

@@ -173,3 +173,35 @@ export interface AuditOptions {
     subject: string[];
     outcome: string[];
 }
+
+/**
+ * An account, as the users screen sees it.
+ *
+ * USR-001. This is the **one** payload in the platform that carries an email
+ * address. Every other screen names a person and withholds it — an operations
+ * banner has no business handing one out — and this screen is the exception
+ * because the address *is* the account: it is what somebody signs in with.
+ *
+ * Never the password hash, never the remember token. `is_self` and
+ * `is_last_owner` exist so the screen can disable a control and say why,
+ * rather than offering one that refuses.
+ */
+export interface UserRow {
+    uuid: string;
+    name: string;
+    email: string;
+    role: 'OWNER' | 'ADMIN' | 'MEMBER';
+    is_active: boolean;
+    last_login_at: string | null;
+    created_at: string | null;
+    is_self: boolean;
+    is_last_owner: boolean;
+}
+
+export interface UsersView {
+    rows: UserRow[];
+    roles: string[];
+    /** Whether this reader may make or unmake an owner. */
+    may_manage_owners: boolean;
+    active_owners: number;
+}

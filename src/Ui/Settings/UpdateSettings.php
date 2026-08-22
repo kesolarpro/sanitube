@@ -61,9 +61,10 @@ final readonly class UpdateSettings
      *
      * @throws SettingsWriteFailed
      */
-    public function apply(array $submitted): array
+    public function apply(array $submitted, bool $mayWriteSecrets = true): array
     {
         $changes = [];
+        $refused = [];
 
         foreach ($this->writable->all() as $setting) {
             $value = $submitted[$setting->variable] ?? null;
@@ -80,7 +81,23 @@ final readonly class UpdateSettings
                 continue;
             }
 
+            // USR-001. A credential is the ownership root, not an operating
+            // setting: an administrator runs the platform, an owner decides
+            // which account at a supplier it spends against. Refused rather
+            // than silently dropped — a save that reports success while
+            // ignoring the field somebody typed into is the worst answer
+            // available.
+            if ($setting->secret && ! $mayWriteSecrets) {
+                $refused[] = $setting->variable;
+
+                continue;
+            }
+
             $changes[$setting->variable] = (string) $value;
+        }
+
+        if ($refused !== []) {
+            throw SettingsWriteFailed::secretsAreOwnersBusiness();
         }
 
         if ($changes === []) {
