@@ -59,6 +59,12 @@ final readonly class NavigationTree
             // track, this is a plan asking for one a week without them.
             $this->item('production', '/production', 'studio', available: true),
 
+            // PROD-002. The imprint a plan produces in the manner of. Next to
+            // production because it is the thing a plan cannot be made
+            // without, and behind the same role as steering one: a profile is
+            // the label's own policy rather than catalogue.
+            $this->item('editorial', '/editorial', 'studio', available: $user->role->canWriteCatalogue()),
+
             $this->item('releases', '/releases', 'releases', available: true),
             $this->item('distribution', '/distribution', 'distribution', available: true),
             $this->item('rights', null, 'rights', available: false),

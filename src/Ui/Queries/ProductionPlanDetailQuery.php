@@ -38,6 +38,8 @@ final readonly class ProductionPlanDetailQuery
 {
     public const OCCASIONS = 60;
 
+    public function __construct(private EditorialProfileIndexQuery $profiles) {}
+
     /**
      * @return array<string, mixed>|null null when there is no such plan
      */
@@ -69,6 +71,11 @@ final readonly class ProductionPlanDetailQuery
                 'halted_reason' => $plan->halted_reason,
                 'halted_at' => $plan->halted_at?->toIso8601String(),
                 'editorial_profile' => $plan->editorialProfile?->name,
+                // PROD-002. The uuid as well as the name, because the edit
+                // form has to be able to say which imprint is already
+                // selected — and a form that reopened on the wrong one would
+                // repoint a plan on save without anybody choosing to.
+                'editorial_profile_uuid' => $plan->editorialProfile?->uuid,
                 'created_at' => $plan->created_at?->toIso8601String(),
             ],
             'occasions' => $this->occasions($plan),
@@ -76,6 +83,9 @@ final readonly class ProductionPlanDetailQuery
             // which: a MEMBER may watch a plan and may not steer it, and a
             // finished plan cannot be steered by anybody.
             'may_steer' => $viewer?->role->canWriteCatalogue() ?? false,
+            // PROD-002. The imprints this plan may be repointed at. Active
+            // only, for the same reason the create form offers active only.
+            'profiles' => $this->profiles->selectable(),
         ];
     }
 

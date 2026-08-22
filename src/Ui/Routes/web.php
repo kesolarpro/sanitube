@@ -28,6 +28,8 @@ use SaniTube\Ui\Http\Controllers\Distribution\DeliveryIndexController;
 use SaniTube\Ui\Http\Controllers\Distribution\DeliveryPackageController;
 use SaniTube\Ui\Http\Controllers\Distribution\DistributionActionController;
 use SaniTube\Ui\Http\Controllers\Distribution\ReleaseDistributionController;
+use SaniTube\Ui\Http\Controllers\Editorial\ProfileActionController;
+use SaniTube\Ui\Http\Controllers\Editorial\ProfileIndexController;
 use SaniTube\Ui\Http\Controllers\Enrichment\EnrichmentRequestController;
 use SaniTube\Ui\Http\Controllers\Enrichment\SuggestionActionController;
 use SaniTube\Ui\Http\Controllers\Enrichment\SuggestionIndexController;
@@ -388,6 +390,36 @@ Route::middleware(['web', HandleInertiaRequests::class, 'auth', 'active'])->grou
      * conclusion the platform draws -- within reach of a form.
      */
     Route::middleware('can.role:catalogue')->group(function (): void {
+        /*
+         * PROD-002. Making a plan, and correcting its terms.
+         *
+         * `WriteProductionPlan::create` existed from PROD-001 and had no
+         * caller in the product: no controller, no console command, no
+         * seeder. Neither did the editorial profile a plan requires. So a
+         * working installation had a production screen that could only ever
+         * be empty, and the one part of SaniTube that acts unattended could
+         * not be started from inside it.
+         *
+         * PATCH rather than a settable status. Pausing, resuming and
+         * disabling keep their own named routes below.
+         */
+        Route::post('production/plans', [PlanActionController::class, 'store'])
+            ->name('production.plans.store');
+        Route::patch('production/plans/{plan}', [PlanActionController::class, 'update'])
+            ->name('production.plans.update');
+
+        /*
+         * The imprints a plan produces in the manner of. Behind the same role
+         * as the plans themselves rather than open to everybody: a profile is
+         * the label's own policy, which is closer to configuration than to
+         * catalogue.
+         */
+        Route::get('editorial', ProfileIndexController::class)->name('editorial');
+        Route::post('editorial/profiles', [ProfileActionController::class, 'store'])
+            ->name('editorial.profiles.store');
+        Route::patch('editorial/profiles/{profile}', [ProfileActionController::class, 'update'])
+            ->name('editorial.profiles.update');
+
         Route::post('production/plans/{plan}/pause', [PlanActionController::class, 'pause'])
             ->name('production.plans.pause');
         Route::post('production/plans/{plan}/resume', [PlanActionController::class, 'resume'])

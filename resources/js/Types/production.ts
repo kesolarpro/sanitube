@@ -54,6 +54,24 @@ export interface ProductionPlanRow {
 export interface ProductionPlanDetail extends Omit<ProductionPlanRow, 'occasions'> {
     slug: string;
     notes: string | null;
+    /**
+     * PROD-002. The uuid as well as the name, so the edit form can say which
+     * imprint is already selected. A form that reopened on the wrong one would
+     * repoint a plan on save without anybody choosing to.
+     */
+    editorial_profile_uuid: string | null;
+}
+
+/**
+ * PROD-002. An imprint a plan may be pointed at.
+ *
+ * Active ones only, wherever this appears in a form: the writer refuses a
+ * retired profile, and a choice that fails on save is worse than one that is
+ * not offered.
+ */
+export interface SelectableProfile {
+    uuid: string;
+    name: string;
 }
 
 /** What a generation is, as far as this screen is concerned. */
@@ -91,4 +109,40 @@ export interface ProductionOptions {
     status: string[];
     autonomy: string[];
     outcome: string[];
+}
+
+/**
+ * PROD-002. One imprint's editorial policy, in full.
+ *
+ * A set of **preferences, never constraints**. Nothing here refuses anything:
+ * an editor who wants a track outside the palette makes one, and the profile is
+ * what a suggestion or a plan starts from rather than what either is limited
+ * to.
+ *
+ * `slug` is published and never editable. It is frozen at creation because it
+ * is how a plan and a console command name a profile, and one that followed a
+ * rename would repoint every reference.
+ */
+export interface EditorialProfileRow {
+    uuid: string;
+    name: string;
+    slug: string;
+    is_active: boolean;
+    summary: string | null;
+    default_language: string | null;
+    default_artist_id: number | null;
+    default_artist: string | null;
+    preferred_genres: string[];
+    preferred_moods: string[];
+    preferred_themes: string[];
+    avoided_terms: string[];
+    title_guidance: string | null;
+    description_guidance: string | null;
+    /** How many plans point here. A retired profile with plans is worth seeing. */
+    plans: number;
+}
+
+export interface EditorialProfileView {
+    rows: EditorialProfileRow[];
+    total: number;
 }
