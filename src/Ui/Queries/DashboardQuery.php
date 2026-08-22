@@ -43,6 +43,7 @@ final readonly class DashboardQuery
     public function __construct(
         private OperationalHealthStore $health,
         private SchemaPresence $tables,
+        private StorageUsageQuery $storageUsage,
     ) {}
 
     /**
@@ -68,6 +69,11 @@ final readonly class DashboardQuery
             ],
             'jobs' => $this->jobs(),
             'operational' => $this->operational(),
+            // STO-005. The platform recorded `byte_size` on every asset from
+            // the first upload and asked the question nowhere. An asset count
+            // says nothing about it: a thousand previews and a thousand
+            // masters are the same number and three orders of magnitude apart.
+            'storage_usage' => $this->storageUsage->overview(),
         ];
     }
 

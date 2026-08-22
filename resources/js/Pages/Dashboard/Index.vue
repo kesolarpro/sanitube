@@ -4,6 +4,7 @@ import AppAlert from '@/Components/Ui/AppAlert.vue';
 import AppCard from '@/Components/Ui/AppCard.vue';
 import EmptyState from '@/Components/Ui/EmptyState.vue';
 import MetricCard from '@/Components/Ui/MetricCard.vue';
+import StorageUsageCard from '@/Components/Storage/StorageUsageCard.vue';
 import StatusBadge from '@/Components/Ui/StatusBadge.vue';
 import { trans } from '@/Support/i18n';
 import type { DashboardSnapshot, ProviderState, StatusCounts } from '@/Types/dashboard';
@@ -117,6 +118,14 @@ function availability(available: boolean | null): string {
                     :label="trans(`ui.dashboard.metric.${key}`)"
                     :value="snapshot.catalogue[key]"
                 />
+            </div>
+
+            <!-- STO-005. Beside the asset count rather than instead of it.
+                 The count answers "how many things"; this answers "how much
+                 am I paying to keep them", and the second was answerable only
+                 from a database client. -->
+            <div class="mt-3">
+                <StorageUsageCard :usage="snapshot.storage_usage" :locale="page.props.app.locale" />
             </div>
         </section>
 

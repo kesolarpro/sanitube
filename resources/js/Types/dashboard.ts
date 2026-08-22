@@ -1,3 +1,5 @@
+import type { StorageUsage } from '@/Types/system';
+
 /**
  * The shape `DashboardQuery` produces.
  *
@@ -77,6 +79,14 @@ export interface DashboardSnapshot {
     distribution: {
         deliveries_by_status: StatusCounts | null;
     };
+    /**
+     * STO-005. How many bytes this installation is holding.
+     *
+     * Beside the asset count rather than instead of it, because they answer
+     * different questions: a thousand previews and a thousand masters are the
+     * same count and three orders of magnitude apart.
+     */
+    storage_usage: StorageUsage;
     jobs: {
         pending: number | null;
         failed: number | null;

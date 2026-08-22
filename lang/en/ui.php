@@ -852,6 +852,21 @@ return [
         ],
     ],
 
+    'storage_usage' => [
+        'title' => 'What this installation is keeping',
+        'what_this_is' => 'What the catalogue records having stored — not what a provider bills. The two disagree for real reasons: an abandoned upload leaves parts nothing registered, a bucket may hold objects from before this installation, and versioning keeps what a delete removed. There is no capacity here and no percentage, because there is no denominator this platform can honestly obtain.',
+        'not_measured' => 'The assets table could not be asked, so nothing here is a measurement. This is not the same as storing nothing.',
+        'held' => 'Stored',
+        'assets' => ':count asset(s)',
+        'trashed' => 'In the trash',
+        'trashed_note' => 'Still costing. Kept on purpose, and waiting on a decision.',
+        'unsure' => 'Unaccounted for',
+        'unsure_note' => 'Uploads that never finished, and objects the platform can no longer find.',
+        'by_kind' => 'By kind',
+        'by_disk' => 'By disk',
+        'of_which_trashed' => '(:bytes in the trash)',
+    ],
+
     'production' => [
         'autonomy_mode' => [
             'MANUAL' => 'A person asks for everything',

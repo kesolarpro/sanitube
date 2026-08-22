@@ -852,6 +852,21 @@ return [
         ],
     ],
 
+    'storage_usage' => [
+        'title' => 'Ce que cette installation conserve',
+        'what_this_is' => 'Ce que le catalogue dit avoir stocké — pas ce qu\'un fournisseur facture. Les deux divergent pour de vraies raisons : un dépôt abandonné laisse des morceaux que rien n\'a enregistrés, un bucket peut contenir des objets antérieurs à cette installation, et le versionnage garde ce qu\'une suppression a retiré. Aucune capacité ici et aucun pourcentage, parce qu\'il n\'existe aucun dénominateur que cette plateforme puisse obtenir honnêtement.',
+        'not_measured' => 'La table des fichiers n\'a pas pu être interrogée : rien ici n\'est une mesure. Ce n\'est pas la même chose que ne rien stocker.',
+        'held' => 'Stocké',
+        'assets' => ':count fichier(s)',
+        'trashed' => 'À la corbeille',
+        'trashed_note' => 'Coûte toujours. Conservé volontairement, en attente d\'une décision.',
+        'unsure' => 'Non attesté',
+        'unsure_note' => 'Dépôts jamais terminés, et objets que la plateforme ne retrouve plus.',
+        'by_kind' => 'Par type',
+        'by_disk' => 'Par disque',
+        'of_which_trashed' => '(dont :bytes à la corbeille)',
+    ],
+
     'production' => [
         'autonomy_mode' => [
             'MANUAL' => 'Une personne demande tout',

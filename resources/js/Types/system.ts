@@ -205,3 +205,50 @@ export interface UsersView {
     may_manage_owners: boolean;
     active_owners: number;
 }
+
+/**
+ * STO-005. How many bytes this installation is holding, and where.
+ *
+ * **What the catalogue says it stored, never what a provider bills.** The two
+ * disagree for real reasons — an abandoned multipart upload leaves parts the
+ * platform never registered, a bucket may hold objects from before this
+ * installation, versioning keeps what a delete removed — so a screen calling
+ * this "your storage usage" would offer a number somebody reconciles against
+ * an invoice and cannot.
+ *
+ * No capacity and no percentage: a percentage needs a denominator this
+ * platform cannot honestly obtain. Inventing one from a free tier would be a
+ * guess with a progress bar drawn around it.
+ */
+export interface StorageTotal {
+    bytes: number | null;
+    assets: number | null;
+}
+
+export interface StorageByKind {
+    bytes: number;
+    assets: number;
+}
+
+export interface StorageByDisk {
+    disk: string;
+    bytes: number;
+    assets: number;
+    /** Still costing, and waiting on a decision nobody has made. */
+    trashed_bytes: number;
+}
+
+export interface StorageUsage {
+    /**
+     * False when the assets table could not be asked. Distinct from zero: an
+     * installation storing nothing and one that could not be measured are
+     * different answers, and a zero would report the second as the first.
+     */
+    measured: boolean;
+    held: StorageTotal;
+    trashed: StorageTotal;
+    /** Pending and missing together: bytes the platform cannot vouch for. */
+    unsure: StorageTotal;
+    by_kind: Record<string, StorageByKind>;
+    by_disk: StorageByDisk[];
+}

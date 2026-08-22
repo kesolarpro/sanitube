@@ -27,6 +27,17 @@ function overview(): SettingsOverview {
             locales: ['en'],
             config_cached: true,
         },
+        // STO-005. Present and unmeasured: this fixture is about the probe
+        // button, and an installation whose assets table could not be asked is
+        // the state that says nothing about storage rather than zero.
+        storage_usage: {
+            measured: false,
+            held: { bytes: null, assets: null },
+            trashed: { bytes: null, assets: null },
+            unsure: { bytes: null, assets: null },
+            by_kind: {},
+            by_disk: [],
+        },
         sections: [
             {
                 key: 'storage',

@@ -61,6 +61,7 @@ final readonly class SettingsQuery
         private Repository $config,
         private ProviderConfiguration $storageProviders,
         private SelectableProviders $providers,
+        private StorageUsageQuery $storageUsage,
     ) {}
 
     /**
@@ -70,6 +71,12 @@ final readonly class SettingsQuery
     {
         return [
             'application' => $this->application(),
+            // STO-005. Not a section: a section is variable/value pairs an
+            // operator edits, and this is a measurement nobody sets. It sits
+            // beside the storage section because the question "which provider
+            // am I on" and the question "how much am I keeping there" are
+            // asked in the same minute.
+            'storage_usage' => $this->storageUsage->overview(),
             'sections' => [
                 $this->storage(),
                 $this->ai(),
