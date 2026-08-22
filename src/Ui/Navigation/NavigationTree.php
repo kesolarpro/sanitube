@@ -87,6 +87,9 @@ final readonly class NavigationTree
             // shell.
             $this->item('users', '/users', 'settings', available: $user->role->canAdminister()),
             $this->item('jobs', '/system/jobs', 'jobs', available: $user->role->canAdminister()),
+            // SYS-001. The screen somebody opens when something is wrong, so
+            // it has to be reachable without knowing its address.
+            $this->item('about', '/system/about', 'jobs', available: $user->role->canAdminister()),
             $this->item('operations', '/system/operations', 'system', available: $user->role->canAdminister()),
             $this->item('audit', '/system/audit', 'system', available: $user->role->canAdminister()),
 

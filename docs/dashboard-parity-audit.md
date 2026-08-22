@@ -493,6 +493,8 @@ only over SSH — while the four categories in §12 stay firmly out.
 
 ## Final report
 
+**As audited, before Wave 1:**
+
 ```
 CURRENT_DASHBOARD_COMPLETENESS            ≈ 62%
 BACKEND_CAPABILITIES_FOUND                  74
@@ -502,6 +504,22 @@ CONFIGURABLE_FEATURES_WITHOUT_SETTINGS_UI   88   (of 139 SANITUBE_* variables)
 OPERATOR_ACTIONS_REQUIRING_SSH              19   (of 35 artisan commands)
 P0_GAPS                                      5
 P1_GAPS                                      8
+P2_GAPS                                      4
+P3_GAPS                                      2
+```
+
+**After Wave 1** — recounted against the code rather than adjusted by hand.
+Section 19 says how each number was obtained.
+
+```
+CURRENT_DASHBOARD_COMPLETENESS            ≈ 78%
+BACKEND_CAPABILITIES_FOUND                  74
+BACKEND_CAPABILITIES_WITH_UI                58
+BACKEND_CAPABILITIES_WITHOUT_UI             16
+CONFIGURABLE_FEATURES_WITHOUT_SETTINGS_UI   64   (of 140 SANITUBE_* variables)
+OPERATOR_ACTIONS_REQUIRING_SSH              17   (of 35 artisan commands)
+P0_GAPS                                      0
+P1_GAPS                                      5
 P2_GAPS                                      4
 P3_GAPS                                      2
 ```
@@ -533,3 +551,107 @@ P3_GAPS                                      2
 
 Wave 1 closes every P0 and removes the two most serious "invisible provider"
 gaps. Wave 2 is P1 items 6–13, which is the wave that ends routine SSH.
+
+---
+
+## 19. WAVE 1 — WHAT CLOSED, AND HOW THE NUMBERS WERE RECOUNTED
+
+Written after the five tickets merged. **Every figure below was measured
+against the code, not adjusted from the figure above it**: an audit whose
+second reading is arithmetic on its first is an audit that only ever measured
+once.
+
+### The five tickets
+
+| Ticket | PR | What it closed |
+|---|---|---|
+| USR-001 | #162 | Users & access. OWNER made the root role, with the last-owner rule implemented rather than merely documented, and provider credentials made owner-only to write. |
+| CFG-006 | #163 | Settings › Artwork and Settings › Transcription. Twenty-eight variables and two credentials that appeared on no screen. |
+| PROD-002 | #164 | Production plan create and edit — and editorial profiles, which nothing in the product could create, so no plan could exist. |
+| STO-005 | #165 | How many bytes this installation holds, on the dashboard and in settings. |
+| SYS-001 | this one | Version, commit, frontend build, schema state and the doctor's findings, on a screen. |
+
+### Capability rows now closed
+
+Twelve rows of the §5 table moved from *no UI* to *has one*: three Identity
+(create, change role, deactivate), two Artwork (provider + key, quotas +
+breaker), one Transcription (provider + key), two Production (create plan,
+cadence/target), Editorial profiles, Storage usage, Deployment doctor, and
+Deployment app version / commit SHA.
+
+**46 + 12 = 58 of 74**, which is the ≈78% above. The three P1 rows among them
+(editorial profiles, doctor, version) were closed as a consequence rather than
+as scope creep: a plan cannot exist without a profile, and a system screen that
+reported a version and not a diagnosis would be a second visit to the same
+file.
+
+### How each number was obtained
+
+| Figure | Method |
+|---|---|
+| `SANITUBE_*` variables | `grep -rho "env('SANITUBE_[A-Z_0-9]*'" config/ \| sort -u \| wc -l` → **140** (139 before CFG-006 and SYS-001 added `SANITUBE_VERSION`; the artwork and transcription variables were already declared in config and merely unreachable). |
+| Variables with a settings UI | The union of what `SettingsQuery` publishes across four provider configurations, since the provider-gated sections offer only the selected provider's fields. **76** of the 140. |
+| Without one | 140 − 76 = **64**, down from 88. |
+| Artisan commands | `php artisan list --raw \| grep -c '^sanitube:'` → **35**, unchanged. |
+| Still SSH-only | 19 − 2. `sanitube:user:create` is now `/users`; `sanitube:doctor` is now `/system/about`. **17**. |
+
+### What is still SSH-only, and why
+
+The seventeen divide into three kinds, and only the first is a gap.
+
+- **Not yet built** — backup list and run-now, the four backlog triggers
+  (analysis, fingerprinting, transcription, enrichment), the duplicate sweep,
+  smoke and self-test, host facts. Wave 2.
+- **Deliberately not offered** — `sanitube:restore` and
+  `sanitube:assets:relocate`. §12 said so and Wave 1 did not change it: a
+  restore is the operation that overwrites everything, and a web form for it is
+  a web form for destroying a catalogue.
+- **Not operator actions at all** — `install`, `provision`, `deploy`,
+  `frontend:install`, `worker:token`. These put the code on the server. A
+  screen that runs them would be a screen that reinstalls the server it is
+  being served from.
+
+### What Wave 1 found that the audit had not
+
+Three things, each recorded in its ticket and worth repeating here because each
+was a stronger statement than the audit's own.
+
+1. **The last-owner rule existed only as prose.** `UserRole`'s docblock
+   described it and no code enforced it, so an installation could be left with
+   nobody able to administer it — unrecoverable from inside the product. The
+   audit had recorded "Change role: `NOT_IMPLEMENTED`" and stopped there.
+
+2. **Production plans could not be created by any means**, not merely by no UI.
+   The audit's table said "CLI/seed" for `WriteProductionPlan`; there is no CLI
+   and no seeder, and `WriteEditorialProfile` had no caller either. The planner
+   was unreachable from anywhere but a database client.
+
+3. **Sixteen variables are published on the settings screen and documented in
+   no `.env.example`.** All predate Wave 1 and none was in its scope; they are a
+   documentation gap rather than a parity one, and they belong in Wave 2:
+   `SANITUBE_WORKER_IDENTITY`, `SANITUBE_WORKER_TOKEN`,
+   `SANITUBE_MEDIA_EXECUTION`, `SANITUBE_MAX_DERIVATIVE_BYTES`,
+   `SANITUBE_ASSET_PREVIEW_TTL`, `SANITUBE_FPCALC_TIMEOUT`,
+   `SANITUBE_FPCALC_PATH`, `SANITUBE_BACKLOG_CEILING`, `SANITUBE_BACKUP_PATH`,
+   `SANITUBE_BACKUP_KEEP`, `SANITUBE_BACKUP_AT`,
+   `SANITUBE_PRODUCTION_CLAIM_LEASE_SECONDS`, `SANITUBE_PRODUCTION_RECLAIM_BATCH`,
+   `SANITUBE_DISK_WARN_MB`, `SANITUBE_DISK_BLOCKER_MB`,
+   `SANITUBE_INTERNAL_API_TOKEN`.
+
+### RECOMMENDED NEXT IMPLEMENTATION WAVE — Wave 2
+
+Every P0 is closed. What remains is the wave that ends *routine* SSH rather
+than the wave that makes the product usable.
+
+| Ticket | Scope | P |
+|---|---|---|
+| BAK-002 | Backups: list with sizes and ages, guarded run-now | P1 |
+| OPS-003 | Backlog triggers — analysis, fingerprinting, transcription, enrichment | P1 |
+| DUP-002 | The duplicate sweep, from the screen | P1 |
+| CFG-007 | Connection tests and certification writers for AI, artwork, transcription | P1 |
+| ART-005 | Artwork generation history in Releases and Studio | P1 |
+| DOC-009 | The sixteen undocumented variables, in `.env.example` | P2 |
+
+Four decisions still belong to the operator and none of them is a ticket:
+trash purge, backup encryption at rest, bulk duplicate actions, and scheduling
+the duplicate sweep. They are listed in `docs/final-report.md` §13.

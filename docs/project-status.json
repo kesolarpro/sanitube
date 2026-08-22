@@ -1,8 +1,8 @@
 {
  "$comment": "Machine-readable project state. Any new session reads this first, then verifies it against GitHub before trusting it. Written at the end of each ticket, so a stale entry means a session ended mid-ticket — check the branch and CI rather than the status field.",
  "updated_at": "2026-08-22",
- "current_phase": "WAVE 1 en cours sur claude/sanitube-autonomous-v1-5pycx0 : AUDIT-001 puis USR-001, CFG-006, PROD-002, STO-005, SYS-001 dans cet ordre. OWNER est la racine, decidee par l'operateur : le dernier OWNER ne peut jamais etre retire, et seul un OWNER gere les OWNER, les secrets et les identifiants fournisseur. UPL-005 en revue : l'upload relaye etait casse en production depuis que app.blade.php ne publiait plus la meta csrf-token, et les trois ecrans qui signent leurs propres requetes (import, upload unitaire, test de connexion des reglages) mouraient en 419 avant tout controleur, en rapportant un message generique. Le jeton est publie, la lecture d'un refus tient compte du statut, et le contrat mise en page vers JavaScript est desormais teste avec VerifyCsrfToken ACTIF. Ce ticket touche a la securite CSRF : REVIEW_REQUIRED, ne pas fusionner avant verdict. NOTE : DOC-007 (PR 159) etait fusionne sur main alors que ce fichier disait encore DOC-006 — verifie contre l'API cette session. Mission centre de configuration terminee cote interne : CFG-001 a CFG-005, TRASH-001, DUP-001, OPS-002, UPL-004, DOC-006, DOC-007 fusionnes. SANITUBE_PRODUCTION_READY = oui pour le code, non comme deploiement en fonctionnement — et UPL-005 est la preuve que les deux ne sont pas la meme chose. R2_CODE_READY=YES, R2_CONFIGURED=NO, R2_CONNECTIVITY_VERIFIED=NO. Quatre decisions attendent l'operateur : purge de la corbeille, chiffrement des sauvegardes au repos, actions groupees sur les doublons, planification du balayage des doublons. Le detail est docs/final-report.md section 13.",
- "last_completed_ticket": "PROD-002",
+ "current_phase": "WAVE 1 terminee cote interne : USR-001, CFG-006, PROD-002, STO-005 fusionnes, SYS-001 en revue. Toutes les lacunes P0 de l'audit de parite sont fermees. Parite dashboard recalculee contre le code : 78%, 58 capacites sur 74 avec une UI, 64 variables SANITUBE_* sans ecran (contre 88), 17 commandes exigeant encore un shell (contre 19). Le detail du recomptage est docs/dashboard-parity-audit.md section 19. Quatre decisions attendent l'operateur : purge de la corbeille, chiffrement des sauvegardes au repos, actions groupees sur les doublons, planification du balayage des doublons.",
+ "last_completed_ticket": "STO-005",
  "default_branch": "main — confirmed by API this session. The EXTERNAL_ADMIN_ACTION_REQUIRED blocker is cleared.",
  "tickets": {
   "ARCH-001": {
@@ -172,14 +172,11 @@
    "ci": null
   },
   "SYS-001": {
-   "status": "merged",
-   "branch": "claude/sys-001-operations",
-   "pr": 30,
-   "pr_url": "https://github.com/kesolarpro/sanitube/pull/30",
-   "ci": "10/10 green — run 31918605326",
-   "report": "docs/reports/SYS-001.md",
-   "merge_commit": "c56c812",
-   "note": "Operations and jobs screens behind can.role:administer. A GET probes nothing — proved by forgetting the snapshot, loading the page, and asserting it is still absent. No job payload and no stack trace reaches the browser; only the exception's first line, truncated. Unknown is not zero: an installation on Redis has no jobs table and the counts read null."
+   "status": "in_review",
+   "ci": "pending",
+   "note": "Ce qu'est cette installation, et si elle va bien. sanitube:doctor rapportait dix-neuf choses qui valent d'etre sues sur une installation en service — a un terminal, que l'operateur le plus susceptible d'en avoir besoin, celui en hebergement mutualise qui a choisi cette plateforme parce qu'il ne voulait pas de shell, ne pouvait pas lire. /system/about porte la version, le commit, le build du frontend, l'etat du schema et chaque constat, ordonnes par ce qui demande attention.",
+   "version_note": "app.version etait lu par le manifeste de sauvegarde et defini par rien : chaque sauvegarde jamais ecrite par cette plateforme dit unknown. SANITUBE_VERSION est maintenant l'enregistrement du deploiement, sans defaut — une version que la plateforme inventerait serait pire que rien, parce que la question est « suis-je sur la version qui a corrige la chose » et une constante repond oui pour toujours. Le commit se lit dans trois fichiers de .git, jamais en executant git.",
+   "mutation_note": "16 mutants cibles, 16 tues. Quatre avaient survecu : la lecture de la variable d'environnement (les autres tests ecrivaient config() directement), la lecture du commit, « la plus recente » migration, et UNKNOWN compte comme READY. Chacun a demande un test qui atteint la couche mutee plutot que celle au-dessus."
   },
   "INS-002": {
    "status": "merged",
@@ -857,11 +854,12 @@
    "recorded_from": "git log origin/main (5df604d)"
   },
   "STO-005": {
-   "status": "in_review",
-   "ci": "pending",
+   "status": "merged",
+   "ci": "green 13/13",
    "note": "Combien cette installation conserve, dit en octets. byte_size est sur chaque fichier depuis le premier depot et la question n'etait posee nulle part : impossible de savoir combien on stockait sans un client de base de donnees, alors que sur un stockage objet facture c'est le nombre qui devient une facture. Le tableau de bord affichait un compte de fichiers, ce qui n'en dit rien — mille apercus et mille masters font le meme nombre a trois ordres de grandeur d'ecart.",
    "honesty_note": "Ce que le catalogue dit avoir stocke, jamais ce qu'un fournisseur facture, et le panneau le dit en premier. Aucune capacite et aucun pourcentage : il n'existe aucun denominateur que cette plateforme puisse obtenir honnetement. Les octets a la corbeille sont comptes et montres a part parce qu'ils coutent toujours. Non mesure n'est jamais rapporte comme zero.",
-   "mutation_note": "16 mutants cibles, 16 tues. Trois avaient survecu : un type de fichier que ce build ne connait pas et les deux branches du cas non mesure. Le premier se teste par une ecriture brute, les seconds en supprimant la table."
+   "mutation_note": "16 mutants cibles, 16 tues. Trois avaient survecu : un type de fichier que ce build ne connait pas et les deux branches du cas non mesure. Le premier se teste par une ecriture brute, les seconds en supprimant la table.",
+   "pr": 165
   },
   "STO-004": {
    "status": "merged",
@@ -1219,9 +1217,9 @@
    "history": "Not rewritten. PRs #111-#122 were merged by earlier sessions and #123-#129 by the 2026-08-21 session while this policy still read active:true. That happened and stays on the record; the policy is superseded from today rather than retroactively."
   }
  },
- "main_sha": "f80651b",
- "current_ticket": "STO-005",
- "tests": "2444 passed, 1 skipped, 31299 assertions (PHP) + 57 (Vitest)",
+ "main_sha": "7eb0d87",
+ "current_ticket": "SYS-001",
+ "tests": "2464 passed, 1 skipped, 31637 assertions (PHP) + 57 (Vitest)",
  "phpstan": {
   "level": 6,
   "baseline": false,

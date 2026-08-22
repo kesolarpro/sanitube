@@ -305,6 +305,11 @@ written down.
 
 | Control | Verdict | Notes |
 |---|---|---|
+| What this installation is, on a screen | READY | SYS-001. `sanitube:doctor` reported nineteen things worth knowing about a live installation to a terminal — which the operator most likely to need it, the one on shared hosting who chose this platform *because* they did not want a shell, could not read. `/system/about` carries the version, the commit, the frontend build, the schema state and every finding, ordered by what needs attention rather than by the order the checks happen to run. |
+| A version is recorded or honestly absent | READY | SYS-001. `app.version` was read by the backup manifest and set by nothing, so every backup this platform had written said `unknown`. `SANITUBE_VERSION` is now the deployment's own record, with no default: a version this platform invented would be worse than none, because the question is "am I on the release that fixed the thing" and a constant answers yes for ever. |
+| The commit is read, never executed for | READY | SYS-001. Three files out of `.git`, reusing DEP-011's reader. Shelling out to `git` would mean executing a binary to render a page, on a host that may not have it, from a request anybody with an administrator session can make. Null on a tarball or a cPanel upload — a deployment that carries no history, which is not a failure. |
+| An unapplied migration is named, not counted | READY | SYS-001. Files updated without migrations run means code against a schema missing columns, and it fails at the first write rather than at boot. The count says there is a problem; the names say what changed. |
+| UNKNOWN is never rendered as a pass | READY | SYS-001. A check that could not be made is not a check that succeeded, and folding one into the other is how a screen reassures somebody about a server that is already down. Counted as itself, listed above the warnings, and never green. |
 | `sanitube:deploy` — migrate, cache, link, restart | READY | Creates nothing; not destructive. |
 | cPanel guide | READY | Document root, cron, permissions, update, rollback. |
 | VPS guide | READY | |

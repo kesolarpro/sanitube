@@ -7,7 +7,6 @@ namespace Tests\Feature\Storage;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 use PHPUnit\Framework\Attributes\Test;
 use SaniTube\Assets\Enums\AssetKind;
 use SaniTube\Assets\Enums\AssetStatus;
@@ -205,11 +204,7 @@ final class StorageUsageTest extends TestCase
         // nothing and one whose assets table would not answer are different
         // answers, and reporting the second as the first would tell an
         // operator their bill should be zero.
-        Schema::disableForeignKeyConstraints();
-        Schema::drop('assets');
-        Schema::enableForeignKeyConstraints();
-
-        $usage = $this->usage();
+        $usage = $this->onABlankDatabase();
 
         $this->assertFalse($usage['measured']);
         $this->assertNull($usage['held']['bytes']);
@@ -287,6 +282,41 @@ final class StorageUsageTest extends TestCase
     private function usage(): array
     {
         return $this->app->make(StorageUsageQuery::class)->overview();
+    }
+
+    /**
+     * The same reading, taken against a database that holds nothing.
+     *
+     * **Deliberately not `Schema::drop`.** DDL does not roll back on MySQL or
+     * MariaDB, so a table dropped inside a test stays dropped for every test
+     * after it in the same process — it passed here only because SQLite makes
+     * DDL transactional and because nothing later happened to need the table.
+     * SYS-001 found the same shape taking four database jobs down.
+     *
+     * Pointing the default connection at an empty in-memory database asks the
+     * same question and destroys nothing.
+     *
+     * @return array<string, mixed>
+     */
+    private function onABlankDatabase(): array
+    {
+        config(['database.connections.blank' => [
+            'driver' => 'sqlite',
+            'database' => ':memory:',
+            'prefix' => '',
+            'foreign_key_constraints' => false,
+        ]]);
+
+        $was = (string) config('database.default');
+        config(['database.default' => 'blank']);
+
+        DB::purge('blank');
+
+        try {
+            return $this->usage();
+        } finally {
+            config(['database.default' => $was]);
+        }
     }
 
     private function asset(
