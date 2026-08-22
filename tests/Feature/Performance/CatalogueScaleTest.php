@@ -194,6 +194,7 @@ final class CatalogueScaleTest extends TestCase
     private const NOT_A_CATALOGUE_LIST = [
         '/assets/upload' => 'A form. It lists nothing.',
         '/design-system' => 'A gallery of the components themselves, with no catalogue behind it.',
+        '/editorial' => 'One row per imprint. It grows with how many labels somebody runs, which is a number a person chose.',
         '/ingestion/import' => 'A form. It lists nothing.',
         '/releases/options/artists' => 'A picker. It answers a search with a bounded number of matches.',
         '/releases/options/artwork' => 'A picker. It answers a search with a bounded number of matches.',

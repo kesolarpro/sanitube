@@ -71,6 +71,58 @@ final readonly class WriteProductionPlan
     }
 
     /**
+     * Correcting a plan's terms.
+     *
+     * PROD-002. The counterpart to `create`, and the same rules in both
+     * directions — one service rather than two copies that drift.
+     *
+     * **The slug is derived once and then frozen**, exactly as an editorial
+     * profile's is and for the same reason: it is how a console command names
+     * a plan, and a slug that followed a rename would turn "rename this plan"
+     * into "orphan everything that referred to it".
+     *
+     * The status is not here. Pausing, resuming, disabling and exhausting are
+     * named acts with their own methods, and a general update that could reach
+     * `status` would present resuming as an assignment and put `EXHAUSTED` — a
+     * conclusion the platform draws — within reach of a form.
+     *
+     * The editorial profile *is* here, because picking the wrong one at
+     * creation is an ordinary mistake and the alternative is a plan somebody
+     * has to abandon and rebuild. It is refused when the profile is inactive,
+     * on the same rule as creation: a plan pointed at a retired profile is one
+     * that produces in the manner of something the label has stopped using.
+     *
+     * @param  array<string, mixed>  $attributes
+     *
+     * @throws ProductionPlanException
+     */
+    public function update(ProductionPlan $plan, array $attributes, ?EditorialProfile $profile = null): ProductionPlan
+    {
+        $changes = $this->optional($attributes);
+
+        if (array_key_exists('name', $attributes)) {
+            // The name changes; the slug does not.
+            $changes['name'] = $this->name($attributes['name']);
+        }
+
+        if ($profile instanceof EditorialProfile) {
+            if (! $profile->is_active) {
+                throw ProductionPlanException::profileInactive();
+            }
+
+            $changes['editorial_profile_id'] = $profile->id;
+        }
+
+        if ($changes === []) {
+            return $plan;
+        }
+
+        $plan->forceFill($changes)->save();
+
+        return $plan->refresh();
+    }
+
+    /**
      * Change what the platform is allowed to do on its own.
      *
      * Its own method rather than a field on a general update, because this is

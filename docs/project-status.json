@@ -2,7 +2,7 @@
  "$comment": "Machine-readable project state. Any new session reads this first, then verifies it against GitHub before trusting it. Written at the end of each ticket, so a stale entry means a session ended mid-ticket — check the branch and CI rather than the status field.",
  "updated_at": "2026-08-22",
  "current_phase": "WAVE 1 en cours sur claude/sanitube-autonomous-v1-5pycx0 : AUDIT-001 puis USR-001, CFG-006, PROD-002, STO-005, SYS-001 dans cet ordre. OWNER est la racine, decidee par l'operateur : le dernier OWNER ne peut jamais etre retire, et seul un OWNER gere les OWNER, les secrets et les identifiants fournisseur. UPL-005 en revue : l'upload relaye etait casse en production depuis que app.blade.php ne publiait plus la meta csrf-token, et les trois ecrans qui signent leurs propres requetes (import, upload unitaire, test de connexion des reglages) mouraient en 419 avant tout controleur, en rapportant un message generique. Le jeton est publie, la lecture d'un refus tient compte du statut, et le contrat mise en page vers JavaScript est desormais teste avec VerifyCsrfToken ACTIF. Ce ticket touche a la securite CSRF : REVIEW_REQUIRED, ne pas fusionner avant verdict. NOTE : DOC-007 (PR 159) etait fusionne sur main alors que ce fichier disait encore DOC-006 — verifie contre l'API cette session. Mission centre de configuration terminee cote interne : CFG-001 a CFG-005, TRASH-001, DUP-001, OPS-002, UPL-004, DOC-006, DOC-007 fusionnes. SANITUBE_PRODUCTION_READY = oui pour le code, non comme deploiement en fonctionnement — et UPL-005 est la preuve que les deux ne sont pas la meme chose. R2_CODE_READY=YES, R2_CONFIGURED=NO, R2_CONNECTIVITY_VERIFIED=NO. Quatre decisions attendent l'operateur : purge de la corbeille, chiffrement des sauvegardes au repos, actions groupees sur les doublons, planification du balayage des doublons. Le detail est docs/final-report.md section 13.",
- "last_completed_ticket": "USR-001",
+ "last_completed_ticket": "CFG-006",
  "default_branch": "main — confirmed by API this session. The EXTERNAL_ADMIN_ACTION_REQUIRED blocker is cleared.",
  "tickets": {
   "ARCH-001": {
@@ -556,13 +556,11 @@
    "notes": "EditorialProfile: an imprint is a row, not code. No caller yet."
   },
   "PROD-002": {
-   "status": "merged",
-   "branch": "claude/sanitube-autonomous-v1-5pycx0",
-   "pr": 76,
-   "ci": "green 10/10 (run 32366843743)",
-   "report": "docs/reports/PROD-002.md",
-   "merge_commit": "27b7e7f",
-   "notes": "ProductionSlot. The scheduler opens rows and never generates. Found a SQLite date-format caveat on the unique key."
+   "status": "in_review",
+   "ci": "pending",
+   "note": "Les plans de production se font depuis le produit. WriteProductionPlan::create existait depuis PROD-001 et n'avait aucun appelant : ni controleur, ni commande console, ni seeder. WriteEditorialProfile non plus, et un plan en exige un. Une installation qui marche avait donc un ecran de production qui ne pouvait qu'etre vide, et la seule partie de SaniTube qui agit sans personne ne pouvait etre demarree que depuis un client de base de donnees.",
+   "scope_note": "Les labels editoriaux etaient dans le perimetre par necessite : un plan ne peut pas exister sans, et rien ne pouvait en creer. Ecran /editorial derriere can.role:catalogue, creation et correction, retrait plutot que suppression — chaque plan pointe vers un label sous une cle etrangere qui refuse l'effacement.",
+   "mutation_note": "21 mutants cibles, 21 tues. Deux premiers essais se sont reveles equivalents : ajouter status aux regles de la requete et a la liste qu'elle transmet ne change rien d'observable, parce que la liste fermee du service l'ignore. Ce sont donc les deux listes fermees qui ont ete mutees, et un test au niveau du service — pas de l'ecran — les tue, puisque chacune est le filet de l'autre."
   },
   "PROD-003": {
    "status": "merged",
@@ -1113,11 +1111,12 @@
    "mutation_note": "18 mutants cibles, 18 tues. Six avaient d'abord survecu : les tests de la racine de propriete atteignaient une garde anterieure (OWNER_ONLY, NOT_YOURSELF) et n'exercaient jamais le compte. Reecrits sur le chemin que la regle protege reellement, deux requetes concurrentes avec l'acteur charge tel que sa propre requete l'a lu."
   },
   "CFG-006": {
-   "status": "in_review",
-   "ci": "pending",
+   "status": "merged",
+   "ci": "green 13/13",
    "note": "Pochettes et transcription, configurables depuis le produit. Dix-huit variables et un identifiant pour les pochettes, huit et un identifiant propre pour la transcription : vingt-huit reglages qui n'apparaissaient sur aucun ecran. .env.example n'en nommait aucun cote pochettes, donc choisir le fournisseur donnait un fournisseur sans aucun moyen documente de le pointer quelque part.",
    "why_now": "SANITUBE_TRANSCRIPTION_AUTOMATIC declenche un appel paye par fichier sur toute la bibliotheque deja stockee, et n'etait atteignable qu'en SSH : celui qui le voulait ne pouvait pas l'activer, celui qui le regrettait ne pouvait pas l'eteindre. Cote pochettes, l'exigence minimale livree et la seule taille carree demandee au fournisseur se contredisent volontairement — la generation refuse a la sortie de boite — et resoudre cette contradiction demandait un terminal.",
-   "mutation_note": "21 mutants cibles, 21 tues. Zero reste dicible partout ou il veut dire quelque chose : aucune exigence pour les seuils, aucun plafond pour les quotas, disjoncteur eteint. Un interrupteur reste deux mots : on, 1 et yes se lisent tous comme false a travers le cast d'environnement de Laravel."
+   "mutation_note": "21 mutants cibles, 21 tues. Zero reste dicible partout ou il veut dire quelque chose : aucune exigence pour les seuils, aucun plafond pour les quotas, disjoncteur eteint. Un interrupteur reste deux mots : on, 1 et yes se lisent tous comme false a travers le cast d'environnement de Laravel.",
+   "pr": 163
   }
  },
  "architecture_amendments": [
@@ -1219,9 +1218,9 @@
    "history": "Not rewritten. PRs #111-#122 were merged by earlier sessions and #123-#129 by the 2026-08-21 session while this policy still read active:true. That happened and stays on the record; the policy is superseded from today rather than retroactively."
   }
  },
- "main_sha": "504f8a2",
- "current_ticket": "CFG-006",
- "tests": "2403 passed, 1 skipped, 30598 assertions (PHP) + 57 (Vitest)",
+ "main_sha": "d5d4a50",
+ "current_ticket": "PROD-002",
+ "tests": "2430 passed, 1 skipped, 31151 assertions (PHP) + 57 (Vitest)",
  "phpstan": {
   "level": 6,
   "baseline": false,

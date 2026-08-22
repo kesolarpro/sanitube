@@ -158,10 +158,28 @@ enum AuditAction: string
      * state. Pausing and resuming are separate actions rather than one with a
      * flag: a log that says "changed" makes somebody open the diff.
      */
+    // PROD-002. The plan coming into existence, and its terms changing. The
+    // cadence and the target are what decide how often this installation pays
+    // a supplier without being asked, so "who raised it, and when" is the same
+    // question as the one autonomy answers.
+    case ProductionPlanCreated = 'production.plan.created';
+    case ProductionPlanUpdated = 'production.plan.updated';
     case ProductionPlanPaused = 'production.plan.paused';
     case ProductionPlanResumed = 'production.plan.resumed';
     case ProductionAutonomyChanged = 'production.autonomy.changed';
     case ProductionOccasionCancelled = 'production.occasion.cancelled';
+
+    /**
+     * The editorial policy every unattended generation is written against.
+     *
+     * PROD-002. A profile is what a plan produces *in the manner of*: its
+     * language, its preferred genres, the terms it avoids. Changing one
+     * silently changes everything the platform writes from then on, for every
+     * plan pointed at it — which is why the change is a line rather than a
+     * column somebody diffs against a memory.
+     */
+    case EditorialProfileCreated = 'editorial.profile.created';
+    case EditorialProfileUpdated = 'editorial.profile.updated';
 
     /**
      * An occasion taken back from a worker that never came home.
@@ -256,9 +274,14 @@ enum AuditAction: string
             // release.
             self::ArtworkGenerationRequested => AuditSubject::ArtworkGeneration,
 
+            self::ProductionPlanCreated,
+            self::ProductionPlanUpdated,
             self::ProductionPlanPaused,
             self::ProductionPlanResumed,
             self::ProductionAutonomyChanged => AuditSubject::ProductionPlan,
+
+            self::EditorialProfileCreated,
+            self::EditorialProfileUpdated => AuditSubject::EditorialProfile,
 
             // The occasion, never the plan. A plan may outlive many cancelled
             // occasions, and recording the plan would make "which one did they

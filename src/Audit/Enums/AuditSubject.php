@@ -67,6 +67,15 @@ enum AuditSubject: string
      */
     case ProductionPlan = 'production_plan';
 
+    /**
+     * PROD-002. The editorial policy a plan produces in the manner of.
+     *
+     * Its own subject rather than the plan's: one profile is shared by every
+     * plan pointed at it, and filing a change to it under a plan would hide
+     * the fact that it changed what all the others write too.
+     */
+    case EditorialProfile = 'editorial_profile';
+
     /** One occasion a plan opened. */
     case ProductionSlot = 'production_slot';
     case FailedJob = 'failed_job';

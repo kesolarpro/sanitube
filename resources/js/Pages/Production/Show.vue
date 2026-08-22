@@ -15,7 +15,9 @@ import StatusBadge from '@/Components/Ui/StatusBadge.vue';
 import { dateTime } from '@/Support/format';
 import { trans } from '@/Support/i18n';
 import type { SharedProps } from '@/Types/inertia';
-import type { OccasionRow, ProductionPlanDetail } from '@/Types/production';
+import TextInput from '@/Components/Ui/TextInput.vue';
+import TextareaInput from '@/Components/Ui/TextareaInput.vue';
+import type { OccasionRow, ProductionPlanDetail, SelectableProfile } from '@/Types/production';
 
 /**
  * One plan, and every occasion it opened.
@@ -37,6 +39,7 @@ const props = defineProps<{
     plan: ProductionPlanDetail;
     occasions: OccasionRow[];
     may_steer: boolean;
+    profiles: SelectableProfile[];
 }>();
 
 const page = usePage<SharedProps>();
@@ -46,6 +49,53 @@ const pausing = ref(false);
 const cancelling = ref<string | null>(null);
 
 const autonomy = useForm({ autonomy_mode: props.plan.autonomy_mode });
+
+/**
+ * PROD-002. Correcting the plan's terms.
+ *
+ * Deliberately not the status. Pausing, resuming and setting autonomy are named
+ * acts with their own buttons above; a form that could assign a status would
+ * put `EXHAUSTED` — a conclusion the platform draws from its own counting —
+ * within reach of a select.
+ *
+ * The imprint is here because picking the wrong one at creation is an ordinary
+ * mistake, and the alternative is a plan somebody has to abandon and rebuild.
+ */
+const editing = ref(false);
+
+const terms = useForm({
+    name: props.plan.name,
+    editorial_profile: props.plan.editorial_profile_uuid ?? '',
+    cadence_days: (props.plan.cadence_days ?? '') as string | number,
+    target_track_count: (props.plan.target_track_count ?? '') as string | number,
+    notes: props.plan.notes ?? '',
+});
+
+const profileOptions = computed(() =>
+    props.profiles.map((profile) => ({ value: profile.uuid, label: profile.name })),
+);
+
+/** Blank means "no ceiling", and has to survive the trip through a text input. */
+function optionalNumber(value: string | number): number | null {
+    const text = String(value).trim();
+
+    return text === '' ? null : Number(text);
+}
+
+function saveTerms(): void {
+    terms
+        .transform((data) => ({
+            ...data,
+            cadence_days: optionalNumber(data.cadence_days),
+            target_track_count: optionalNumber(data.target_track_count),
+        }))
+        .patch(`/production/plans/${props.plan.uuid}`, {
+            preserveScroll: true,
+            onSuccess: () => {
+                editing.value = false;
+            },
+        });
+}
 
 const actionError = computed<string | null>(() => {
     const errors = page.props.errors as Record<string, string> | undefined;
@@ -161,6 +211,57 @@ function cancelOccasion(uuid: string): void {
         >
             {{ trans('ui.production.spends_money') }}
         </AppAlert>
+
+        <AppCard v-if="may_steer" :title="trans('ui.production.edit_plan')">
+            <template v-if="editing">
+                <div class="grid gap-3 sm:grid-cols-2">
+                    <FormField :label="trans('ui.production.plan')" :error="terms.errors.name">
+                        <TextInput v-model="terms.name" autocomplete="off" />
+                    </FormField>
+                    <FormField
+                        :label="trans('ui.production.editorial_profile')"
+                        :error="terms.errors.editorial_profile"
+                        :description="trans('ui.production.editorial_profile_hint')"
+                    >
+                        <SelectInput v-model="terms.editorial_profile" :options="profileOptions" />
+                    </FormField>
+                    <FormField
+                        :label="trans('ui.production.cadence')"
+                        :error="terms.errors.cadence_days"
+                        :description="trans('ui.production.cadence_hint')"
+                    >
+                        <TextInput v-model="terms.cadence_days" inputmode="numeric" autocomplete="off" />
+                    </FormField>
+                    <FormField
+                        :label="trans('ui.production.target')"
+                        :error="terms.errors.target_track_count"
+                        :description="trans('ui.production.target_hint')"
+                    >
+                        <TextInput v-model="terms.target_track_count" inputmode="numeric" autocomplete="off" />
+                    </FormField>
+                    <FormField :label="trans('ui.production.notes')" :error="terms.errors.notes">
+                        <TextareaInput v-model="terms.notes" :rows="2" />
+                    </FormField>
+                </div>
+
+                <!-- The slug is not on this form. It is frozen at creation
+                     because it is how a console command names a plan, and one
+                     that followed a rename would orphan every reference. -->
+                <p class="mt-3 text-caption text-muted">{{ trans('ui.production.slug_frozen') }}</p>
+
+                <div class="mt-4 flex justify-end gap-2">
+                    <AppButton variant="secondary" @click="editing = false">
+                        {{ trans('ui.actions.cancel') }}
+                    </AppButton>
+                    <AppButton variant="primary" :disabled="terms.processing" @click="saveTerms">
+                        {{ trans('ui.actions.save') }}
+                    </AppButton>
+                </div>
+            </template>
+            <AppButton v-else variant="secondary" @click="editing = true">
+                {{ trans('ui.production.edit_plan') }}
+            </AppButton>
+        </AppCard>
 
         <AppCard v-if="may_steer" :title="trans('ui.production.set_autonomy')">
             <form class="flex flex-wrap items-end gap-2" @submit.prevent="submitAutonomy">

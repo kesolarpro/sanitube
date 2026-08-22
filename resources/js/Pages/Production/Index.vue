@@ -1,16 +1,22 @@
 <script setup lang="ts">
-import { Link, usePage } from '@inertiajs/vue3';
+import { computed, ref } from 'vue';
+import { Link, useForm, usePage } from '@inertiajs/vue3';
 import CursorPagination from '@/Components/Data/CursorPagination.vue';
 import DataTable from '@/Components/Data/DataTable.vue';
 import TableCell from '@/Components/Data/TableCell.vue';
 import TableHeaderCell from '@/Components/Data/TableHeaderCell.vue';
 import AppAlert from '@/Components/Ui/AppAlert.vue';
+import AppButton from '@/Components/Ui/AppButton.vue';
 import AppCard from '@/Components/Ui/AppCard.vue';
 import EmptyState from '@/Components/Ui/EmptyState.vue';
+import FormField from '@/Components/Ui/FormField.vue';
+import SelectInput from '@/Components/Ui/SelectInput.vue';
+import TextInput from '@/Components/Ui/TextInput.vue';
+import TextareaInput from '@/Components/Ui/TextareaInput.vue';
 import StatusBadge from '@/Components/Ui/StatusBadge.vue';
 import { trans } from '@/Support/i18n';
 import type { SharedProps } from '@/Types/inertia';
-import type { ProductionOptions, ProductionPlanPage } from '@/Types/production';
+import type { ProductionOptions, ProductionPlanPage, SelectableProfile } from '@/Types/production';
 
 /**
  * What the platform has been told to do on its own.
@@ -25,17 +31,170 @@ import type { ProductionOptions, ProductionPlanPage } from '@/Types/production';
  * that found enough is the system working; a column that summed them would
  * teach somebody to ignore the failure count.
  */
-defineProps<{ page: ProductionPlanPage; options: ProductionOptions }>();
+const props = defineProps<{
+    page: ProductionPlanPage;
+    options: ProductionOptions;
+    profiles: SelectableProfile[];
+}>();
 
-usePage<SharedProps>();
+// Named `inertia` rather than `page`: this screen's own prop is called
+// `page`, and shadowing it here is how a template silently reads the wrong
+// object.
+const inertia = usePage<SharedProps>();
+
+/**
+ * PROD-002. Until this form, nothing in the product could make a plan.
+ *
+ * `WriteProductionPlan::create` shipped with PROD-001 and had no caller: no
+ * controller, no console command, no seeder. Neither did the editorial profile
+ * a plan requires. So this screen could only ever be empty, and the one part of
+ * SaniTube that acts unattended could not be started from inside it.
+ */
+const mayWrite = computed(() => inertia.props.auth.user?.can.catalogue === true);
+
+const refusal = computed(() => {
+    const errors = inertia.props.errors as Record<string, string> | undefined;
+
+    return errors?.production ?? null;
+});
+
+const adding = ref(false);
+
+const form = useForm({
+    name: '',
+    editorial_profile: '',
+    autonomy_mode: 'MANUAL',
+    cadence_days: '' as string | number,
+    target_track_count: '' as string | number,
+    notes: '',
+});
+
+const profileOptions = computed(() =>
+    props.profiles.map((profile) => ({ value: profile.uuid, label: profile.name })),
+);
+
+const autonomyOptions = computed(() =>
+    props.options.autonomy.map((mode) => ({ value: mode, label: trans(`ui.production.autonomy_mode.${mode}`) })),
+);
+
+/**
+ * Blank means "no ceiling", and has to survive the trip through a text input.
+ *
+ * An empty field posted as `''` fails an integer rule, and a plan with no
+ * target is a legitimate standing intention — the shape of an open-ended
+ * imprint. Sent as null, it reaches the writer as the absence it is.
+ */
+function optionalNumber(value: string | number): number | null {
+    const text = String(value).trim();
+
+    return text === '' ? null : Number(text);
+}
+
+function create(): void {
+    form
+        .transform((data) => ({
+            ...data,
+            cadence_days: optionalNumber(data.cadence_days),
+            target_track_count: optionalNumber(data.target_track_count),
+        }))
+        .post('/production/plans', {
+            preserveScroll: true,
+            onSuccess: () => {
+                form.reset();
+                adding.value = false;
+            },
+        });
+}
 </script>
 
 <template>
     <div class="space-y-4">
-        <div>
-            <h1 class="text-page-title text-foreground">{{ trans('ui.production.title') }}</h1>
-            <p class="mt-1 text-small text-muted">{{ trans('ui.production.description') }}</p>
+        <div class="flex flex-wrap items-start justify-between gap-3">
+            <div>
+                <h1 class="text-page-title text-foreground">{{ trans('ui.production.title') }}</h1>
+                <p class="mt-1 text-small text-muted">{{ trans('ui.production.description') }}</p>
+            </div>
+            <AppButton v-if="mayWrite" variant="primary" @click="adding = !adding">
+                {{ trans('ui.production.add_plan') }}
+            </AppButton>
         </div>
+
+        <AppAlert v-if="refusal !== null" tone="danger" :title="trans('ui.states.error_title')">
+            {{ trans(`ui.production.failure.${refusal}`) }}
+        </AppAlert>
+
+        <!--
+            An installation with no imprint cannot have a plan, and the form
+            would be one whose only required field has nothing in it. Said
+            plainly, with the way out, rather than shown as an empty select.
+        -->
+        <AppAlert
+            v-if="mayWrite && profiles.length === 0"
+            tone="info"
+            :title="trans('ui.production.no_profiles')"
+        >
+            {{ trans('ui.production.no_profiles_description') }}
+            <Link href="/editorial" class="underline hover:text-accent">
+                {{ trans('ui.navigation.editorial') }}
+            </Link>
+        </AppAlert>
+
+        <AppCard v-if="adding && profiles.length > 0">
+            <template #header>{{ trans('ui.production.add_plan') }}</template>
+
+            <div class="grid gap-3 sm:grid-cols-2">
+                <FormField :label="trans('ui.production.plan')" :error="form.errors.name" required>
+                    <TextInput v-model="form.name" autocomplete="off" />
+                </FormField>
+                <FormField
+                    :label="trans('ui.production.editorial_profile')"
+                    :error="form.errors.editorial_profile"
+                    :description="trans('ui.production.editorial_profile_hint')"
+                    required
+                >
+                    <SelectInput v-model="form.editorial_profile" :options="profileOptions" />
+                </FormField>
+                <FormField
+                    :label="trans('ui.production.autonomy')"
+                    :error="form.errors.autonomy_mode"
+                    :description="trans('ui.production.autonomy_hint')"
+                >
+                    <SelectInput v-model="form.autonomy_mode" :options="autonomyOptions" />
+                </FormField>
+                <FormField
+                    :label="trans('ui.production.cadence')"
+                    :error="form.errors.cadence_days"
+                    :description="trans('ui.production.cadence_hint')"
+                >
+                    <TextInput v-model="form.cadence_days" inputmode="numeric" autocomplete="off" />
+                </FormField>
+                <FormField
+                    :label="trans('ui.production.target')"
+                    :error="form.errors.target_track_count"
+                    :description="trans('ui.production.target_hint')"
+                >
+                    <TextInput v-model="form.target_track_count" inputmode="numeric" autocomplete="off" />
+                </FormField>
+                <FormField :label="trans('ui.production.notes')" :error="form.errors.notes">
+                    <TextareaInput v-model="form.notes" :rows="2" />
+                </FormField>
+            </div>
+
+            <!-- The service's decision, repeated here because it is the
+                 surprising one: a plan starts ACTIVE. One that arrived paused
+                 is a plan somebody has to remember to start, which is how a
+                 body of work quietly never happens. -->
+            <p class="mt-3 text-caption text-muted">{{ trans('ui.production.starts_active') }}</p>
+
+            <div class="mt-4 flex justify-end gap-2">
+                <AppButton variant="secondary" @click="adding = false">
+                    {{ trans('ui.actions.cancel') }}
+                </AppButton>
+                <AppButton variant="primary" :disabled="form.processing" @click="create">
+                    {{ trans('ui.actions.save') }}
+                </AppButton>
+            </div>
+        </AppCard>
 
         <!--
             Said on the screen rather than in a report nobody opens. A plan that
