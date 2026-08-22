@@ -1023,6 +1023,14 @@
    "ci": "green 13/13",
    "note": "Independance multi-instances et faits GPU. Le prefixe de cache se cle sur SANITUBE_INSTANCE_NAME ; l'inspection lit le marqueur noyau NVIDIA (pas le binaire qu'un paquet laisse) et le conseil du profil worker l'enonce dans les deux sens sans jamais bloquer. Pare-feu/SSH, rotation des logs, desinstallation et stockage-objet-n'est-pas-une-sauvegarde documentes comme actes d'operateur.",
    "recorded_from": "git log origin/main (14879cd)"
+  },
+  "UPL-004": {
+   "status": "in_review",
+   "pr": null,
+   "ci": "pending",
+   "branch": "claude/sanitube-autonomous-v1-5pycx0",
+   "note": "Le vrai MP3 refuse en production. L'ecran d'import promettait le plafond configure (2 Go) alors qu'un depot relaye meurt a post_max_size ; la regle qui reconcilie les deux n'existait que sur l'ecran d'upload unitaire. Elle vit desormais dans UploadAdmission et les deux ecrans la lisent. Un corps que PHP a jete repond HOST_UPLOAD_LIMIT (413) avec le nombre, au lieu de « le champ fichier est obligatoire ». Le docteur signale le desaccord avant qu'une personne ne le rencontre.",
+   "found_in_production": "https://sanitube.livegine.com — Bibliotheque > Importer un catalogue"
   }
  },
  "architecture_amendments": [
@@ -1125,7 +1133,7 @@
   }
  },
  "main_sha": "14879cd",
- "current_ticket": null,
+ "current_ticket": "UPL-004",
  "tests": "1820 passed, 1 skipped, 23189 assertions",
  "phpstan": {
   "level": 6,

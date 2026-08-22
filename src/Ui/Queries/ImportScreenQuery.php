@@ -42,10 +42,22 @@ final readonly class ImportScreenQuery
      */
     public function payload(): array
     {
+        $direct = $this->storage->default() instanceof SupportsDirectUpload;
+
         return [
-            'direct' => $this->storage->default() instanceof SupportsDirectUpload,
+            'direct' => $direct,
             'accepted_types' => $this->inbox->acceptedTypes(),
             'maximum_bytes' => $this->inbox->maximumBytes(),
+
+            // UPL-004. What will *actually* refuse a file, which on a relayed
+            // deposit is PHP's own limit and not the number an operator set
+            // here. Promising the configured ceiling is how a real 4.7 MB MP3
+            // came to be refused in production with a message about neither
+            // number; the screen now states the binding one and says whose it
+            // is.
+            'effective_maximum_bytes' => $this->inbox->effectiveMaximumBytes($direct),
+            'limited_by_php' => $this->inbox->limitedByPhp($direct),
+            'php_post_limit_bytes' => $this->inbox->phpPostLimitBytes(),
             'per_request' => $this->inbox->perRequestLimit(),
             'concurrency' => $this->inbox->concurrency(),
             'max_batch' => max(1, (int) config('ingestion.max_batch', 500)),

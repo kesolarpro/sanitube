@@ -43,21 +43,16 @@ final readonly class UploadScreenQuery
         $kinds = [];
 
         foreach ($this->admission->uploadableKinds() as $kind) {
-            $configured = $this->admission->maximumBytes($kind);
-
-            // On the direct path the bytes never enter PHP, so PHP's limit is
-            // not the binding one. On the relayed path it usually is.
-            $effective = $direct || $phpLimit <= 0
-                ? $configured
-                : min($configured, $phpLimit);
-
             $kinds[] = [
                 'value' => $kind->value,
-                'maximum_bytes' => $configured,
-                'effective_maximum_bytes' => $effective,
+                'maximum_bytes' => $this->admission->maximumBytes($kind),
+                // The rule lives in UploadAdmission so both upload screens
+                // share it — see UPL-004, which found the import screen
+                // without it.
+                'effective_maximum_bytes' => $this->admission->effectiveMaximumBytes($kind, $direct),
                 // Named so the screen can explain a ceiling the operator did
                 // not set and cannot find in this application's configuration.
-                'limited_by_php' => ! $direct && $phpLimit > 0 && $phpLimit < $configured,
+                'limited_by_php' => $this->admission->limitedByPhp($kind, $direct),
                 'accepted_types' => $this->admission->acceptedTypes($kind),
             ];
         }

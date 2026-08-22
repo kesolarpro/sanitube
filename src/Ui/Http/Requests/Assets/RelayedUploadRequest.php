@@ -8,6 +8,7 @@ use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Validation\Rule;
 use SaniTube\Assets\Enums\AssetKind;
+use SaniTube\Ui\Http\Requests\Concerns\RefusesDiscardedUploads;
 
 /**
  * One file, handed to the application rather than straight to the provider.
@@ -22,6 +23,8 @@ use SaniTube\Assets\Enums\AssetKind;
  */
 final class RelayedUploadRequest extends FormRequest
 {
+    use RefusesDiscardedUploads;
+
     public function authorize(): bool
     {
         // The route is behind `can.role:catalogue`. A second copy of an

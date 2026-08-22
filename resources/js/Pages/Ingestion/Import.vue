@@ -211,6 +211,20 @@ async function deposit(item: DepositItem): Promise<void> {
         return;
     }
 
+    // UPL-004. Refused here, before a byte is sent, when the file is bigger
+    // than what will actually accept it. Uploading it anyway costs the person
+    // the whole transfer and then answers with a message about neither the
+    // file nor the limit — which is exactly how a real 4.7 MB MP3 was refused
+    // in production with "le fichier n'a pas pu être déposé".
+    const ceiling = props.capability.effective_maximum_bytes;
+
+    if (ceiling > 0 && file.size > ceiling) {
+        item.state = 'FAILED';
+        item.code = props.capability.limited_by_php ? 'HOST_UPLOAD_LIMIT' : 'FILE_TOO_LARGE';
+
+        return;
+    }
+
     item.state = 'UPLOADING';
     item.progress = 0;
     item.code = null;
@@ -391,7 +405,12 @@ function discard(): void {
         <!-- Which path this installation is on. Stated rather than hidden: it
              decides whether nine hundred masters transit PHP. -->
         <AppAlert tone="info" :title="trans(capability.direct ? 'ui.import.direct_on' : 'ui.import.direct_off')">
-            <p>{{ trans('ui.import.limit', { size: bytes(capability.maximum_bytes) }) }}</p>
+            <p>{{ trans('ui.import.limit', { size: bytes(capability.effective_maximum_bytes) }) }}</p>
+            <!-- A ceiling the operator did not set and will not find in this
+                 application's configuration deserves to say whose it is. -->
+            <p v-if="capability.limited_by_php" class="mt-1">
+                {{ trans('ui.import.limit_is_the_hosts', { size: bytes(capability.php_post_limit_bytes) }) }}
+            </p>
             <p class="mt-1">
                 {{ trans('ui.import.batching', { batch: String(capability.max_batch), at_once: String(capability.concurrency) }) }}
             </p>

@@ -117,6 +117,10 @@ final class InboxDepositController
     ): JsonResponse {
         $file = $request->upload();
 
+        // Everything below judges the file this application received. What it
+        // never received — because PHP discarded the body before any of this
+        // ran — is answered earlier, by the form request. See UPL-004.
+
         // Read from the bytes, never from the extension and never from what
         // the browser declared. `UploadedFile::getMimeType()` runs finfo over
         // the file; `getClientMimeType()` repeats whatever was sent.
@@ -126,7 +130,11 @@ final class InboxDepositController
 
         $size = $file->getSize();
 
-        if ($size === false || $size > $inbox->maximumBytes()) {
+        // The *effective* ceiling: on this path the bytes went through PHP, so
+        // PHP's limit binds when it is lower than the configured one. Using
+        // the configured maximum here would accept a file the host already
+        // truncated on a bigger request, and refuse nothing it should.
+        if ($size === false || $size > $inbox->effectiveMaximumBytes(direct: false)) {
             return response()->json(['code' => 'FILE_TOO_LARGE'], 422);
         }
 
