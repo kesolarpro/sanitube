@@ -791,6 +791,7 @@ return [
         'provider' => 'Fournisseur',
         'not_configured' => 'Aucun fournisseur de génération n\'est configuré',
         'not_configured_note' => 'Rien d\'anormal. La génération est optionnelle et SaniTube fonctionne entièrement sans elle.',
+        'configure_provider' => 'Configurer un fournisseur',
         'unavailable' => 'Le fournisseur configuré ne peut pas fonctionner',
         'unavailable_note' => 'Il est nommé dans la configuration mais déclare ne pas pouvoir accepter de travail — le plus souvent des identifiants manquants ou des conditions non acceptées.',
         'available' => 'Prêt à accepter du travail',

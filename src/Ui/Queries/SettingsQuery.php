@@ -7,6 +7,7 @@ namespace SaniTube\Ui\Queries;
 use Illuminate\Contracts\Config\Repository;
 use SaniTube\Storage\ProviderConfiguration;
 use SaniTube\Ui\Settings\ConnectionProbe;
+use SaniTube\Ui\Settings\SelectableProviders;
 
 /**
  * What this installation is configured with — and never what it is configured
@@ -59,6 +60,7 @@ final readonly class SettingsQuery
     public function __construct(
         private Repository $config,
         private ProviderConfiguration $storageProviders,
+        private SelectableProviders $providers,
     ) {}
 
     /**
@@ -152,23 +154,26 @@ final readonly class SettingsQuery
     private function ai(): array
     {
         $selected = (string) $this->config->get('ai.default', 'none');
-        /** @var array<string, mixed> $providers */
-        $providers = (array) $this->config->get('ai.providers', []);
 
         return $this->section(
             key: 'ai',
             selected: $selected,
-            known: array_key_exists($selected, $providers),
-            options: array_keys($providers),
+            // CFG-002. The same list the writer constrains the choice with, so
+            // the screen cannot offer an option saving would refuse.
+            known: $this->providers->isKnown('ai', $selected),
+            options: $this->providers->names('ai'),
             // The base URL is a *setting*, not a credential. Which endpoint
             // an installation talks to is exactly the thing an operator needs
             // to see, and hiding it behind "configured" would make a
             // misdirected integration impossible to diagnose from here.
-            settings: match ($selected) {
-                'openai' => [$this->plain('SANITUBE_OPENAI_BASE_URL', (string) $this->config->get('ai.providers.openai.base_url'))],
-                'claude' => [$this->plain('SANITUBE_CLAUDE_BASE_URL', (string) $this->config->get('ai.providers.claude.base_url'))],
-                default => [],
-            },
+            settings: [
+                $this->plain('SANITUBE_AI_PROVIDER', $selected),
+                ...match ($selected) {
+                    'openai' => [$this->plain('SANITUBE_OPENAI_BASE_URL', (string) $this->config->get('ai.providers.openai.base_url'))],
+                    'claude' => [$this->plain('SANITUBE_CLAUDE_BASE_URL', (string) $this->config->get('ai.providers.claude.base_url'))],
+                    default => [],
+                },
+            ],
             secrets: match ($selected) {
                 'openai' => [$this->secret('SANITUBE_OPENAI_KEY', 'ai.providers.openai.key')],
                 'claude' => [$this->secret('SANITUBE_CLAUDE_KEY', 'ai.providers.claude.key')],
@@ -183,15 +188,18 @@ final readonly class SettingsQuery
     private function generation(): array
     {
         $selected = (string) $this->config->get('generation.default', 'none');
-        /** @var array<string, mixed> $providers */
-        $providers = (array) $this->config->get('generation.providers', []);
 
         return $this->section(
             key: 'generation',
             selected: $selected,
-            known: array_key_exists($selected, $providers),
-            options: array_keys($providers),
+            known: $this->providers->isKnown('generation', $selected),
+            options: $this->providers->names('generation'),
             settings: [
+                // CFG-002. The engine itself, changeable from here. It was
+                // published as a word and editable nowhere, so an operator
+                // reading this screen could see that `acestep` existed and had
+                // no way to choose it.
+                $this->plain('SANITUBE_GENERATION_PROVIDER', $selected),
                 $this->plain('SANITUBE_GENERATION_MAX_POLLS', (string) $this->config->get('generation.poll.max_polls')),
                 $this->plain('SANITUBE_GENERATION_POLL_INTERVAL', (string) $this->config->get('generation.poll.interval_seconds')),
             ],
@@ -205,15 +213,13 @@ final readonly class SettingsQuery
     private function distribution(): array
     {
         $selected = (string) $this->config->get('distribution.default', 'none');
-        /** @var array<string, mixed> $providers */
-        $providers = (array) $this->config->get('distribution.distributors', []);
 
         return $this->section(
             key: 'distribution',
             selected: $selected,
-            known: array_key_exists($selected, $providers),
-            options: array_keys($providers),
-            settings: [],
+            known: $this->providers->isKnown('distribution', $selected),
+            options: $this->providers->names('distribution'),
+            settings: [$this->plain('SANITUBE_DISTRIBUTOR', $selected)],
             secrets: [],
         );
     }

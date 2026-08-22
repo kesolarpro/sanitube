@@ -29,6 +29,20 @@ return [
         // an installation with no provider account, and what a reviewer uses
         // to see the workflow end to end.
         'fake' => ['driver' => 'fake'],
+
+        // CFG-002. Self-hosted ACE-Step, reached through a generation worker.
+        // The resolution arm for this driver has existed since ADR-0019 and
+        // this declaration had not: `names()` reads the keys of this array, so
+        // the only real generation engine SaniTube has could not be chosen.
+        // Setting it anyway threw `UnknownGenerationProvider` and the settings
+        // screen reported the installation's own provider as unknown.
+        //
+        // It needs no credentials here. Everything it reaches — the worker's
+        // address, its token — lives in config/worker.php, because Core does
+        // not know where ACE-Step is and must not: the engine answers with a
+        // path on its own filesystem, and the worker is what turns that into
+        // bytes in the storage both sides share.
+        'acestep' => ['driver' => 'acestep'],
     ],
 
     /*

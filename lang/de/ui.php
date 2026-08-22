@@ -791,6 +791,7 @@ return [
         'provider' => 'Anbieter',
         'not_configured' => 'Es ist kein Generierungsanbieter eingerichtet',
         'not_configured_note' => 'Daran ist nichts falsch. Generierung ist optional, und SaniTube läuft vollständig ohne sie.',
+        'configure_provider' => 'Anbieter einrichten',
         'unavailable' => 'Der eingerichtete Anbieter kann nicht arbeiten',
         'unavailable_note' => 'Er ist in der Konfiguration benannt, meldet aber, dass er keine Arbeit annehmen kann — meist fehlende Zugangsdaten oder nicht akzeptierte Bedingungen.',
         'available' => 'Bereit, Arbeit anzunehmen',
