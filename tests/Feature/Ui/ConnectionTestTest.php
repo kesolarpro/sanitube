@@ -7,8 +7,11 @@ namespace Tests\Feature\Ui;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Mail\Transport\ArrayTransport;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Mail;
 use PHPUnit\Framework\Attributes\Test;
+use RuntimeException;
 use SaniTube\Identity\Enums\UserRole;
 use SaniTube\Observability\Certification\CertificationStatus;
 use SaniTube\Observability\Certification\ProviderStandings;
@@ -169,6 +172,116 @@ final class ConnectionTestTest extends TestCase
         $this->assertStringNotContainsString($token, (string) $response->getContent());
     }
 
+    // --------------------------------------------------------------- mail
+
+    #[Test]
+    public function the_test_message_goes_to_the_operator_and_nowhere_they_chose(): void
+    {
+        $transport = $this->capturingMailer();
+        $owner = $this->owner();
+
+        // Every shape somebody would try. A recipient read out of the request
+        // would make an authenticated account into a mailer pointed at a
+        // stranger's inbox — the classic way a "send test email" button becomes
+        // an open relay with a login page in front of it.
+        $this->actingAs($owner)
+            ->postJson('/settings/test', [
+                'target' => 'mail',
+                'address' => 'victim@example.com',
+                'email' => 'victim@example.com',
+                'to' => 'victim@example.com',
+            ])
+            ->assertOk();
+
+        $recipients = [];
+
+        foreach ($transport->messages() as $sent) {
+            foreach ($sent->getOriginalMessage()->getTo() as $address) {
+                $recipients[] = $address->getAddress();
+            }
+        }
+
+        $this->assertSame([$owner->email], $recipients);
+    }
+
+    #[Test]
+    public function a_mailer_that_delivers_nothing_says_so_rather_than_failing(): void
+    {
+        // The shipped test configuration: an array mailer is a real,
+        // deliberate choice that delivers nothing, and calling it broken would
+        // send somebody hunting a relay they never configured.
+        config(['mail.default' => 'array', 'mail.mailers.array.transport' => 'array']);
+
+        $response = $this->actingAs($this->owner())->postJson('/settings/test', ['target' => 'mail']);
+
+        $response->assertOk();
+        $this->assertSame('NOT_CONFIGURED', $response->json('status'));
+    }
+
+    #[Test]
+    public function a_transport_that_refuses_is_failed_without_repeating_what_it_said(): void
+    {
+        config(['mail.default' => 'smtp', 'mail.mailers.smtp.transport' => 'smtp']);
+
+        Mail::shouldReceive('raw')->andThrow(new RuntimeException(
+            'Failed to authenticate on SMTP server relay.internal with username "postmaster@sanitube".',
+        ));
+
+        $response = $this->actingAs($this->owner())->postJson('/settings/test', ['target' => 'mail']);
+
+        $response->assertOk();
+        $this->assertSame('FAILED', $response->json('status'));
+
+        $body = (string) $response->getContent();
+
+        $this->assertStringNotContainsString('relay.internal', $body);
+        $this->assertStringNotContainsString('postmaster@sanitube', $body);
+    }
+
+    #[Test]
+    public function a_send_the_transport_took_records_a_certification(): void
+    {
+        $this->capturingMailer();
+
+        $this->actingAs($this->owner())->postJson('/settings/test', ['target' => 'mail'])->assertOk();
+
+        $standings = $this->app->make(ProviderStandings::class);
+        $status = null;
+
+        foreach ($standings->assess() as $standing) {
+            if ($standing->key === 'mail') {
+                $status = $standing->status;
+            }
+        }
+
+        // The ledger is the point: `sanitube:providers` and this screen must
+        // agree, and neither may report CERTIFIED from a button that merely
+        // lit up green.
+        $this->assertSame(CertificationStatus::Certified, $status);
+    }
+
+    #[Test]
+    public function a_refusal_records_nothing_at_all(): void
+    {
+        config(['mail.default' => 'smtp', 'mail.mailers.smtp.transport' => 'smtp']);
+
+        Mail::shouldReceive('raw')->andThrow(new RuntimeException('nope'));
+
+        $this->actingAs($this->owner())->postJson('/settings/test', ['target' => 'mail'])->assertOk();
+
+        $status = null;
+
+        foreach ($this->app->make(ProviderStandings::class)->assess() as $standing) {
+            if ($standing->key === 'mail') {
+                $status = $standing->status;
+            }
+        }
+
+        // The whole reason the ledger exists. A send nobody accepted must not
+        // leave a reassuring timestamp behind it.
+        $this->assertNotSame(CertificationStatus::Certified, $status);
+    }
+
     // -------------------------------------------------------- the doorway
 
     #[Test]
@@ -238,6 +351,25 @@ final class ConnectionTestTest extends TestCase
     public function a_stranger_gets_nothing(): void
     {
         $this->postJson('/settings/test', ['target' => 'storage'])->assertUnauthorized();
+    }
+
+    /**
+     * A mailer that is not `log` and not `array`, and still sends nothing.
+     *
+     * The guard the certification depends on refuses to certify a mailer that
+     * delivers nothing, so proving delivery needs a transport that passes that
+     * guard. This is one: a real named transport, registered on the manager,
+     * collecting what it is given.
+     */
+    private function capturingMailer(): ArrayTransport
+    {
+        $transport = new ArrayTransport;
+
+        Mail::extend('capture', static fn (): ArrayTransport => $transport);
+        config(['mail.default' => 'smtp', 'mail.mailers.smtp' => ['transport' => 'capture']]);
+        Mail::forgetMailers();
+
+        return $transport;
     }
 
     private function owner(): User

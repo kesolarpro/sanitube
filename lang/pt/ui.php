@@ -707,6 +707,25 @@ return [
         'testing' => 'A testar…',
         'probe_unreachable' => 'Não foi possível executar o teste. Nada foi alterado.',
         'probe_note' => 'Executa a mesma verificação usada pelos controlos de implementação e regista uma certificação real quando passa. Um teste de armazenamento escreve, lê e apaga o seu próprio objeto, sem deixar nada. Nunca é mostrado um endereço nem uma credencial.',
+        // CFG-003. Where each provider integration actually stands,
+        // read from the ledger. Six words and never a boolean: "is it
+        // working?" answered yes-or-no is how a platform ships
+        // claiming things nobody ever ran.
+        'standings' => 'Está provado?',
+        'standings_note' => 'O que uma certificação real registou, não o que está acessível neste momento — mostrar esta página nunca deve depender de nove fornecedores responderem. Um teste registado aqui é um teste que correu realmente contra a configuração então em vigor.',
+        'standing_provider' => 'Fornecedor',
+        'standing_status' => 'Estado',
+        'standing_detail' => 'O que isso significa',
+        'certified_at' => 'Provado em',
+        'probe_mail_note' => 'Envia uma única mensagem real para o seu próprio endereço. Para mais lado nenhum: um endereço escrito nesta página tornaria a plataforma um servidor de correio que qualquer pessoa com conta poderia apontar a um estranho.',
+        'standing' => [
+            'CERTIFIED' => 'Provado',
+            'CODE_READY' => 'Construído, nada a configurar',
+            'CONFIGURED_UNCERTIFIED' => 'Configurado, nunca provado',
+            'NOT_CONFIGURED' => 'Não configurado',
+            'BLOCKED_EXTERNAL' => 'À espera de outra pessoa',
+            'UNAVAILABLE' => 'Não existe',
+        ],
         'probe' => [
             'CONNECTED' => 'Funciona',
             'DEGRADED' => 'Funciona, com limites',

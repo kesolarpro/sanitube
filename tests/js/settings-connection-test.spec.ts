@@ -53,7 +53,7 @@ function overview(): SettingsOverview {
 }
 
 function screen() {
-    return mount(Settings, { props: { settings: overview(), writable: [] } });
+    return mount(Settings, { props: { settings: overview(), writable: [], standings: [] } });
 }
 
 function testButtons(wrapper: ReturnType<typeof screen>) {

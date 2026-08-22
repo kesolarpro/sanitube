@@ -707,6 +707,25 @@ return [
         'testing' => 'Wird getestet…',
         'probe_unreachable' => 'Der Test konnte nicht ausgeführt werden. Es wurde nichts geändert.',
         'probe_note' => 'Dies führt dieselbe Prüfung aus wie die Deployment-Kontrollen und trägt bei Erfolg eine echte Zertifizierung ein. Eine Speicherprüfung schreibt, liest und löscht ihr eigenes Objekt und lässt nichts zurück. Es wird niemals eine Adresse oder ein Zugangsschlüssel angezeigt.',
+        // CFG-003. Where each provider integration actually stands,
+        // read from the ledger. Six words and never a boolean: "is it
+        // working?" answered yes-or-no is how a platform ships
+        // claiming things nobody ever ran.
+        'standings' => 'Ist das bewiesen?',
+        'standings_note' => 'Was eine echte Zertifizierung festgehalten hat, nicht was gerade erreichbar ist — diese Seite darf nie davon abhängen, dass neun Anbieter antworten. Ein hier festgehaltener Test ist ein Test, der tatsächlich gegen die damals geltende Konfiguration lief.',
+        'standing_provider' => 'Anbieter',
+        'standing_status' => 'Stand',
+        'standing_detail' => 'Was das bedeutet',
+        'certified_at' => 'Bewiesen am',
+        'probe_mail_note' => 'Sendet genau eine echte Nachricht an Ihre eigene Adresse. An keine andere: eine auf dieser Seite eingegebene Adresse würde die Plattform zu einem Mailer machen, den jeder mit einem Konto auf Fremde richten könnte.',
+        'standing' => [
+            'CERTIFIED' => 'Bewiesen',
+            'CODE_READY' => 'Gebaut, nichts einzurichten',
+            'CONFIGURED_UNCERTIFIED' => 'Eingerichtet, nie bewiesen',
+            'NOT_CONFIGURED' => 'Nicht eingerichtet',
+            'BLOCKED_EXTERNAL' => 'Wartet auf jemand anderen',
+            'UNAVAILABLE' => 'Gibt es nicht',
+        ],
         'probe' => [
             'CONNECTED' => 'Funktioniert',
             'DEGRADED' => 'Funktioniert, mit Einschränkungen',
